@@ -18,7 +18,7 @@ function getFirebaseAdminApp() {
   // to write to DB/Auth.
   return initializeApp(
     {
-      projectId: 'ragab-490cc',
+      projectId: 'ragab-pharmacy',
     },
     APP_NAME,
   );
