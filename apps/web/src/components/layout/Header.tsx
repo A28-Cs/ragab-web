@@ -345,7 +345,7 @@ export const Header: React.FC = () => {
                 className={cn(
                   'px-3 h-10 inline-flex items-center rounded-xl text-body-sm font-bold transition-colors focus-ring whitespace-nowrap',
                   active
-                    ? 'bg-ragab-cream text-ragab-ink-900'
+                    ? 'bg-ragab-brand-500 text-white'
                     : 'text-ragab-ink-700 hover:text-ragab-ink-900 hover:bg-ragab-ink-50'
                 )}
               >
@@ -355,19 +355,27 @@ export const Header: React.FC = () => {
           })}
         </nav>
 
-        {/* ===== Category rail (tablet md–lg) ===== */}
+        {/* ===== Category rail (tablet md-lg) ===== */}
         <div className="hidden md:block lg:hidden pb-3">
           <div className="scroll-rail">
-            {navCategories.map((c) => (
-              <Link
-                key={c.id}
-                href={`/category/${c.slug}`}
-                className="shrink-0 h-9 px-3.5 inline-flex items-center gap-1.5 rounded-full bg-white hover:bg-ragab-cream-soft border border-ragab-ink-200 hover:border-ragab-brand-300 text-body-sm font-bold text-ragab-ink-700 font-arabic transition-colors focus-ring"
-              >
-                <span aria-hidden="true">{categoryEmoji(c)}</span>
-                {isRTL ? c.nameAr : c.nameEn}
-              </Link>
-            ))}
+            {navCategories.map((c) => {
+              const active = pathname === `/category/${c.slug}`;
+              return (
+                <Link
+                  key={c.id}
+                  href={`/category/${c.slug}`}
+                  className={cn(
+                    'shrink-0 h-9 px-3.5 inline-flex items-center gap-1.5 rounded-full border text-body-sm font-bold font-arabic transition-colors focus-ring',
+                    active 
+                      ? 'bg-ragab-brand-500 border-ragab-brand-500 text-white' 
+                      : 'bg-white hover:bg-ragab-cream-soft border-ragab-ink-200 hover:border-ragab-brand-300 text-ragab-ink-700'
+                  )}
+                >
+                  <span aria-hidden="true">{categoryEmoji(c)}</span>
+                  {isRTL ? c.nameAr : c.nameEn}
+                </Link>
+              );
+            })}
           </div>
         </div>
       </div>
