@@ -16,7 +16,6 @@ const EMOJI_BY_ICON: Record<string, string> = {
   cookie: '🍪',
   croissant: '🥖',
   sparkles: '🧴',
-  heart: '🧴',
   'spray-can': '🧼',
   snowflake: '🧊',
   wheat: '🌾',
@@ -40,7 +39,6 @@ const EMOJI_BY_ICON: Record<string, string> = {
   scissors: '✂️',
   palette: '💄',
   'heart-pulse': '🩺',
-  heart: '❤️',
 };
 
 export function categoryEmoji(category: Pick<Category, 'iconName'>): string {
