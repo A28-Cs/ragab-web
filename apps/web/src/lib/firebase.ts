@@ -3,13 +3,13 @@ import { getFirestore } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider, OAuthProvider } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBnTTk-bMD5XYt1Uh-FzWLQ6iY5SPKE-F0",
-  authDomain: "ragab-490cc.firebaseapp.com",
-  projectId: "ragab-490cc",
-  storageBucket: "ragab-490cc.firebasestorage.app",
-  messagingSenderId: "635950199489",
-  appId: "1:635950199489:web:9a6d96b9ef19ecf7abda40",
-  measurementId: "G-YXV9XH6NJQ"
+  apiKey: "AIzaSyBcwoqzu6TpbsKoPIr-BxDMhO0M5fr6GIQ",
+  authDomain: "ragab-pharmacy.firebaseapp.com",
+  projectId: "ragab-pharmacy",
+  storageBucket: "ragab-pharmacy.firebasestorage.app",
+  messagingSenderId: "845568085802",
+  appId: "1:845568085802:web:2c87d0568df93feb545853",
+  measurementId: "G-898W3RKVVM"
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
