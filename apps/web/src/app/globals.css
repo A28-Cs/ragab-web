@@ -11,7 +11,7 @@
   --color-bg: #fbfaf6;
   --color-surface: #ffffff;
   --color-ink: #26231f;
-  --color-brand: #f4c430;
+  --color-brand: #14b8a6;
   --color-ink-300: #d4d0c7;
 
   /* Layout chrome measurements consumed by sticky elements. */
@@ -94,3 +94,4 @@ body.has-modal-open .mobile-sticky-cta {
   z-index: -10 !important;
   visibility: hidden !important;
 }
+
