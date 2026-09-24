@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Font variables are injected by next/font in layout.tsx; these are fallbacks. */
+  --font-cairo: 'Cairo', 'Tajawal', sans-serif;
+  --font-poppins: 'Poppins', sans-serif;
+
+  /* Design tokens mirrored from tailwind.config.ts — single palette source. */
+  --color-bg: #fbfaf6;
+  --color-surface: #ffffff;
+  --color-ink: #26231f;
+  --color-brand: #f4c430;
+  --color-ink-300: #d4d0c7;
+
+  /* Layout chrome measurements consumed by sticky elements. */
+  --bottom-nav-h: 64px;
+  --header-h: 72px;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-cairo), system-ui, -apple-system, sans-serif;
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  /* Page container — one rhythm across all routes */
+  .container-page {
+    @apply mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Unified focus treatment for every interactive element */
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-ragab-brand-500 focus-visible:ring-offset-2;
+  }
+
+  /* Standard elevated card surface */
+  .card-surface {
+    @apply bg-ragab-surface rounded-2xl border border-ragab-ink-200 shadow-subtle;
+  }
+
+  /* Horizontal snap rail (category chips, product carousels on mobile) */
+  .scroll-rail {
+    @apply flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-px-4;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scroll-rail::-webkit-scrollbar {
+    display: none;
+  }
+  .scroll-rail > * {
+    @apply snap-start shrink-0;
+  }
+
+  /* Minimum touch target */
+  .touch-target {
+    @apply min-w-[44px] min-h-[44px];
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-ink-300);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand);
+}
+
+/* Hide mobile bottom navigation bar and sticky CTA when any modal or popup is open */
+body[style*="overflow: hidden"] .mobile-bottom-nav,
+body.has-modal-open .mobile-bottom-nav,
+body[style*="overflow: hidden"] .mobile-sticky-cta,
+body.has-modal-open .mobile-sticky-cta {
+  transform: translateY(100%) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -10 !important;
+  visibility: hidden !important;
+}

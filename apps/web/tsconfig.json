@@ -1,0 +1,25 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@ragab/brand": ["../../packages/brand/src/index.ts"],
+      "@ragab/ui": ["../../packages/ui/src/index.ts"],
+      "@ragab/types": ["../../packages/types/src/index.ts"],
+      "@ragab/config": ["../../packages/config/src/index.ts"],
+      "@ragab/utils": ["../../packages/utils/src/index.ts"],
+      "@ragab/validation": ["../../packages/validation/src/index.ts"],
+      "@ragab/server": ["../../packages/server/src/index.ts"],
+      "@ragab/server/*": ["../../packages/server/src/*"],
+      "@ragab/*": ["../../packages/*/src"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

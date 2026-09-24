@@ -1,0 +1,11 @@
+# Global Code Ownership for Ragab Platform Monorepo
+
+*                   @ragab/engineering
+apps/web/           @ragab/engineering
+apps/admin/         @ragab/engineering
+apps/mobile/        @ragab/engineering
+packages/brand/     @ragab/product-design @ragab/engineering
+packages/ui/        @ragab/product-design @ragab/engineering
+packages/types/     @ragab/engineering
+packages/api-client/ @ragab/engineering
+packages/i18n/      @ragab/engineering @ragab/product-design

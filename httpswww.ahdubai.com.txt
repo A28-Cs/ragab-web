@@ -1,0 +1,6 @@
+SALLA_APP_ID=1149970688	
+SALLA_CLIENT_ID=9d75f956-4ef4-49a7-9f0a-e8927fde9e47
+SALLA_CLIENT_SECRET=6f08af37bb295f5e30e3c4bb7b1bdaa4a33a2fb4fba8ae3d22ca1b013e88df08
+SALLA_WEBHOOK_SECRET=37689ae97ce7061665c3d3f220c563c806d774548d8dfa7be328076c62d44776
+
+Phase 2 (لسه): إنشاء طلبات حقيقية من شحنات سلة + رد AWB المتزامن + تخزين توكنات OAuth لكل تاجر + استدعاء API سلة. محجوزة على schema سلة الدقيق (تطلبه من سلة) وتفعيل AWB من partners@salla.sa.

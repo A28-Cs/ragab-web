@@ -1,0 +1,19 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for Ragab products
+title: "[FEATURE]: "
+labels: ["type:feature"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Feature Description
+      description: Describe the feature or improvement.
+    validations:
+      required: true
+  - type: textarea
+    id: user_value
+    attributes:
+      label: User Value
+      description: How does this help Ragab customers or store staff?
+    validations:
+      required: true
