@@ -37,6 +37,7 @@ async function loadCategoryFallback(
   preferredSlugs: string[],
   exclude: string | undefined,
   allCategories: Category[],
+  shownIds: Set<string>,
 ): Promise<CategoryFallback | null> {
   const category = preferredSlugs
     .filter((slug) => slug !== exclude)
@@ -45,7 +46,10 @@ async function loadCategoryFallback(
   if (!category) return null;
   try {
     // Best sellers first — not the default newest-first, which surfaces whatever was imported last.
-    const products = (await getProducts({ categoryId: category.id, sortBy: 'popular' })).slice(0, 4);
+    // A few spare rows so products already shown higher on the page can be skipped.
+    const products = (await getProducts({ categoryId: category.id, sortBy: 'popular', limit: 12 }))
+      .filter((p) => !shownIds.has(p.id))
+      .slice(0, 4);
     return products.length > 0 ? { category, products } : null;
   } catch {
     return null;
@@ -88,10 +92,11 @@ export default function HomePage() {
       // whichever department the popular section already fell back to.
       const fallbackSlugs = ['medications', 'personal-care', 'vitamins', 'baby-care', 'skin-care'];
       const popFallback =
-        popRes.length === 0 ? await loadCategoryFallback(fallbackSlugs, undefined, catsRes) : null;
+        popRes.length === 0 ? await loadCategoryFallback(fallbackSlugs, undefined, catsRes, seen) : null;
+      popFallback?.products.forEach((p) => seen.add(p.id));
       const essFallback =
         essentials.length === 0
-          ? await loadCategoryFallback(fallbackSlugs, popFallback?.category.slug, catsRes)
+          ? await loadCategoryFallback(fallbackSlugs, popFallback?.category.slug, catsRes, seen)
           : null;
       setPopularFallback(popFallback);
       setEssentialFallback(essFallback);

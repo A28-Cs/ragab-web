@@ -352,9 +352,9 @@ export async function queryProducts(
 
   const hasMore = rows.length > f.limit;
   const finalRows = hasMore ? rows.slice(0, f.limit) : rows;
-  await attachVariants(finalRows, exec);
-  await attachImages(finalRows, exec);
-  
+  // Independent lookups — run them together so a listing costs one round-trip, not two.
+  await Promise.all([attachVariants(finalRows, exec), attachImages(finalRows, exec)]);
+
   const last = finalRows[finalRows.length - 1];
   const useCursor = !f.sortBy || f.sortBy === 'newest';
   const nextCursor = hasMore
@@ -406,8 +406,8 @@ export async function flagProducts(
     .where(and(...conds))
     .orderBy(sql`${products.createdAt} DESC`)
     .limit(limit)) as unknown as ProductRow[];
-  await attachVariants(rows, exec);
-  return attachImages(rows, exec);
+  await Promise.all([attachVariants(rows, exec), attachImages(rows, exec)]);
+  return rows;
 }
 
 /** Batch-load products by id (for the cart), including available stock. No N+1. */

@@ -88,25 +88,26 @@ export async function getProductBySlug(slug: string): Promise<Product> {
   return toProductDto(row);
 }
 
-/** Storefront-visible products flagged `isPopular`. */
+/**
+ * Best sellers: curated `isPopular` first, then real sales rank — the same order as
+ * `sortBy=popular`. Filtering the newest 48 rows for the flag (the old approach) came
+ * back empty on an imported catalog and pushed the home page into extra fallback fetches.
+ */
 export async function getPopularProducts(limit = 8): Promise<Product[]> {
-  const { rows } = await queryProducts({ limit: Math.max(limit * 4, 48) } as ProductFiltersInput, { visibleOnly: true });
-  return rows.filter((r) => r.isPopular).slice(0, limit).map(toProductDto);
+  const { rows } = await queryProducts({ limit, sortBy: 'popular' } as ProductFiltersInput, { visibleOnly: true });
+  return rows.map(toProductDto);
 }
 /** Storefront-visible products flagged `isEssential` (household-staples rail). */
 export async function getEssentialProducts(limit = 8): Promise<Product[]> {
-  const { rows } = await queryProducts({ limit: Math.max(limit * 4, 48) } as ProductFiltersInput, { visibleOnly: true });
-  return rows.filter((r) => r.isEssential).slice(0, limit).map(toProductDto);
+  return (await flagProducts('isEssential', limit)).map(toProductDto);
 }
 /** Storefront-visible products currently carrying a real discount. */
 export async function getOfferProducts(limit = 8): Promise<Product[]> {
   const { rows } = await queryProducts(
-    { limit: Math.max(limit * 4, 48), sortBy: 'discount' } as ProductFiltersInput,
+    { limit, sortBy: 'discount', offersOnly: true } as ProductFiltersInput,
     { visibleOnly: true },
   );
   return rows
-    .filter((r) => r.oldPriceMinor != null && r.oldPriceMinor > r.priceMinor)
-    .slice(0, limit)
     .map(toProductDto);
 }
 

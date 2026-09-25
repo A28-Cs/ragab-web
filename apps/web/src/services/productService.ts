@@ -19,6 +19,8 @@ export interface ProductFilters {
   lowStockOnly?: boolean;
   brand?: string;
   sortBy?: 'popular' | 'price_low' | 'price_high' | 'newest' | 'discount' | 'rating';
+  /** Storefront page size (default 100) — pass a small one when only a few cards are shown. */
+  limit?: number;
 }
 
 /**
@@ -65,7 +67,7 @@ export const getProducts = async (filters?: ProductFilters, signal?: AbortSignal
     offersOnly: filters?.offersOnly,
     brand: filters?.brand,
     sortBy: filters?.sortBy,
-    limit: 100,
+    limit: filters?.limit ?? 100,
   }, signal);
   return page.items;
 };
