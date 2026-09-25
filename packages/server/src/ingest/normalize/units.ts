@@ -26,6 +26,8 @@ export interface ParsedSize {
   /** Value of a SINGLE unit (330 for "330ml x 20"), not the pack total. */
   unitValue: number | null;
   unitMeasure: UnitMeasure | null;
+  /** The unit word exactly as written ("قرص", "مل", "أكياس") — keeps "14 قرص" instead of "14 قطعة". */
+  unitToken: string | null;
   /** Multiplier, e.g. 20 for "330ml x 20". No DB column — display string only. */
   packCount: number | null;
   /** Container noun for the display string, e.g. زجاجة / Bottles. */
@@ -37,8 +39,11 @@ export interface ParsedSize {
   warnings: string[];
 }
 
-/** Separators that introduce the size portion of a name. */
-const SEP_RE = /\s*[-–—]\s*/g;
+/**
+ * Separators that introduce the size portion of a name. `|` is Chefaa's: "كنترولوك | 40مجم |
+ * لعلاج قرحة المعدة | 14 قرص" — the pack is the last segment, the strength a middle one.
+ */
+const SEP_RE = /\s*[-–—|]\s*/g;
 
 /** Build the unit alternation once, longest-token-first (see facets.ts). */
 const UNIT_ALTERNATION = UNIT_TOKENS_SORTED.map((u) => escapeRe(u.token)).join('|');
@@ -142,14 +147,17 @@ export function parseSize(rawName: string): ParsedSize {
 
   let unitValue: number | null = null;
   let unitMeasure: UnitMeasure | null = null;
+  let unitToken: string | null = null;
 
   const vu = VALUE_UNIT_RE.exec(target);
   if (vu) {
     unitValue = toNumber(vu[1]!);
+    unitToken = vu[2]!;
     unitMeasure = UNIT_LOOKUP.get(fold(vu[2]!)) ?? UNIT_LOOKUP.get(vu[2]!.toLowerCase()) ?? null;
   } else {
     const uv = UNIT_VALUE_RE.exec(target);
     if (uv) {
+      unitToken = uv[1]!;
       unitMeasure = UNIT_LOOKUP.get(fold(uv[1]!)) ?? UNIT_LOOKUP.get(uv[1]!.toLowerCase()) ?? null;
       unitValue = toNumber(uv[2]!);
     }
@@ -193,7 +201,7 @@ export function parseSize(rawName: string): ParsedSize {
   if (!sizeFoundInTail && vu) descriptor = numeric.slice(0, vu.index);
   descriptor = scrub(descriptor);
 
-  return { unitValue, unitMeasure, packCount, containerNoun, baseQuantity, descriptor, warnings };
+  return { unitValue, unitMeasure, unitToken, packCount, containerNoun, baseQuantity, descriptor, warnings };
 }
 
 /**
@@ -233,6 +241,36 @@ export function reconcileSize(
   return { size: primary, warnings: [...primary.warnings, ...warnings] };
 }
 
+/** Arabic count noun (folded) → English plural, for the unitEn of a 'pc' size. */
+const EN_COUNT_NOUNS: ReadonlyArray<[RegExp, string]> = [
+  [/^(قرص|اقراص)$/, 'tablets'],
+  [/^كبسول/, 'capsules'],
+  [/^(شريط|شرائط|شرايط)$/, 'strips'],
+  [/^امبول/, 'ampoules'],
+  [/^فيال/, 'vials'],
+  [/^(لبوس|قمع|اقماع)/, 'suppositories'],
+  [/^(فيلم|افلام)$/, 'films'],
+  [/^(كيس|اكياس|ظرف|اظرف|مظروف)$/, 'sachets'],
+  [/^(حقن|حقنه|حقنة)$/, 'injections'],
+  [/^(لاصق|لصق)/, 'patches'],
+  [/^(زجاجه|زجاجة|زجاجات)$/, 'bottles'],
+  [/^(علبه|علبة|علب)$/, 'boxes'],
+];
+
+/**
+ * The count noun to print for a 'pc' size: the source's own word in Arabic (it is already
+ * grammatical for its number — "14 قرص", "3 أقراص"), a mapped plural in English. Null → the
+ * generic قطعة/pc fallback.
+ */
+function countNoun(token: string | null, lang: 'ar' | 'en'): string | null {
+  if (!token) return null;
+  const isLatin = /^[a-z]+$/i.test(token);
+  if (lang === 'ar') return isLatin ? null : token;
+  if (isLatin) return token.toLowerCase();
+  const folded = fold(token);
+  return EN_COUNT_NOUNS.find(([re]) => re.test(folded))?.[1] ?? null;
+}
+
 /** Human display strings. Uses U+00D7, never the source's ASCII `*`. */
 export function formatUnit(size: ParsedSize, lang: 'ar' | 'en'): string {
   const AR_UNITS: Record<UnitMeasure, string> = { L: 'لتر', ml: 'مل', kg: 'كجم', g: 'جم', pc: 'قطعة' };
@@ -245,6 +283,7 @@ export function formatUnit(size: ParsedSize, lang: 'ar' | 'en'): string {
   }
   const units = lang === 'ar' ? AR_UNITS : EN_UNITS;
   const value = Number.isInteger(size.unitValue) ? String(size.unitValue) : String(size.unitValue);
-  const base = `${value} ${units[size.unitMeasure]}`;
+  const noun = size.unitMeasure === 'pc' ? countNoun(size.unitToken, lang) : null;
+  const base = `${value} ${noun ?? units[size.unitMeasure]}`;
   return size.packCount ? `${base} × ${size.packCount}` : base;
 }

@@ -149,7 +149,9 @@ export const UNIT_LEXICON: ReadonlyArray<{ tokens: readonly string[]; measure: U
   // Safe despite being single characters because the matcher requires a digit before and a
   // non-letter after, and longest-first ordering means كجم/كيلو are tried first.
   { tokens: ['كيلوجرام', 'كيلوغرام', 'كيلو', 'كجم', 'كج', 'ك', 'kilogram', 'kilo', 'kgs', 'kg', 'k'], measure: 'kg' },
-  { tokens: ['ملليجرام', 'مليجرام', 'مجم', 'milligram', 'mg'], measure: 'g' },
+  // NO milligram tokens (مجم / mg): in a pharmacy "40مجم" is a drug STRENGTH, not the pack
+  // size. Folding it to grams printed "Controloc 40mg" as "40 جم". The pack size lives in a
+  // count noun ("14 قرص") — see the pharmacy nouns in the 'pc' entry below.
   { tokens: ['جرامات', 'جرام', 'غرام', 'جم', 'grams', 'gram', 'gms', 'gm', 'gr', 'g'], measure: 'g' },
   { tokens: ['لتر', 'لتره', 'litres', 'litre', 'liters', 'liter', 'ltrs', 'ltr', 'lt', 'l'], measure: 'L' },
   {
@@ -163,6 +165,13 @@ export const UNIT_LEXICON: ReadonlyArray<{ tokens: readonly string[]; measure: U
       // Count nouns: "12 لون" (12 colours), "12 قلم" (12 pens) are counts, not measures.
       'لون', 'الوان', 'قلم', 'اقلام', 'ورقه', 'ورقة', 'فوطه', 'فوطة', 'منديل',
       'colors', 'colours', 'pencils', 'pens', 'sheets', 'towels', 'wipes', 'tablets', 'capsules',
+      // Pharmacy pack nouns ("24 قرص", "30 كبسولة", "1 امبول", "10 لبوس", "2 شريط").
+      'قرص', 'أقراص', 'اقراص', 'كبسول', 'كبسوله', 'كبسولة', 'كبسولات', 'شريط', 'شرائط', 'شرايط',
+      'قمع', 'أقماع', 'اقماع', 'لصقه', 'لصقة', 'لصقات',
+      'أمبول', 'امبول', 'أمبولات', 'امبولات', 'أمبولة', 'امبولة', 'فيال', 'فيالات', 'لبوس', 'لبوسات',
+      'أكياس', 'أظرف', 'اظرف', 'فيلم', 'أفلام', 'افلام', 'حقنه', 'حقنة', 'حقن', 'لاصقه', 'لاصقة', 'لاصقات',
+      'tablet', 'tabs', 'tab', 'capsule', 'caps', 'strips', 'strip', 'ampoules', 'ampoule', 'amps',
+      'vials', 'vial', 'suppositories', 'suppository', 'films', 'patches', 'patch', 'syringes',
     ],
     measure: 'pc',
   },

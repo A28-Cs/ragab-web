@@ -15,6 +15,18 @@ import { Switch } from '../../../components/ui/Switch';
 import { ImageUpload } from '../../../components/ui/ImageUpload';
 import { ImageGalleryUpload } from '../../../components/ui/ImageGalleryUpload';
 import { categoryEmoji } from '../../../lib/categoryPresentation';
+import {
+  buildVariants,
+  contentLabel,
+  CONTENT_UNIT_ORDER,
+  CONTENT_UNITS,
+  EMPTY_PACKAGING,
+  PACKAGE_TYPES,
+  packageLabel,
+  readPackaging,
+  type PackageType,
+  type PackagingState,
+} from './pharmacyPackaging';
 
 interface Section {
   id: string;
@@ -41,295 +53,44 @@ export const ProductWizard: React.FC<ProductWizardProps> = ({
   const { t, language } = useLanguage();
   const ar = language === 'ar';
 
-  // State for packaging and pricing
-  const [packageCount, setPackageCount] = useState<number | ''>('');
-  const [calcMethod, setCalcMethod] = useState<'piece' | 'weight'>('piece');
-  const [unitsPerPackage, setUnitsPerPackage] = useState<number | ''>('');
-  const [isWholesaleOnly, setIsWholesaleOnly] = useState(false);
-  const [packagePrice, setPackagePrice] = useState<number | ''>('');
-  const [unitPrice, setUnitPrice] = useState<number | ''>('');
-  const [halfKiloPrice, setHalfKiloPrice] = useState<number | ''>('');
-  const [quarterKiloPrice, setQuarterKiloPrice] = useState<number | ''>('');
-  const [packageOldPrice, setPackageOldPrice] = useState<number | ''>('');
-  const [unitOldPrice, setUnitOldPrice] = useState<number | ''>('');
-  const [halfKiloOldPrice, setHalfKiloOldPrice] = useState<number | ''>('');
-  const [quarterKiloOldPrice, setQuarterKiloOldPrice] = useState<number | ''>('');
+  // Pharmacy packaging & pricing — see ./pharmacyPackaging.ts.
+  const [pkg, setPkg] = useState<PackagingState>(EMPTY_PACKAGING);
+  const setP = (patch: Partial<PackagingState>) => setPkg((prev) => ({ ...prev, ...patch }));
+  const num = (v: string): number | '' => (v === '' ? '' : Number(v));
   const [showEnglishName, setShowEnglishName] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
-    if (isEdit && form.variants && form.variants.length > 0) {
-       const defVariant = form.variants.find(v => v.isDefault) || form.variants[0];
-       const pieceVariant = form.variants.find(v => !v.isDefault && v.unitMeasure === 'pc');
-       const weightVariant = form.variants.find(v => !v.isDefault && v.unitMeasure === 'kg');
+    setPkg(isEdit ? readPackaging(form) : EMPTY_PACKAGING);
+    setShowEnglishName(!!form.nameEn);
+    // Re-seed only when the wizard opens or switches product, not on every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, isEdit, form.id]);
 
-       if (weightVariant) {
-         setCalcMethod('weight');
-         setPackageCount(defVariant.stockQuantity);
-         setPackagePrice(defVariant.price);
-         setUnitPrice(weightVariant.price);
-         setUnitsPerPackage(defVariant.unitValue || '');
-         setIsWholesaleOnly(false);
-         
-         const halfV = form.variants.find(v => !v.isDefault && v.unitMeasure === 'kg' && v.unitValue === 0.5);
-         const quarterV = form.variants.find(v => !v.isDefault && v.unitMeasure === 'kg' && v.unitValue === 0.25);
-         setHalfKiloPrice(halfV ? halfV.price : '');
-         setQuarterKiloPrice(quarterV ? quarterV.price : '');
-         
-         setPackageOldPrice(defVariant.oldPrice || '');
-         setUnitOldPrice(weightVariant.oldPrice || '');
-         setHalfKiloOldPrice(halfV?.oldPrice || '');
-         setQuarterKiloOldPrice(quarterV?.oldPrice || '');
-       } else if (pieceVariant) {
-         setCalcMethod('piece');
-         setPackageCount(defVariant.stockQuantity);
-         setPackagePrice(defVariant.price);
-         setUnitPrice(pieceVariant.price);
-         const stockRatio = defVariant.stockQuantity > 0 ? Math.round(pieceVariant.stockQuantity / defVariant.stockQuantity) : 0;
-         setUnitsPerPackage(stockRatio || defVariant.unitValue || '');
-         setIsWholesaleOnly(false);
-         
-         setPackageOldPrice(defVariant.oldPrice || '');
-         setUnitOldPrice(pieceVariant.oldPrice || '');
-         setHalfKiloOldPrice('');
-         setQuarterKiloOldPrice('');
-       } else {
-         setCalcMethod(defVariant.unitMeasure === 'kg' ? 'weight' : 'piece');
-         setPackageCount(defVariant.stockQuantity);
-         setPackagePrice(defVariant.price);
-         setUnitPrice('');
-         setUnitsPerPackage(defVariant.unitValue || '');
-         setIsWholesaleOnly(true);
-         
-         setPackageOldPrice(defVariant.oldPrice || '');
-         setUnitOldPrice('');
-         setHalfKiloOldPrice('');
-         setQuarterKiloOldPrice('');
-       }
-    } else if (!isEdit) {
-      setPackageCount('');
-      setCalcMethod('piece');
-      setUnitsPerPackage('');
-      setIsWholesaleOnly(false);
-      setPackagePrice('');
-      setUnitPrice('');
-      setPackageOldPrice('');
-      setUnitOldPrice('');
-      setHalfKiloOldPrice('');
-      setQuarterKiloOldPrice('');
-    } else {
-       setCalcMethod('piece');
-       setPackageCount(form.stockQuantity || '');
-       setPackagePrice(form.price || '');
-       setUnitPrice('');
-       setUnitsPerPackage('');
-       setIsWholesaleOnly(true);
-       
-       setPackageOldPrice(form.oldPrice || '');
-       setUnitOldPrice('');
-       setHalfKiloOldPrice('');
-       setQuarterKiloOldPrice('');
-    }
-    
-    if (form.nameEn) {
-       setShowEnglishName(true);
-    } else {
-       setShowEnglishName(false);
-    }
-  }, [isOpen, isEdit, form]);
-
-  const handleUnitPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    const num = val ? Number(val) : '';
-    setUnitPrice(num);
-    if (calcMethod === 'weight' && typeof num === 'number') {
-      setHalfKiloPrice(num / 2);
-      setQuarterKiloPrice(num / 4);
-    } else if (val === '') {
-      setHalfKiloPrice('');
-      setQuarterKiloPrice('');
-    }
-  };
-
-  const handleUnitOldPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    const num = val ? Number(val) : '';
-    setUnitOldPrice(num);
-    if (calcMethod === 'weight' && typeof num === 'number') {
-      setHalfKiloOldPrice(num / 2);
-      setQuarterKiloOldPrice(num / 4);
-    } else if (val === '') {
-      setHalfKiloOldPrice('');
-      setQuarterKiloOldPrice('');
-    }
+  const selectPackageType = (type: PackageType) => {
+    const def = PACKAGE_TYPES.find((t) => t.id === type)!.defaultContent;
+    setP({ packageType: type, contentUnit: def, ...(type !== 'box' ? { sellByStrip: false } : {}) });
   };
 
   const handleSave = () => {
-    let variants: ProductVariant[] | undefined = undefined;
-    
-    const count = Number(packageCount) || 0;
-    const units = Number(unitsPerPackage) || 1;
-    const pPrice = Number(packagePrice) || 0;
-    const uPrice = Number(unitPrice) || 0;
-    const pOldPrice = Number(packageOldPrice) || undefined;
-    const uOldPrice = Number(unitOldPrice) || undefined;
-    const hOldPrice = Number(halfKiloOldPrice) || undefined;
-    const qOldPrice = Number(quarterKiloOldPrice) || undefined;
-
     const baseSku = `${(form.nameEn || 'UNIT').toUpperCase().replace(/[^A-Z0-9]+/g, '-').slice(0, 20)}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-
-    const oldVariants = form.variants || [];
-    const getOldId = (idx: number) => oldVariants[idx]?.id || '';
-
-    if (isWholesaleOnly) {
-       variants = [{
-         id: getOldId(0),
-         sku: baseSku + '-PKG',
-         nameAr: 'عبوة',
-         nameEn: 'Package',
-         unitAr: 'عبوة',
-         unitEn: 'pkg',
-         unitValue: 1,
-         unitMeasure: 'pc',
-         price: pPrice,
-           oldPrice: pOldPrice,
-         stockQuantity: count,
-         inStock: true,
-         isActive: true,
-         isDefault: true,
-         sortOrder: 0
-       }];
-    } else if (calcMethod === 'piece') {
-       variants = [
-         {
-           id: getOldId(0),
-           sku: baseSku + '-PKG',
-           nameAr: `عبوة ${units} قطعة`,
-           nameEn: `${units} pc Package`,
-           unitAr: 'عبوة',
-           unitEn: 'pkg',
-           unitValue: units,
-           unitMeasure: 'pc',
-           price: pPrice,
-           oldPrice: pOldPrice,
-           stockQuantity: count,
-           inStock: true,
-           isActive: true,
-           isDefault: true,
-           sortOrder: 0
-         },
-         {
-           id: getOldId(1),
-           sku: baseSku + '-PC',
-           nameAr: 'قطعة واحدة',
-           nameEn: '1 Piece',
-           unitAr: 'قطعة',
-           unitEn: 'pc',
-           unitValue: 1,
-           unitMeasure: 'pc',
-           price: uPrice,
-           oldPrice: uOldPrice,
-           stockQuantity: count * units,
-           inStock: true,
-           isActive: true,
-           isDefault: false,
-           sortOrder: 1
-         }
-       ];
-    } else if (calcMethod === 'weight') {
-       variants = [
-         {
-           id: getOldId(0),
-           sku: baseSku + '-PKG',
-           nameAr: `عبوة ${units} كجم`,
-           nameEn: `${units} kg Package`,
-           unitAr: 'عبوة',
-           unitEn: 'pkg',
-           unitValue: units,
-           unitMeasure: 'kg',
-           price: pPrice,
-           oldPrice: pOldPrice,
-           stockQuantity: count,
-           inStock: true,
-           isActive: true,
-           isDefault: true,
-           sortOrder: 0
-         },
-         {
-           id: getOldId(1),
-           sku: baseSku + '-1KG',
-           nameAr: '1 كيلو جرام',
-           nameEn: '1 kg',
-           unitAr: 'كيلو',
-           unitEn: 'kg',
-           unitValue: 1,
-           unitMeasure: 'kg',
-           price: uPrice,
-           oldPrice: uOldPrice,
-           stockQuantity: count * units,
-           inStock: true,
-           isActive: true,
-           isDefault: false,
-           sortOrder: 1
-         }
-       ];
-
-       const hPrice = Number(halfKiloPrice);
-       if (hPrice > 0) {
-         variants.push({
-           id: getOldId(2),
-           sku: baseSku + '-HALF',
-           nameAr: 'نصف كيلو جرام',
-           nameEn: '0.5 kg',
-           unitAr: 'كيلو',
-           unitEn: 'kg',
-           unitValue: 0.5,
-           unitMeasure: 'kg',
-           price: hPrice,
-           oldPrice: hOldPrice,
-           stockQuantity: count * units,
-           inStock: true,
-           isActive: true,
-           isDefault: false,
-           sortOrder: 2
-         });
-       }
-
-       const qPrice = Number(quarterKiloPrice);
-       if (qPrice > 0) {
-         variants.push({
-           id: getOldId(3),
-           sku: baseSku + '-QUARTER',
-           nameAr: 'ربع كيلو جرام',
-           nameEn: '0.25 kg',
-           unitAr: 'كيلو',
-           unitEn: 'kg',
-           unitValue: 0.25,
-           unitMeasure: 'kg',
-           price: qPrice,
-           oldPrice: qOldPrice,
-           stockQuantity: count * units,
-           inStock: true,
-           isActive: true,
-           isDefault: false,
-           sortOrder: 3
-         });
-       }
-    }
-
-    const def = variants ? variants.find(v => v.isDefault)! : undefined;
-    const finalProduct = {
+    const variants = buildVariants(pkg, form.variants ?? [], baseSku);
+    const def = variants[0]!;
+    onSave({
       ...form,
-      price: def ? def.price : pPrice,
-      oldPrice: def ? def.oldPrice : pOldPrice,
-      stockQuantity: def ? def.stockQuantity : count,
-      unitAr: def ? def.unitAr! : (calcMethod === 'weight' ? 'كيلو' : 'قطعة'),
-      unitEn: def ? def.unitEn! : (calcMethod === 'weight' ? 'kg' : 'pc'),
-      variants
-    };
-
-    onSave(finalProduct);
+      price: def.price,
+      oldPrice: def.oldPrice,
+      stockQuantity: def.stockQuantity,
+      unitAr: def.unitAr!,
+      unitEn: def.unitEn!,
+      variants,
+    });
   };
+
+  const contentPreview = contentLabel(pkg.contentValue, pkg.contentUnit, ar ? 'ar' : 'en');
+  const packagePreview = [packageLabel(pkg.packageType, ar ? 'ar' : 'en'), contentPreview].filter(Boolean).join(' ');
+  const suggestedStripPrice =
+    Number(pkg.price) > 0 && Number(pkg.stripsPerBox) > 1 ? Math.ceil((Number(pkg.price) / Number(pkg.stripsPerBox)) * 2) / 2 : null;
 
   const parentCategories = useMemo(() => {
     return categories
@@ -414,12 +175,12 @@ export const ProductWizard: React.FC<ProductWizardProps> = ({
     const checks = [
       !!form.nameAr.trim(),
       !!form.categoryId,
-      Number(packagePrice) > 0,
+      Number(pkg.price) > 0,
       !!form.image,
       !!form.descriptionAr.trim(),
     ];
     return Math.round((checks.filter(Boolean).length / checks.length) * 100);
-  }, [form.nameAr, form.categoryId, packagePrice, form.image, form.descriptionAr]);
+  }, [form.nameAr, form.categoryId, pkg.price, form.image, form.descriptionAr]);
 
   if (!isOpen || !mounted) return null;
 
@@ -560,104 +321,113 @@ export const ProductWizard: React.FC<ProductWizardProps> = ({
               </h3>
               
               <div className="rounded-xl border border-ragab-ink-200 p-4 space-y-4">
-                
-                <div className="flex items-center justify-between gap-3 p-3 bg-ragab-cream-soft rounded-lg border border-ragab-ink-100">
-                  <div className="text-start">
-                    <p className="text-body-sm font-bold text-ragab-ink-800">{ar ? 'جملة فقط (لا تباع مكوناتها منفردة)' : 'Wholesale only (cannot sell individual items)'}</p>
-                    <p className="text-caption text-ragab-ink-500 mt-0.5">{ar ? 'إذا تم التفعيل، ستباع العبوة كاملة ولن يطلب منك تحديد عدد قطع العبوة.' : 'If enabled, package is sold as a whole unit.'}</p>
+                <div className="space-y-2">
+                  <span className="text-body-sm font-bold text-ragab-ink-700">{ar ? 'نوع العبوة' : 'Package type'}</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {PACKAGE_TYPES.map((p) => {
+                      const active = pkg.packageType === p.id;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => selectPackageType(p.id)}
+                          aria-pressed={active}
+                          className={cn(
+                            'rounded-xl border px-3 py-2 text-start transition-colors focus-ring',
+                            active
+                              ? 'bg-ragab-brand-100 border-ragab-brand-500 ring-1 ring-ragab-brand-500'
+                              : 'bg-white border-ragab-ink-200 hover:border-ragab-ink-400'
+                          )}
+                        >
+                          <span className="block text-body-sm font-bold text-ragab-ink-800">{ar ? p.ar : p.en}</span>
+                          <span className="block text-caption text-ragab-ink-500 truncate">{ar ? p.hintAr : p.hintEn}</span>
+                        </button>
+                      );
+                    })}
                   </div>
-                  <Switch checked={isWholesaleOnly} onChange={(v) => setIsWholesaleOnly(v)} label="Wholesale only" />
                 </div>
 
-                <FormField label={ar ? 'عدد العبوات الموجودة حالياً في المخزون' : 'Number of packages in stock'} required>
-                  <Input type="number" dir="ltr" min={0} value={packageCount} onChange={(e) => setPackageCount(e.target.value ? Number(e.target.value) : '')} placeholder={ar ? "مثال: 20" : "Ex: 20"} />
+                <FormField
+                  label={ar ? 'محتوى العبوة' : 'Package contents'}
+                  hint={ar ? 'زي: 20 قرص، 120 مل شراب، 30 جم كريم — بيظهر للعميل تحت اسم المنتج' : 'e.g. 20 tablets, 120 ml syrup, 30 g cream — shown under the product name'}
+                >
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Input
+                      type="number"
+                      dir="ltr"
+                      min={0}
+                      className="sm:w-32"
+                      value={pkg.contentValue}
+                      onChange={(e) => setP({ contentValue: num(e.target.value) })}
+                      placeholder={ar ? 'مثال: 20' : 'Ex: 20'}
+                    />
+                    <div className="flex flex-wrap gap-1.5">
+                      {CONTENT_UNIT_ORDER.map((u) => (
+                        <Chip key={u} selected={pkg.contentUnit === u} onClick={() => setP({ contentUnit: u })}>
+                          {ar ? CONTENT_UNITS[u].ar : CONTENT_UNITS[u].en}
+                        </Chip>
+                      ))}
+                    </div>
+                  </div>
                 </FormField>
 
-                {!isWholesaleOnly && (
-                  <>
-                    <div className="space-y-2">
-                      <span className="text-body-sm font-bold text-ragab-ink-700">{ar ? 'طريقة الاحتساب' : 'Calculation Method'}:</span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setCalcMethod('piece')}
-                          className={cn(
-                            'h-9 px-4 rounded-full border text-body-sm font-bold transition-colors focus-ring',
-                            calcMethod === 'piece'
-                              ? 'bg-ragab-brand-500 border-ragab-brand-500 text-ragab-ink-800'
-                              : 'bg-white border-ragab-ink-200 text-ragab-ink-600 hover:border-ragab-ink-400'
-                          )}
-                        >
-                          {ar ? 'بالقطعة' : 'By Piece'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                             setCalcMethod('weight');
-                             if (typeof unitPrice === 'number' && unitPrice > 0) {
-                               setHalfKiloPrice(unitPrice / 2);
-                               setQuarterKiloPrice(unitPrice / 4);
-                             }
-                             if (typeof unitOldPrice === 'number' && unitOldPrice > 0) {
-                               setHalfKiloOldPrice(unitOldPrice / 2);
-                               setQuarterKiloOldPrice(unitOldPrice / 4);
-                             }
-                          }}
-                          className={cn(
-                            'h-9 px-4 rounded-full border text-body-sm font-bold transition-colors focus-ring',
-                            calcMethod === 'weight'
-                              ? 'bg-ragab-brand-500 border-ragab-brand-500 text-ragab-ink-800'
-                              : 'bg-white border-ragab-ink-200 text-ragab-ink-600 hover:border-ragab-ink-400'
-                          )}
-                        >
-                          {ar ? 'بالكيلو' : 'By Weight'}
-                        </button>
+                <p className="text-caption text-ragab-ink-600">
+                  {ar ? 'هيظهر في المتجر:' : 'Shown in the store:'}{' '}
+                  <span className="font-bold text-ragab-ink-800">{packagePreview}</span>
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <FormField label={ar ? 'عدد العبوات في المخزون' : 'Packages in stock'} required>
+                    <Input type="number" dir="ltr" min={0} value={pkg.stock} onChange={(e) => setP({ stock: num(e.target.value) })} placeholder={ar ? 'مثال: 20' : 'Ex: 20'} />
+                  </FormField>
+                  <FormField label={ar ? `سعر ال${packageLabel(pkg.packageType, 'ar')} (ج.م)` : 'Package price (EGP)'} required>
+                    <Input type="number" dir="ltr" min={0} value={pkg.price} onChange={(e) => setP({ price: num(e.target.value) })} placeholder={ar ? 'مثال: 120' : 'Ex: 120'} />
+                  </FormField>
+                  <FormField label={ar ? 'السعر قبل الخصم (اختياري)' : 'Old price (optional)'}>
+                    <Input type="number" dir="ltr" min={0} value={pkg.oldPrice} onChange={(e) => setP({ oldPrice: num(e.target.value) })} placeholder={ar ? 'مثال: 150' : 'Ex: 150'} />
+                  </FormField>
+                </div>
+
+                {pkg.packageType === 'box' && (
+                  <div className="rounded-lg border border-ragab-ink-100 bg-ragab-cream-soft p-3 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-start">
+                        <p className="text-body-sm font-bold text-ragab-ink-800">{ar ? 'بيع بالشريط كمان' : 'Also sell by strip'}</p>
+                        <p className="text-caption text-ragab-ink-500 mt-0.5">
+                          {ar
+                            ? 'لو العلبة فيها أكتر من شريط والعميل يقدر يشتري شريط واحد.'
+                            : 'When the box holds several strips and a single strip can be bought.'}
+                        </p>
                       </div>
+                      <Switch checked={pkg.sellByStrip} onChange={(v) => setP({ sellByStrip: v })} label={ar ? 'بيع بالشريط' : 'Sell by strip'} />
                     </div>
 
-                    <FormField label={calcMethod === 'weight' ? (ar ? 'وزن العبوة بالكيلو جرام' : 'Package weight in kg') : (ar ? 'عدد القطع داخل العبوة' : 'Pieces per package')} required>
-                      <Input type="number" dir="ltr" min={0} step={calcMethod === 'weight' ? 0.1 : 1} value={unitsPerPackage} onChange={(e) => setUnitsPerPackage(e.target.value ? Number(e.target.value) : '')} placeholder={calcMethod === 'weight' ? (ar ? 'مثال: 5' : 'Ex: 5') : (ar ? 'مثال: 12' : 'Ex: 12')} />
-                    </FormField>
-                  </>
+                    {pkg.sellByStrip && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <FormField label={ar ? 'عدد الشرائط في العلبة' : 'Strips per box'} required>
+                          <Input type="number" dir="ltr" min={2} step={1} value={pkg.stripsPerBox} onChange={(e) => setP({ stripsPerBox: num(e.target.value) })} placeholder={ar ? 'مثال: 2' : 'Ex: 2'} />
+                        </FormField>
+                        <FormField
+                          label={ar ? 'سعر الشريط (ج.م)' : 'Strip price (EGP)'}
+                          hint={suggestedStripPrice ? (ar ? `العلبة ÷ الشرائط = ${suggestedStripPrice}` : `Box ÷ strips = ${suggestedStripPrice}`) : undefined}
+                          required
+                        >
+                          <Input
+                            type="number"
+                            dir="ltr"
+                            min={0}
+                            value={pkg.stripPrice}
+                            onChange={(e) => setP({ stripPrice: num(e.target.value) })}
+                            placeholder={suggestedStripPrice ? String(suggestedStripPrice) : ar ? 'مثال: 60' : 'Ex: 60'}
+                          />
+                        </FormField>
+                        <FormField label={ar ? 'سعر الشريط قبل الخصم' : 'Strip old price'}>
+                          <Input type="number" dir="ltr" min={0} value={pkg.stripOldPrice} onChange={(e) => setP({ stripOldPrice: num(e.target.value) })} placeholder={ar ? 'اختياري' : 'Optional'} />
+                        </FormField>
+                      </div>
+                    )}
+                  </div>
                 )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <FormField label={ar ? (isWholesaleOnly ? 'سعر العبوة (ج.م)' : 'سعر بيع العبوة (سعر الجملة)') : 'Package Price (EGP)'} required>
-                    <Input type="number" dir="ltr" min={0} value={packagePrice} onChange={(e) => setPackagePrice(e.target.value ? Number(e.target.value) : '')} placeholder={ar ? "مثال: 120" : "Ex: 120"} />
-                  </FormField>
-                  <FormField label={ar ? 'السعر قبل الخصم للعبوة (اختياري)' : 'Package Old Price (Optional)'}>
-                    <Input type="number" dir="ltr" min={0} value={packageOldPrice} onChange={(e) => setPackageOldPrice(e.target.value ? Number(e.target.value) : '')} placeholder={ar ? "مثال: 150" : "Ex: 150"} />
-                  </FormField>
-                  
-                  {!isWholesaleOnly && (
-                    <>
-                      <FormField label={calcMethod === 'weight' ? (ar ? 'سعر بيع 1 كجم (سعر القطاعي)' : '1 kg Price (Retail)') : (ar ? 'سعر بيع القطعة (سعر القطاعي)' : 'Piece Price (Retail)')} required>
-                        <Input type="number" dir="ltr" min={0} value={unitPrice} onChange={handleUnitPriceChange} placeholder={ar ? "مثال: 12" : "Ex: 12"} />
-                      </FormField>
-                      <FormField label={ar ? 'السعر قبل الخصم (اختياري)' : 'Old Price (Optional)'}>
-                        <Input type="number" dir="ltr" min={0} value={unitOldPrice} onChange={handleUnitOldPriceChange} placeholder={ar ? "مثال: 15" : "Ex: 15"} />
-                      </FormField>
-                    </>
-                  )}
-
-                  {!isWholesaleOnly && calcMethod === 'weight' && (
-                    <>
-                      <FormField label={ar ? 'سعر نصف كيلو (اختياري)' : '0.5 kg Price (Optional)'}>
-                        <Input type="number" dir="ltr" min={0} value={halfKiloPrice} onChange={(e) => setHalfKiloPrice(e.target.value ? Number(e.target.value) : '')} placeholder={ar ? "مثال: 6" : "Ex: 6"} />
-                      </FormField>
-                      <FormField label={ar ? 'سعر نصف كيلو قبل الخصم' : '0.5 kg Old Price'}>
-                        <Input type="number" dir="ltr" min={0} value={halfKiloOldPrice} onChange={(e) => setHalfKiloOldPrice(e.target.value ? Number(e.target.value) : '')} placeholder={ar ? "مثال: 8" : "Ex: 8"} />
-                      </FormField>
-
-                      <FormField label={ar ? 'سعر ربع كيلو (اختياري)' : '0.25 kg Price (Optional)'}>
-                        <Input type="number" dir="ltr" min={0} value={quarterKiloPrice} onChange={(e) => setQuarterKiloPrice(e.target.value ? Number(e.target.value) : '')} placeholder={ar ? "مثال: 3" : "Ex: 3"} />
-                      </FormField>
-                      <FormField label={ar ? 'سعر ربع كيلو قبل الخصم' : '0.25 kg Old Price'}>
-                        <Input type="number" dir="ltr" min={0} value={quarterKiloOldPrice} onChange={(e) => setQuarterKiloOldPrice(e.target.value ? Number(e.target.value) : '')} placeholder={ar ? "مثال: 4" : "Ex: 4"} />
-                      </FormField>
-                    </>
-                  )}
-                </div>
               </div>
             </div>
 

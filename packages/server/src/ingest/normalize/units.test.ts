@@ -128,3 +128,33 @@ describe('url_key oracle', () => {
     expect(warnings).not.toContain('SIZE_URLKEY_DISAGREE');
   });
 });
+
+describe('pharmacy (Chefaa) titles — strength is not the pack size', () => {
+  // name, unitValue, unitMeasure, expected unitAr, expected unitEn — all real Chefaa titles.
+  const cases: Array<[string, number, string, string, string]> = [
+    ['كنترولوك | 40مجم | لعلاج قرحة المعدة | 14 قرص', 14, 'pc', '14 قرص', '14 tablets'],
+    ['بانادول ادفانس 500 مجم باراسيتامول مسكن للألم بفاعلية | 48 قرص', 48, 'pc', '48 قرص', '48 tablets'],
+    ['برشام فياجرا 100 للرجال للانتصاب (سيلدينافيل 100 مجم) | 4 قرص', 4, 'pc', '4 قرص', '4 tablets'],
+    ['قطرة أوتريفين للكبار نقط للانف Otrivin للاحتقان والانسداد | 15 مل', 15, 'ml', '15 مل', '15 ml'],
+    ['كريم كارباميد للوجه والمنطقه الحساسة والقدم للجفاف والتفتيح | 30 جم', 30, 'g', '30 جم', '30 g'],
+    ['برشام ميلجا ادفانس للرجال والنساء للأعصاب milga advance | ٣٠ قرص', 30, 'pc', '30 قرص', '30 tablets'],
+    ['ديفارول اس 200000وحده دوليه /2مل | 1 امبول', 1, 'pc', '1 امبول', '1 ampoules'],
+    ['فوار كتافاست للاسنان ومسكن للصداع catafast | ٩ أكياس', 9, 'pc', '9 أكياس', '9 sachets'],
+    ['دواء ميثايلتكنو للنساء والرجال Methyltechno بديل حقن فيتامين ب12 | 30 فيلم', 30, 'pc', '30 فيلم', '30 films'],
+  ];
+
+  for (const [name, value, measure, unitAr, unitEn] of cases) {
+    it(`parses ${name}`, () => {
+      const p = parseSize(name);
+      expect(p.unitValue).toBe(value);
+      expect(p.unitMeasure).toBe(measure);
+      expect(formatUnit(p, 'ar')).toBe(unitAr);
+      expect(formatUnit(p, 'en')).toBe(unitEn);
+    });
+  }
+
+  it('never reads a bare milligram strength as grams', () => {
+    const p = parseSize('كنترولوك 40مجم');
+    expect(p.unitMeasure).not.toBe('g');
+  });
+});
