@@ -12,7 +12,9 @@ const CSRF_COOKIE = 'ragab_csrf';
 const PAYMOB_ORIGIN = 'https://accept.paymob.com';
 // Firebase project's authDomain (apps/web/src/lib/firebase.ts) — signInWithPopup loads a
 // hidden gapi iframe/script from Google to relay the popup's sign-in result back to us.
-const FIREBASE_AUTH_DOMAIN = 'https://ragab-490cc.firebaseapp.com';
+// Must resolve exactly like the client config: if this drifts from the real authDomain the
+// iframe is CSP-blocked and the popup hangs on a blank /__/auth/handler page forever.
+const FIREBASE_AUTH_DOMAIN = `https://${process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'ragab-pharmacy.firebaseapp.com'}`;
 const GOOGLE_AUTH_ORIGINS = 'https://apis.google.com https://www.gstatic.com';
 
 function randomToken(bytes = 24): string {
