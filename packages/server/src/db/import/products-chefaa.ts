@@ -131,6 +131,8 @@ export async function loadChefaaProducts(opts: LoadChefaaProductsOptions): Promi
         tags: r.tags,
         isActive: r.isActive,
         isVisible: r.isVisible,
+        // Plans written before 0015_product_popularity have no popularity field.
+        popularity: r.popularity ?? 0,
       }));
 
       if (update === 'none') {
@@ -144,6 +146,7 @@ export async function loadChefaaProducts(opts: LoadChefaaProductsOptions): Promi
             set: {
               priceMinor: rawSql`excluded.price_minor`,
               oldPriceMinor: rawSql`excluded.old_price_minor`,
+              popularity: rawSql`excluded.popularity`,
               updatedAt: new Date(),
               version: rawSql`${s.products.version} + 1`,
             },
@@ -173,6 +176,7 @@ export async function loadChefaaProducts(opts: LoadChefaaProductsOptions): Promi
               descriptionEn: rawSql`excluded.description_en`,
               tags: rawSql`excluded.tags`,
               isVisible: rawSql`excluded.is_visible`,
+              popularity: rawSql`excluded.popularity`,
               updatedAt: new Date(),
               version: rawSql`${s.products.version} + 1`,
             },

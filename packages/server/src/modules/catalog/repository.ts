@@ -247,7 +247,8 @@ function orderClause(sortBy: ProductFiltersInput['sortBy']): SQL {
     case 'rating':
       return sql`COALESCE(${products.rating},0) DESC, ${products.id} DESC`;
     case 'popular':
-      return sql`${products.isPopular} DESC, ${products.id} DESC`;
+      // Curated flag first, then real sales rank (see 0015_product_popularity.sql).
+      return sql`${products.isPopular} DESC, ${products.popularity} DESC, ${products.id} DESC`;
     case 'newest':
     default:
       return sql`${products.createdAt} DESC, ${products.id} DESC`;

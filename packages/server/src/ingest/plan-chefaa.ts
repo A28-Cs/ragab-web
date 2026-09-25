@@ -66,6 +66,8 @@ export interface ChefaaPlanRow {
   isActive: boolean;
   isVisible: boolean;
   inStock: boolean;
+  /** Source purchase_count — drives the storefront "popular" sort (products.popularity). */
+  popularity: number;
   attributes: ChefaaAttribute[];
   meta: {
     source: 'chefaa';
@@ -173,6 +175,17 @@ async function loadSnapshots(dir: string): Promise<Map<number, ChefaaProduct>> {
     for (const item of snap.items) out.set(item.id, item);
   }
   return out;
+}
+
+/**
+ * Owner decision (2026-09-25): Viagra/sildenafil stays out of the "popular" ranking even
+ * though it is a genuine best seller — it would otherwise sit in the medications top 10.
+ */
+const NEVER_POPULAR = /فياجر|فياغر|viagra|سيلدينافيل|سيلدنافيل|sildenafil/i;
+
+function popularityOf(item: ChefaaProduct): number {
+  if (NEVER_POPULAR.test(`${item.title_ar ?? ''} ${item.title_en ?? ''}`)) return 0;
+  return Math.max(0, Math.trunc(item.purchase_count ?? 0));
 }
 
 export async function buildChefaaPlan(opts: ChefaaPlanOptions = {}): Promise<{ runId: string; dir: string }> {
@@ -300,6 +313,7 @@ export async function buildChefaaPlan(opts: ChefaaPlanOptions = {}): Promise<{ r
       isActive: item.status === 'active' && item.active !== false,
       isVisible: item.status === 'active' && !cls.fallback,
       inStock,
+      popularity: popularityOf(item),
       attributes: buildAttributes(item),
       meta: {
         source: 'chefaa',

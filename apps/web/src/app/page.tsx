@@ -44,7 +44,8 @@ async function loadCategoryFallback(
     .find((c): c is Category => !!c && c.itemCount > 0);
   if (!category) return null;
   try {
-    const products = (await getProducts({ categoryId: category.id })).slice(0, 4);
+    // Best sellers first — not the default newest-first, which surfaces whatever was imported last.
+    const products = (await getProducts({ categoryId: category.id, sortBy: 'popular' })).slice(0, 4);
     return products.length > 0 ? { category, products } : null;
   } catch {
     return null;

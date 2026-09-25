@@ -88,6 +88,8 @@ export const products = pgTable(
     isPopular: boolean('is_popular').notNull().default(false),
     isEssential: boolean('is_essential').notNull().default(false),
     isNew: boolean('is_new').notNull().default(false),
+    /** Sales-rank score for the "popular" sort (source catalog purchase count; higher = sold more). */
+    popularity: integer('popularity').notNull().default(0),
     badgeAr: text('badge_ar'),
     badgeEn: text('badge_en'),
     tags: text('tags').array(),
@@ -106,6 +108,7 @@ export const products = pgTable(
     uniqueIndex('products_sku_uidx').on(t.storeId, t.sku),
     index('products_category_active_idx').on(t.storeId, t.categoryId, t.isActive),
     index('products_flags_idx').on(t.isPopular, t.isEssential),
+    index('products_popularity_idx').on(t.isPopular, t.popularity, t.id),
     index('products_price_idx').on(t.priceMinor),
     index('products_brand_idx').on(t.brandAr, t.brandEn),
     index('products_visibility_idx').on(t.storeId, t.isActive, t.isVisible).where(sql`${t.deletedAt} IS NULL`),
