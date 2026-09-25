@@ -50,3 +50,13 @@ export function downloadTextFile(filename: string, content: string, mime = 'text
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+export interface DashboardOverview {
+  todayOrders: number | null;
+  revenue: number | null;
+  customers: number | null;
+  lowStock: number | null;
+  timeZone: string;
+  asOf: string;
+}
+export const getDashboardOverview = () => api.get<DashboardOverview>('/admin/dashboard');

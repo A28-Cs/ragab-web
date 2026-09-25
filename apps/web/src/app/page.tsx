@@ -2,7 +2,8 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Clock, Truck, Banknote, RotateCcw, BadgeCheck, WifiOff } from 'lucide-react';
+import Image from 'next/image';
+import { Clock, Truck, Banknote, MessageCircle, BadgeCheck, WifiOff, ArrowLeft, ArrowRight, Cross } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { ProductStrip } from '../components/product/ProductStrip';
@@ -122,10 +123,13 @@ export default function HomePage() {
 
   const homeCategories = useMemo(() => featuredCategories(categories, 8), [categories]);
 
+  const heroProducts = [...new Map([...offerProducts, ...popularProducts, ...(popularFallback?.products ?? []), ...essentialProducts].filter(p => p.image && p.inStock).map(p => [p.id, p])).values()].slice(0, 3);
+  const DirectionArrow = isRTL ? ArrowLeft : ArrowRight;
+
   const features = [
     { icon: Truck, title: t.home.feat1Title, desc: t.home.feat1Desc },
     { icon: Banknote, title: t.home.feat2Title, desc: t.home.feat2Desc },
-    { icon: RotateCcw, title: t.home.feat3Title, desc: t.home.feat3Desc },
+    { icon: MessageCircle, title: t.home.feat3Title, desc: t.home.feat3Desc },
     { icon: BadgeCheck, title: t.home.feat4Title, desc: t.home.feat4Desc },
   ];
 
@@ -145,51 +149,40 @@ export default function HomePage() {
 
   return (
     <div className="pb-10 font-arabic">
-      {/* ===== Hero — full-bleed cream band ===== */}
-      <section className="bg-ragab-cream border-b border-ragab-brand-200/60">
-        <div className="container-page py-10 md:py-14 lg:py-16">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-            {/* Copy */}
-            <div className="lg:col-span-6 space-y-5">
-              <span className="inline-flex items-center gap-2 h-8 px-3 rounded-full bg-white border border-ragab-ink-200 text-caption font-bold text-ragab-ink-700 shadow-subtle">
-                <Clock className="w-3.5 h-3.5 text-ragab-ink-600" />
-                {t.home.openNow}
-              </span>
-              <h1 className="text-display text-ragab-ink-900 tracking-tight max-w-xl">
-                {t.home.heroTitle}
-              </h1>
-              <p className="text-body md:text-lg text-ragab-ink-600 leading-relaxed max-w-lg">
-                {t.home.heroSubtitle}
-              </p>
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <Link href="/categories">
-                  <Button variant="primary" size="lg" className="rounded-2xl px-7 h-14 text-base">
-                    {t.home.shopNow}
-                  </Button>
-                </Link>
-                <Link href="/offers">
-                  <Button variant="outline" size="lg" className="rounded-2xl px-7 h-14 text-base">
-                    {t.home.viewOffers}
-                  </Button>
-                </Link>
+      <section aria-labelledby="home-hero" className="container-page pt-5 md:pt-7">
+        <div className="overflow-hidden rounded-2xl border border-ragab-brand-200 bg-[#edf7f5]">
+          <div className="grid lg:grid-cols-2">
+            <div className="p-5 sm:p-8 lg:p-10 flex flex-col justify-center">
+              <div className="flex flex-wrap items-center gap-3 text-caption font-bold text-ragab-brand-800 mb-5">
+                <span className="inline-flex items-center gap-2"><Cross className="w-4 h-4" />{isRTL ? 'صيدلية رجب · رعاية أقرب إليك' : 'Ragab Pharmacy · Care, closer to you'}</span>
+                <span className="inline-flex items-center gap-1.5 text-ragab-ink-600"><Clock className="w-3.5 h-3.5" />{t.home.openNow}</span>
+              </div>
+              <h1 id="home-hero" className="text-[28px] sm:text-[38px] xl:text-[46px] leading-[1.4] font-extrabold text-ragab-ink-900 tracking-tight max-w-xl">{t.home.heroTitle}</h1>
+              <p className="text-body-sm sm:text-base text-ragab-ink-600 leading-7 sm:leading-8 mt-4 max-w-lg">{t.home.heroSubtitle}</p>
+              <div className="flex flex-wrap items-center gap-3 mt-6">
+                <Link href="/categories" className="inline-flex items-center justify-center gap-3 min-h-12 px-5 rounded-lg bg-ragab-brand-700 hover:bg-ragab-brand-800 text-white font-bold text-body-sm focus-ring transition-colors">{t.home.shopNow}<DirectionArrow className="w-4 h-4" /></Link>
+                <Link href="/offers" className="inline-flex items-center justify-center min-h-12 px-3 text-ragab-ink-800 font-bold text-body-sm underline underline-offset-8 decoration-ragab-brand-500 hover:text-ragab-brand-700 focus-ring">{isRTL ? 'عروض اليوم' : 'Today’s offers'}</Link>
               </div>
             </div>
-
-            {/* Feature tiles */}
-            <div className="lg:col-span-6 grid grid-cols-2 gap-3 md:gap-4">
-              {features.map(({ icon: Icon, title, desc }) => (
-                <div
-                  key={title}
-                  className="bg-white rounded-2xl border border-ragab-ink-200 p-4 md:p-5 shadow-subtle flex flex-col gap-3 min-h-[128px]"
-                >
-                  <Icon className="w-6 h-6 text-ragab-ink-700" strokeWidth={1.8} />
-                  <div className="mt-auto">
-                    <div className="text-body font-bold text-ragab-ink-900 leading-snug">{title}</div>
-                    <div className="text-caption text-ragab-ink-500 mt-0.5">{desc}</div>
-                  </div>
-                </div>
-              ))}
+            <div className="relative bg-[#dfefeb] p-5 sm:p-8 flex flex-col justify-center min-w-0 border-t lg:border-t-0 lg:border-s border-ragab-brand-200/60">
+              <div className="flex items-center justify-between gap-3 mb-5">
+                <div><p className="text-caption text-ragab-brand-800 font-bold">{isRTL ? 'من صيدليتنا إلى بيتك' : 'From our pharmacy to your home'}</p><h2 className="text-xl sm:text-2xl font-bold text-ragab-ink-900 mt-1">{isRTL ? 'عناية تستحقها كل يوم' : 'Everyday care, thoughtfully chosen'}</h2></div>
+                <BadgeCheck className="w-9 h-9 text-ragab-brand-700 shrink-0" strokeWidth={1.4} />
+              </div>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 items-end" aria-busy={isLoading}>
+                {isLoading ? [0, 1, 2].map(i => <div key={i} className="h-44 sm:h-60 rounded-xl bg-white/70 animate-pulse" />) : heroProducts.length > 0 ? heroProducts.map((product, index) => (
+                  <Link key={product.id} href={'/product/' + product.slug} className={'group min-w-0 bg-white rounded-xl border border-white p-2.5 sm:p-3 focus-ring hover:border-ragab-brand-400 transition-colors ' + (index === 1 ? 'pb-5 sm:pb-7' : '')}>
+                    <div className={'relative w-full ' + (index === 1 ? 'h-28 sm:h-44' : 'h-24 sm:h-36')}><Image src={product.image} alt={isRTL ? product.nameAr : product.nameEn || product.nameAr} fill sizes="(max-width: 640px) 27vw, (max-width: 1024px) 28vw, 160px" className="object-contain p-1" /></div>
+                    <p className="text-[11px] sm:text-caption leading-5 font-semibold text-ragab-ink-800 line-clamp-2 mt-3 min-h-10">{isRTL ? product.nameAr : product.nameEn || product.nameAr}</p>
+                    <p className="text-caption sm:text-body-sm font-bold text-ragab-brand-800 mt-2">{new Intl.NumberFormat(isRTL ? 'ar-EG' : 'en-EG', { maximumFractionDigits: 2 }).format(product.price)} <span className="text-[10px]">{t.common.egp}</span></p>
+                  </Link>
+                )) : <Link href="/categories" className="col-span-3 flex items-center justify-between p-8 bg-white rounded-xl focus-ring"><Cross className="w-16 h-16 text-ragab-brand-600" /><span className="font-bold">{t.home.categoriesTitle}</span><DirectionArrow className="w-5 h-5" /></Link>}
+              </div>
+              <Link href="/categories" className="inline-flex items-center gap-2 text-caption font-bold text-ragab-brand-800 mt-5 focus-ring self-start">{t.common.viewAllCategories}<DirectionArrow className="w-3.5 h-3.5" /></Link>
             </div>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 bg-white border-t border-ragab-brand-200 px-3 py-2 sm:px-5">
+            {features.map(({ icon: Icon, title, desc }) => <div key={title} className="flex items-start gap-2.5 p-3 sm:p-4"><Icon className="w-5 h-5 shrink-0 mt-1 text-ragab-brand-700" strokeWidth={1.6} /><div><p className="text-caption sm:text-body-sm font-bold text-ragab-ink-800">{title}</p><p className="text-[11px] sm:text-caption text-ragab-ink-500 mt-1">{desc}</p></div></div>)}
           </div>
         </div>
       </section>

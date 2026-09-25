@@ -52,7 +52,7 @@ export const MobileNavigation: React.FC = () => {
     { href: '/categories', label: t.navigation.categories, icon: LayoutGrid, exact: false },
     { href: '/offers', label: t.navigation.offers, icon: Tag, exact: false },
     { action: toggleCart, label: t.navigation.cart, icon: ShoppingBag, badge: totalItems },
-    { href: isLoggedIn ? '/account' : '/login', label: t.navigation.account, icon: User, exact: false },
+    { href: isLoggedIn ? '/account' : '/login', label: isLoggedIn ? t.navigation.account : t.navigation.login, icon: User, exact: false },
   ];
 
   return (

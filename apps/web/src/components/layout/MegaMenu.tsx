@@ -44,8 +44,8 @@ export const MegaMenu: React.FC = () => {
         aria-expanded={isOpen}
         aria-haspopup="true"
         className={cn(
-          'inline-flex items-center gap-2 h-10 px-4 rounded-xl font-bold text-body-sm font-arabic transition-colors focus-ring',
-          'bg-ragab-ink-800 text-white hover:bg-ragab-ink-900'
+          'inline-flex items-center gap-2 h-10 px-4 rounded-lg font-bold text-body-sm font-arabic transition-colors focus-ring',
+          'bg-ragab-brand-50 text-ragab-brand-800 hover:bg-ragab-brand-100'
         )}
       >
         <LayoutGrid className="w-4 h-4" />

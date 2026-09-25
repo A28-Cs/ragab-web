@@ -27,7 +27,7 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: `npx --prefix apps/web next dev -p ${port}`,
+    command: `node node_modules/next/dist/bin/next dev apps/web -p ${port}`,
     url: `${baseURL}/api/health`,
     reuseExistingServer: true,
     timeout: 120_000,

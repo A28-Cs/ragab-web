@@ -221,7 +221,7 @@ export default function CartPage() {
         </div>
 
         {/* Summary — sticky on desktop */}
-        <aside className="hidden lg:block lg:col-span-4 bg-white rounded-xl border border-ragab-ink-200 p-6 shadow-subtle space-y-5 sticky top-24">
+        <aside className="hidden lg:block lg:col-span-4 bg-white rounded-xl border border-ragab-ink-200 p-6 shadow-subtle space-y-5 sticky top-[calc(var(--header-h)+1rem)]">
           <h2 className="text-h3 text-ragab-ink-800 pb-3 border-b border-ragab-ink-100">
             {t.cart.orderSummary}
           </h2>

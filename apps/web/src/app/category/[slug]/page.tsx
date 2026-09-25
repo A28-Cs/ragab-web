@@ -133,7 +133,7 @@ export default function CategoryDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         {/* Sidebar (lg+) */}
-        <aside className="hidden lg:block col-span-1 bg-white p-5 rounded-xl border border-ragab-ink-200 shadow-subtle h-fit sticky top-24">
+        <aside className="hidden lg:block col-span-1 bg-white p-5 rounded-xl border border-ragab-ink-200 shadow-subtle h-fit sticky top-[calc(var(--header-h)+1rem)]">
           {filterPanel}
         </aside>
 

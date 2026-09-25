@@ -16,7 +16,7 @@
 
   /* Layout chrome measurements consumed by sticky elements. */
   --bottom-nav-h: 64px;
-  --header-h: 72px;
+  --header-h: 129px;
 }
 
 @layer base {
@@ -95,3 +95,7 @@ body.has-modal-open .mobile-sticky-cta {
   visibility: hidden !important;
 }
 
+
+/* Initial chrome heights; Header measures the rendered height after hydration. */
+@media (min-width: 768px) { :root { --header-h: 177px; } }
+@media (min-width: 1024px) { :root { --header-h: 137px; } }

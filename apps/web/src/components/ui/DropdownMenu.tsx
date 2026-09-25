@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@ragab/utils';
 
@@ -41,8 +41,9 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   className = '',
   menuClassName = '',
 }) => {
+  const menuId = useId();
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ top?: number; bottom?: number; left?: number; right?: number } | null>(null);
+  const [pos, setPos] = useState<React.CSSProperties | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -50,21 +51,35 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
     const el = triggerRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    const isRtl = (typeof document !== 'undefined' ? document.documentElement.dir : 'rtl') === 'rtl';
-    // "end" in RTL is the LEFT edge, so align the menu's left with the trigger's left.
+    const viewport = window.visualViewport;
+    const x = viewport?.offsetLeft ?? 0;
+    const y = viewport?.offsetTop ?? 0;
+    const width = viewport?.width ?? window.innerWidth;
+    const height = viewport?.height ?? window.innerHeight;
+    const isRtl = getComputedStyle(el).direction === 'rtl';
     const alignLeft = isRtl ? align === 'end' : align === 'start';
-    const horizontal = alignLeft
-      ? { left: Math.max(8, Math.min(r.left, window.innerWidth - MENU_MIN_WIDTH - 8)) }
-      : { right: Math.max(8, Math.min(window.innerWidth - r.right, window.innerWidth - MENU_MIN_WIDTH - 8)) };
-    const vertical = side === 'top'
-      ? { bottom: window.innerHeight - r.top + MENU_GAP }
-      : { top: r.bottom + MENU_GAP };
-    setPos({ ...horizontal, ...vertical });
+    const menu = menuRef.current;
+    const menuWidth = Math.min(menu?.offsetWidth || MENU_MIN_WIDTH, width - 16);
+    const naturalHeight = menu?.scrollHeight ?? 0;
+    const below = Math.max(0, y + height - r.bottom - MENU_GAP - 8);
+    const above = Math.max(0, r.top - y - MENU_GAP - 8);
+    const upwards = side === 'top'
+      ? above >= naturalHeight || above > below
+      : below < naturalHeight && above > below;
+    const maxHeight = Math.max(0, upwards ? above : below);
+    const usedHeight = Math.min(naturalHeight, maxHeight);
+    setPos({
+      left: Math.max(x + 8, Math.min(alignLeft ? r.left : r.right - menuWidth, x + width - menuWidth - 8)),
+      top: Math.max(y + 8, Math.min(upwards ? r.top - MENU_GAP - usedHeight : r.bottom + MENU_GAP, y + height - usedHeight - 8)),
+      maxHeight,
+      maxWidth: width - 16,
+      visibility: 'visible',
+    });
   }, [align, side]);
 
   useLayoutEffect(() => {
     if (open) place();
-  }, [open, place]);
+  }, [open, place, items]);
 
   useEffect(() => {
     if (!open) return;
@@ -74,30 +89,52 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
       setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') { setOpen(false); triggerRef.current?.focus(); }
+      if (e.key === 'Tab') setOpen(false);
     };
-    // Any scroll/resize moves the trigger; closing is simpler and safer than tracking it.
-    const onMove = () => setOpen(false);
+    const onMove = () => place();
+    const onOtherMenu = (event: Event) => {
+      if ((event as CustomEvent).detail !== menuId) setOpen(false);
+    };
+    document.addEventListener('ragab:menu-open', onOtherMenu);
+    const observer = new ResizeObserver(place);
+    if (menuRef.current) observer.observe(menuRef.current);
+    window.visualViewport?.addEventListener('resize', onMove);
+    window.visualViewport?.addEventListener('scroll', onMove);
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onKey);
     window.addEventListener('resize', onMove);
     document.addEventListener('scroll', onMove, true);
     return () => {
+      observer.disconnect();
+      document.removeEventListener('ragab:menu-open', onOtherMenu);
+      window.visualViewport?.removeEventListener('resize', onMove);
+      window.visualViewport?.removeEventListener('scroll', onMove);
       document.removeEventListener('mousedown', onDown);
       document.removeEventListener('keydown', onKey);
       window.removeEventListener('resize', onMove);
       document.removeEventListener('scroll', onMove, true);
     };
-  }, [open]);
+  }, [open, place, menuId]);
 
-  const menu = open && pos && typeof document !== 'undefined' ? (
+  const menu = open && typeof document !== 'undefined' ? (
     createPortal(
       <div
         ref={menuRef}
+        id={menuId}
         role="menu"
-        style={{ position: 'fixed', ...pos, minWidth: MENU_MIN_WIDTH }}
+        aria-label={triggerRef.current?.getAttribute('aria-label') || undefined}
+        onKeyDown={(event) => {
+          if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+          event.preventDefault();
+          const entries = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled):not([aria-disabled="true"])'));
+          const index = entries.indexOf(document.activeElement as HTMLElement);
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? entries.length - 1 : (index + (event.key === 'ArrowUp' ? -1 : 1) + entries.length) % entries.length;
+          entries[next]?.focus();
+        }}
+        style={{ position: 'fixed', top: 0, left: 0, visibility: 'hidden', ...pos, minWidth: 'min(192px, calc(100vw - 16px))', overflowY: 'auto', overscrollBehavior: 'contain' }}
         className={cn(
-          'z-[70] bg-white rounded-xl border border-ragab-ink-200 shadow-popover p-1.5 animate-in fade-in zoom-in-95 duration-150 font-arabic',
+          'z-[70] bg-white rounded-xl border border-ragab-ink-200 shadow-popover p-1.5 font-arabic',
           menuClassName
         )}
       >
@@ -119,7 +156,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
             <React.Fragment key={i}>
               {item.separatorBefore && <div className="my-1 h-px bg-ragab-ink-100" />}
               {item.href ? (
-                <a role="menuitem" href={item.href} className={cls} onClick={() => setOpen(false)}>
+                <a role="menuitem" aria-disabled={item.disabled} tabIndex={item.disabled ? -1 : 0} href={item.disabled ? undefined : item.href} className={cls} onClick={() => setOpen(false)}>
                   {content}
                 </a>
               ) : (
@@ -151,7 +188,20 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
+        aria-controls={open ? menuId : undefined}
+        aria-label={typeof trigger === 'string' ? trigger : undefined}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            document.dispatchEvent(new CustomEvent('ragab:menu-open', { detail: menuId }));
+            setOpen(true);
+            requestAnimationFrame(() => menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]:not(:disabled):not([aria-disabled="true"])')?.focus());
+          }
+        }}
+        onClick={() => {
+          if (!open) document.dispatchEvent(new CustomEvent('ragab:menu-open', { detail: menuId }));
+          setOpen((o) => !o);
+        }}
         className="inline-flex focus-ring rounded-lg"
       >
         {trigger}

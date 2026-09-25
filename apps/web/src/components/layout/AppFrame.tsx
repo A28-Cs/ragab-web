@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
-import { TopBanner } from './TopBanner';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { MobileNavigation } from './MobileNavigation';
@@ -37,7 +36,6 @@ export const AppFrame: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   return (
     <>
-      <TopBanner />
       <Header />
       <main className={isHome ? 'flex-1' : 'flex-1 container-page py-6 md:py-8'}>{children}</main>
       <CartDrawer />
