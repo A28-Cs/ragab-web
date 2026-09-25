@@ -35,7 +35,7 @@ import { getCategories } from '../../services/categoryService';
 import { Product, Category } from '../../types';
 import { MegaMenu } from './MegaMenu';
 import { SearchOverlay, saveRecentSearch } from './SearchOverlay';
-import { featuredCategories } from '../../lib/categoryPresentation';
+import { featuredCategories, categoryEmoji } from '../../lib/categoryPresentation';
 import { CreateProductModal } from '../product/CreateProductModal';
 import { OrdersQuickAccessPopup } from '../admin/OrdersQuickAccess';
 import { useOrderEvents } from '../../context/OrderEventsContext';
@@ -495,8 +495,11 @@ export const Header: React.FC = () => {
                 onClick={() => setIsMenuOpen(false)}
                 className="flex items-center gap-2.5 py-2.5 px-3 rounded-xl text-body-sm font-semibold text-ragab-ink-700 hover:bg-ragab-cream-soft transition-colors"
               >
-                <span aria-hidden="true" className="text-base leading-none">
-                  <Grid2X2 className="w-4 h-4" />
+                <span
+                  aria-hidden="true"
+                  className="w-8 h-8 rounded-lg bg-ragab-brand-50 flex items-center justify-center text-base leading-none shrink-0"
+                >
+                  {categoryEmoji(c)}
                 </span>
                 {isRTL ? c.nameAr : c.nameEn}
               </Link>

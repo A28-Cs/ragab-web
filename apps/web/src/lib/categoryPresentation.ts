@@ -38,8 +38,8 @@ const EMOJI_BY_ICON: Record<string, string> = {
   pill: '💊',
   scissors: '✂️',
   palette: '💄',
-  'heart-pulse': 'dYc',
-  heart: 'dY ',
+  'heart-pulse': '🩺',
+  heart: '❤️',
 };
 
 export function categoryEmoji(category: Pick<Category, 'iconName'>): string {

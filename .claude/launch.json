@@ -4,7 +4,7 @@
     {
       "name": "web",
       "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "cd /d C:\\Users\\HP\\OneDrive\\Desktop\\ragab-pharmacy\\apps\\web && npx next dev -p 3200"],
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\HP\\OneDrive\\Desktop\\Mahsoob Market\\ragab-pharmacy\\apps\\web && npx next dev -p 3200"],
       "port": 3200
     }
   ]

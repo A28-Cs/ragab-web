@@ -106,7 +106,7 @@ export const Footer: React.FC = () => {
         {/* Bottom bar */}
         <div className="pt-6 border-t border-white/10 text-caption text-ragab-ink-400 flex flex-col sm:flex-row items-center justify-between gap-3 font-arabic">
           <div>{t.footer.copyright}</div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <Link href="/privacy" className="hover:text-white transition-colors py-1 inline-block">
               {t.footer.privacy}
             </Link>
@@ -114,23 +114,20 @@ export const Footer: React.FC = () => {
             <Link href="/terms" className="hover:text-white transition-colors py-1 inline-block">
               {t.footer.terms}
             </Link>
+            <span>·</span>
+            <a
+              href={isRTL ? 'https://taqatoo.web.app/?lang=ar' : 'https://taqatoo.web.app/?lang=en'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex items-center gap-1.5 py-1 hover:text-white transition-colors"
+            >
+              <Code2 className="w-3.5 h-3.5 text-ragab-brand-500 shrink-0" />
+              <span>{isRTL ? 'تم التطوير بواسطة' : 'Developed by'}</span>
+              <span className="font-bold text-ragab-brand-500 underline-offset-4 group-hover:underline font-arabic">
+                {isRTL ? 'التقاطع' : 'Taqatoo'}
+              </span>
+            </a>
           </div>
-        </div>
-
-        {/* Developer credit */}
-        <div className="mt-5 flex justify-center">
-          <a
-            href="https://ahmed-ismail-portfolio-pied.vercel.app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-caption text-ragab-ink-300 hover:border-ragab-brand-500 hover:text-white transition-colors focus-ring"
-          >
-            <Code2 className="w-3.5 h-3.5 text-ragab-brand-500 shrink-0" />
-            <span>{isRTL ? 'تم التطوير بواسطة' : 'Developed by'}</span>
-            <span dir="ltr" className="font-bold text-ragab-brand-500 underline-offset-4 group-hover:underline">
-              Ahmed Ismail
-            </span>
-          </a>
         </div>
       </div>
     </footer>
