@@ -14,6 +14,8 @@ export interface EngeznyOrderPayload {
   deliveryFee: number;
   qrCodeString: string;
   ragabOrderId: string;
+  /** Alias used by Engezny UI to show "Mahsoob Web" orders section (direct-claim flow). */
+  mahsoobOrderId: string;
   customerPhone?: string;
 }
 

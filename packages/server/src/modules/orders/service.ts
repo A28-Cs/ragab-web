@@ -278,6 +278,8 @@ export async function updateOrderStatus(ctx: RequestContext, orderId: string, to
           deliveryFee: updated.deliveryFeeMinor / 100,
           qrCodeString: orderId,
           ragabOrderId: orderId,
+          // Engezny UI filters by mahsoobOrderId to show "direct-claim" orders section
+          mahsoobOrderId: orderId,
           customerPhone: address.phone
         };
         // Only set workerId to null when initializing a new order, so we don't overwrite it
