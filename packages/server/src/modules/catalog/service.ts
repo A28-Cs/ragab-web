@@ -438,6 +438,39 @@ export async function deleteProduct(id: string, ctx: RequestContext): Promise<vo
   });
 }
 
+/** Soft delete multiple products in bulk. Keeps historical order references intact. */
+export async function deleteProducts(ids: string[], ctx: RequestContext): Promise<{ count: number }> {
+  if (!ids || ids.length === 0) return { count: 0 };
+  const existingRows = await db()
+    .select({ id: products.id, nameAr: products.nameAr })
+    .from(products)
+    .where(and(inArray(products.id, ids), sql`${products.deletedAt} IS NULL`));
+
+  if (existingRows.length === 0) return { count: 0 };
+
+  const validIds = existingRows.map((r) => r.id);
+  await db()
+    .update(products)
+    .set({ deletedAt: new Date(), isActive: false, isVisible: false })
+    .where(inArray(products.id, validIds));
+
+  for (const row of existingRows) {
+    await logAudit({
+      actorId: ctx.principal?.userId,
+      actorName: ctx.principal?.user.name ?? 'system',
+      actorRole: 'staff',
+      action: 'product_updated',
+      resource: 'products',
+      resourceId: row.id,
+      target: row.nameAr,
+      metadata: { op: 'delete', bulk: 'true' },
+      requestId: ctx.requestId,
+    });
+  }
+
+  return { count: validIds.length };
+}
+
 /** One category (any state) with its storefront-visible product count, rolled up to
  *  include its subcategories' products (§ subcategories) — same rule as listCategories. */
 async function getCategoryRow(id: string): Promise<Category> {

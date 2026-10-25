@@ -97,7 +97,7 @@ export const api = {
   post: <T>(path: string, body?: unknown, opts?: Omit<RequestOptions, 'method' | 'body'>) => apiRequest<T>(path, { method: 'POST', body, ...opts }),
   put: <T>(path: string, body?: unknown) => apiRequest<T>(path, { method: 'PUT', body }),
   patch: <T>(path: string, body?: unknown) => apiRequest<T>(path, { method: 'PATCH', body }),
-  del: <T>(path: string) => apiRequest<T>(path, { method: 'DELETE' }),
+  del: <T>(path: string, body?: unknown) => apiRequest<T>(path, { method: 'DELETE', body }),
 };
 
 /** A page cursor result shape used by list endpoints. */

@@ -1,4 +1,5 @@
 import { defineRoute } from '@ragab/server';
+import { z } from 'zod';
 import { catalogService, productFiltersSchema } from '@ragab/server/modules/catalog';
 
 export const runtime = 'nodejs';
@@ -14,4 +15,17 @@ export const GET = defineRoute({
   permission: { resource: 'products', action: 'view' },
   querySchema: productFiltersSchema,
   handler: ({ query }) => catalogService.listProductsAdmin(query),
+});
+
+const bulkDeleteSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1).max(500),
+});
+
+export const DELETE = defineRoute({
+  method: 'DELETE',
+  permission: { resource: 'products', action: 'delete' },
+  bodySchema: bulkDeleteSchema,
+  handler: async ({ body, ctx }) => {
+    return catalogService.deleteProducts(body.ids, ctx);
+  },
 });

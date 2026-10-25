@@ -777,6 +777,12 @@ export const ar = {
     popular: 'منتج مميز', popularHint: 'يظهر في أعلى الصفحة الرئيسية',
     essential: 'من الأساسيات', essentialHint: 'ضمن قائمة المنتجات الأكثر طلبًا',
     saved: 'تم حفظ المنتج', deleted: 'تم حذف المنتج', deleteTitle: 'حذف المنتج؟', deleteDesc: 'سيتم حذف هذا المنتج نهائيًا.', nameRequired: 'اسم المنتج مطلوب',
+    bulkDelete: 'حذف المحدد',
+    bulkDeleteConfirmTitle: 'حذف المنتجات المحددة؟',
+    bulkDeleteConfirmDesc: 'هل أنت متأكد من حذف المنتجات المحددة؟ لا يمكن التراجع عن هذا الإجراء.',
+    bulkDeleteSuccess: 'تم حذف المنتجات المحددة بنجاح',
+    clearSelection: 'إلغاء التحديد',
+    selectAllOnPage: 'تحديد الكل في هذه الصفحة',
   },
   adminZones: {
     title: 'مناطق التوصيل',

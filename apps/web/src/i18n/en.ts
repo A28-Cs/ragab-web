@@ -777,6 +777,12 @@ export const en = {
     popular: 'Featured product', popularHint: 'Shown at the top of the home page',
     essential: 'Essential item', essentialHint: 'Included in the most-needed products list',
     saved: 'Product saved', deleted: 'Product deleted', deleteTitle: 'Delete product?', deleteDesc: 'This product will be permanently deleted.', nameRequired: 'Product name is required',
+    bulkDelete: 'Delete selected',
+    bulkDeleteConfirmTitle: 'Delete selected products?',
+    bulkDeleteConfirmDesc: 'Are you sure you want to delete the selected products? This action cannot be undone.',
+    bulkDeleteSuccess: 'Selected products deleted successfully',
+    clearSelection: 'Clear selection',
+    selectAllOnPage: 'Select all on this page',
   },
   adminZones: {
     title: 'Delivery zones',

@@ -5,7 +5,7 @@ import { cn } from '@ragab/utils';
 
 export interface DataColumn<T> {
   key: string;
-  header: string;
+  header: React.ReactNode;
   cell: (row: T) => React.ReactNode;
   align?: 'start' | 'end' | 'center';
   headerClassName?: string;
@@ -19,6 +19,7 @@ interface DataTableProps<T> {
   rows: T[];
   keyField: (row: T) => string;
   onRowClick?: (row: T) => void;
+  rowClassName?: (row: T) => string | undefined;
   /** Heading shown at the top of each mobile card (defaults to the first column) */
   mobileTitle?: (row: T) => React.ReactNode;
   /** Trailing content (e.g. actions) in the mobile card header */
@@ -37,6 +38,7 @@ export function DataTable<T>({
   rows,
   keyField,
   onRowClick,
+  rowClassName,
   mobileTitle,
   mobileMeta,
   className = '',
@@ -69,7 +71,8 @@ export function DataTable<T>({
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 className={cn(
                   'border-b border-ragab-ink-100 last:border-0 transition-colors',
-                  onRowClick && 'cursor-pointer hover:bg-ragab-ink-50'
+                  onRowClick && 'cursor-pointer hover:bg-ragab-ink-50',
+                  rowClassName?.(row)
                 )}
               >
                 {columns.map((col) => (
@@ -100,7 +103,8 @@ export function DataTable<T>({
               onClick={onRowClick ? () => onRowClick(row) : undefined}
               className={cn(
                 'bg-white rounded-xl border border-ragab-ink-200 shadow-subtle p-4',
-                onRowClick && 'cursor-pointer active:scale-[0.99] transition-transform'
+                onRowClick && 'cursor-pointer active:scale-[0.99] transition-transform',
+                rowClassName?.(row)
               )}
             >
               <div className="flex items-start justify-between gap-2 mb-3">

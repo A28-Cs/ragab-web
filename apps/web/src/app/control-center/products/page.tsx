@@ -7,7 +7,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useToast } from '../../../components/ui/Toast';
 import { useAudit } from '../../../lib/useAudit';
-import { getAdminProductsPage, saveProduct, deleteProduct } from '../../../services/productService';
+import { getAdminProductsPage, saveProduct, deleteProduct, deleteProducts } from '../../../services/productService';
 import { getCategories } from '../../../services/categoryService';
 import { PermissionError } from '../../../lib/rbac';
 import { Category, Product, ProductVariant } from '../../../types';
@@ -16,6 +16,7 @@ import { Can } from '../../../components/auth/Can';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
+import { Checkbox } from '../../../components/ui/Checkbox';
 import { DataTable, DataColumn } from '../../../components/ui/DataTable';
 import { DropdownMenu } from '../../../components/ui/DropdownMenu';
 import { StatusPill } from '../../../components/ui/StatusPill';
@@ -55,6 +56,9 @@ function ProductsInner() {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [busy, setBusy] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   // cursors[i] = cursor that fetches page i+1 (page 1 has none). Reset with the filters.
   const cursors = useRef<(string | undefined)[]>([undefined]);
 
@@ -71,6 +75,7 @@ function ProductsInner() {
   useEffect(() => {
     cursors.current = [undefined];
     setPage(1);
+    setSelectedIds(new Set());
   }, [q, catFilter]);
 
   const load = useCallback(async () => {
@@ -83,6 +88,9 @@ function ProductsInner() {
       setTotal(res.total ?? res.items.length);
       setHasMore(res.hasMore);
       if (res.nextCursor) cursors.current[page] = res.nextCursor;
+      if (res.items.length === 0 && page > 1) {
+        setPage((p) => Math.max(1, p - 1));
+      }
     } finally {
       setLoading(false);
     }
@@ -135,14 +143,91 @@ function ProductsInner() {
     guard(async () => {
       await deleteProduct(deleteTarget.id, permissions);
       record('product_updated', 'products', deleteTarget.nameAr, { metadata: { action: 'deleted' } });
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(deleteTarget.id);
+        return next;
+      });
       reload();
       showToast(t.adminProducts.deleted, 'success');
     }).finally(() => { setBusy(false); setDeleteTarget(null); });
   };
 
+  const allPageIds = rows.map((r) => r.id);
+  const selectedOnPage = allPageIds.filter((id) => selectedIds.has(id));
+  const isAllSelected = allPageIds.length > 0 && selectedOnPage.length === allPageIds.length;
+  const isPartiallySelected = selectedOnPage.length > 0 && !isAllSelected;
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(allPageIds));
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  const onBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    await guard(async () => {
+      await deleteProducts(ids, permissions);
+      record('product_updated', 'products', `${ids.length} products`, { metadata: { action: 'bulk_deleted', count: String(ids.length) } });
+      setSelectedIds(new Set());
+      setBulkConfirmOpen(false);
+      showToast(ar ? `تم حذف ${ids.length} منتج بنجاح` : `${ids.length} products deleted successfully`, 'success');
+      reload();
+    }).finally(() => {
+      setBulkDeleting(false);
+    });
+  };
+
   const stockTone = (p: Product) => (!p.inStock || p.stockQuantity === 0 ? 'danger' : p.stockQuantity <= (p.lowStockThreshold ?? 5) ? 'warning' : 'success');
 
   const columns: DataColumn<Product>[] = [
+    {
+      key: 'select',
+      header: (
+        <div className="flex items-center justify-center">
+          <Checkbox
+            size="sm"
+            checked={isAllSelected}
+            indeterminate={isPartiallySelected}
+            onChange={toggleSelectAll}
+            disabled={loading || rows.length === 0}
+          />
+        </div>
+      ),
+      cell: (p) => (
+        <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            size="sm"
+            checked={selectedIds.has(p.id)}
+            onChange={() => toggleSelectOne(p.id)}
+          />
+        </div>
+      ),
+      align: 'center',
+      headerClassName: 'w-10 px-2',
+      cellClassName: 'w-10 px-2',
+      hideOnMobile: true,
+    },
     {
       key: 'name', header: t.adminProducts.colName, hideOnMobile: true,
       cell: (p) => (
@@ -201,13 +286,52 @@ function ProductsInner() {
         <Select options={catOptions} value={catFilter} onChange={(e) => setCatFilter(e.target.value)} />
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between gap-3 p-3.5 bg-ragab-brand-50 border border-ragab-brand-200 rounded-xl animate-in fade-in duration-200">
+          <div className="flex items-center gap-3">
+            <span className="text-body-sm font-semibold text-ragab-brand-800">
+              {ar ? `تم تحديد ${selectedIds.size} من أصل ${rows.length} منتج` : `${selectedIds.size} of ${rows.length} products selected`}
+            </span>
+            <button
+              type="button"
+              onClick={clearSelection}
+              className="text-caption font-bold text-ragab-brand-700 hover:text-ragab-brand-900 underline underline-offset-2"
+            >
+              {t.adminProducts.clearSelection}
+            </button>
+          </div>
+          <Can resource="products" action="delete">
+            <Button
+              variant="danger"
+              size="sm"
+              leftIcon={<Trash2 className="w-4 h-4" />}
+              onClick={() => setBulkConfirmOpen(true)}
+            >
+              {ar ? `حذف المحدد (${selectedIds.size})` : `${t.adminProducts.bulkDelete} (${selectedIds.size})`}
+            </Button>
+          </Can>
+        </div>
+      )}
+
       {loading && rows.length === 0 ? (
         <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-ragab-ink-400" /></div>
       ) : (
         <div className={loading ? 'opacity-60 transition-opacity' : 'transition-opacity'} aria-busy={loading}>
-          <DataTable columns={columns} rows={rows} keyField={(p) => p.id}
+          <DataTable
+            columns={columns}
+            rows={rows}
+            keyField={(p) => p.id}
+            rowClassName={(p) => (selectedIds.has(p.id) ? 'bg-ragab-brand-50/40' : undefined)}
             mobileTitle={(p) => (
               <div className="flex items-center gap-2.5">
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Checkbox
+                    size="sm"
+                    checked={selectedIds.has(p.id)}
+                    onChange={() => toggleSelectOne(p.id)}
+                    className="shrink-0"
+                  />
+                </div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={p.image} alt="" className="w-9 h-9 rounded-lg object-cover border border-ragab-ink-100" />
                 <button onClick={() => openEdit(p)} className="text-ragab-ink-800 text-start">{p.nameAr}</button>
@@ -239,6 +363,21 @@ function ProductsInner() {
       />
 
       <ConfirmDialog isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={onDelete} title={t.adminProducts.deleteTitle} description={t.adminProducts.deleteDesc} confirmLabel={t.admin.delete} destructive isLoading={busy} />
+
+      <ConfirmDialog
+        isOpen={bulkConfirmOpen}
+        onClose={() => setBulkConfirmOpen(false)}
+        onConfirm={onBulkDelete}
+        title={t.adminProducts.bulkDeleteConfirmTitle}
+        description={
+          ar
+            ? `هل أنت متأكد من حذف ${selectedIds.size} من المنتجات المحددة؟ سيتم استبعادها ولن تظهر في المتجر.`
+            : `Are you sure you want to delete ${selectedIds.size} selected products? They will be removed from the store.`
+        }
+        confirmLabel={ar ? `حذف (${selectedIds.size})` : `${t.admin.delete} (${selectedIds.size})`}
+        destructive
+        isLoading={bulkDeleting}
+      />
     </div>
   );
 }

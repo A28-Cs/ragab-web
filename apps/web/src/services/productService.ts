@@ -158,6 +158,11 @@ export const deleteProduct = async (id: string, _perms?: Set<PermissionKey>): Pr
   await api.del(`/products/${encodeURIComponent(id)}`);
 };
 
+export const deleteProducts = async (ids: string[], _perms?: Set<PermissionKey>): Promise<{ count: number }> => {
+  if (ids.length === 0) return { count: 0 };
+  return api.post<{ count: number }>('/admin/products/bulk-delete', { ids });
+};
+
 /** Absolute stock for one unit; `variantId` omitted ⇒ the product's default unit. */
 export const updateStock = async (id: string, quantity: number, _perms?: Set<PermissionKey>, variantId?: string): Promise<void> => {
   await api.post(`/admin/inventory/${encodeURIComponent(id)}/adjust`, { quantity, reason: 'admin stock update', ...(variantId ? { variantId } : {}) });
