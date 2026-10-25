@@ -16,3 +16,4 @@ export * from './promotions';
 export * from './comms';
 export * from './devices';
 export * from './reviews';
+export * from './prescriptions';

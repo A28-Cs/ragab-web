@@ -186,7 +186,31 @@ export type ProductRequestedEvent = BaseRealtimeEvent<
   }
 >;
 
-export type AppRealtimeEvent = OrderStatusUpdatedEvent | OrderCreatedEvent | ProductRequestedEvent;
+export type PrescriptionCreatedEvent = BaseRealtimeEvent<
+  'prescription.created',
+  {
+    prescriptionId: string;
+    customerName: string;
+    customerPhone: string;
+  }
+>;
+
+export type PrescriptionReviewedEvent = BaseRealtimeEvent<
+  'prescription.reviewed',
+  {
+    prescriptionId: string;
+    userId?: string;
+    itemCount: number;
+    totalAmount: number;
+  }
+>;
+
+export type AppRealtimeEvent =
+  | OrderStatusUpdatedEvent
+  | OrderCreatedEvent
+  | ProductRequestedEvent
+  | PrescriptionCreatedEvent
+  | PrescriptionReviewedEvent;
 
 export type ProductRequestStatus = 'pending' | 'fulfilled' | 'cancelled';
 
@@ -208,4 +232,36 @@ export interface ProductRequest {
   fulfilledAt?: string;
   productImage?: string;
   categoryNameAr?: string;
+}
+
+export type PrescriptionStatus = 'pending' | 'reviewed' | 'completed' | 'rejected';
+
+export interface PrescriptionItem {
+  productId: string;
+  variantId?: string;
+  productNameAr: string;
+  productNameEn?: string;
+  productImage?: string;
+  productSlug?: string;
+  quantity: number;
+  price: number;
+  instructions?: string;
+}
+
+export interface Prescription {
+  id: string;
+  userId?: string;
+  customerName: string;
+  customerPhone: string;
+  imageUrl: string;
+  notes?: string;
+  status: PrescriptionStatus;
+  items: PrescriptionItem[];
+  pharmacistNotes?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
+  cartUpdated?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }

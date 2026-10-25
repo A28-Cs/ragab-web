@@ -386,6 +386,7 @@ export type AuditAction =
   | 'order_cancelled_refunded'
   | 'payment_confirmed'
   | 'invoice_sent'
+  | 'prescription_reviewed'
   | 'settings_changed';
 
 export interface AuditLogEntry {
@@ -530,4 +531,36 @@ export interface ProductRequest {
   fulfilledAt?: string;
   productImage?: string;
   categoryNameAr?: string;
+}
+
+export type PrescriptionStatus = 'pending' | 'reviewed' | 'completed' | 'rejected';
+
+export interface PrescriptionItem {
+  productId: string;
+  variantId?: string;
+  productNameAr: string;
+  productNameEn?: string;
+  productImage?: string;
+  productSlug?: string;
+  quantity: number;
+  price: number;
+  instructions?: string;
+}
+
+export interface Prescription {
+  id: string;
+  userId?: string;
+  customerName: string;
+  customerPhone: string;
+  imageUrl: string;
+  notes?: string;
+  status: PrescriptionStatus;
+  items: PrescriptionItem[];
+  pharmacistNotes?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
+  cartUpdated?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Search, Download, MoreVertical, Eye, XCircle, Loader2, BellRing } from 'lucide-react';
+import { Search, Download, MoreVertical, Eye, XCircle, Loader2, BellRing, FileText } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useToast } from '../../../components/ui/Toast';
@@ -210,6 +210,13 @@ function OrdersAdminInner() {
         >
           <span>{ar ? 'طلبات الشراء' : 'Customer Orders'}</span>
           <span className="px-1.5 py-0.5 rounded-full text-[11px] bg-white/20 text-white font-mono">{total}</span>
+        </Link>
+        <Link
+          href="/control-center/prescriptions"
+          className="px-4 py-2 rounded-xl text-body-sm font-bold bg-white hover:bg-ragab-ink-50 text-ragab-ink-700 border border-ragab-ink-200 transition-colors inline-flex items-center gap-1.5"
+        >
+          <FileText className="w-4 h-4 text-ragab-brand-600" />
+          <span>{ar ? 'طلبات الروشتات' : 'Prescription Requests'}</span>
         </Link>
         <Link
           href="/control-center/product-requests"

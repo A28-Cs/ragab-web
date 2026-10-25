@@ -12,6 +12,7 @@ import {
   Loader2,
   PackageCheck,
   Check,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@ragab/utils';
 import { useAuth } from '../../../context/AuthContext';
@@ -318,6 +319,13 @@ function ProductRequestsInner() {
           className="px-4 py-2 rounded-xl text-body-sm font-bold bg-white hover:bg-ragab-ink-50 text-ragab-ink-700 border border-ragab-ink-200 transition-colors"
         >
           {ar ? 'طلبات الشراء' : 'Customer Orders'}
+        </Link>
+        <Link
+          href="/control-center/prescriptions"
+          className="px-4 py-2 rounded-xl text-body-sm font-bold bg-white hover:bg-ragab-ink-50 text-ragab-ink-700 border border-ragab-ink-200 transition-colors inline-flex items-center gap-1.5"
+        >
+          <FileText className="w-4 h-4 text-ragab-brand-600" />
+          <span>{ar ? 'طلبات الروشتات' : 'Prescriptions'}</span>
         </Link>
         <Link
           href="/control-center/product-requests"

@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Clock, Truck, Banknote, MessageCircle, BadgeCheck, WifiOff, ArrowLeft, ArrowRight, Cross } from 'lucide-react';
+import { Clock, Truck, Banknote, MessageCircle, BadgeCheck, WifiOff, ArrowLeft, ArrowRight, Cross, FileText } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { ProductStrip } from '../components/product/ProductStrip';
@@ -161,6 +161,10 @@ export default function HomePage() {
               <p className="text-body-sm sm:text-base text-ragab-ink-600 leading-7 sm:leading-8 mt-4 max-w-lg">{t.home.heroSubtitle}</p>
               <div className="flex flex-wrap items-center gap-3 mt-6">
                 <Link href="/categories" className="inline-flex items-center justify-center gap-3 min-h-12 px-5 rounded-lg bg-ragab-brand-700 hover:bg-ragab-brand-800 text-white font-bold text-body-sm focus-ring transition-colors">{t.home.shopNow}<DirectionArrow className="w-4 h-4" /></Link>
+                <Link href="/prescription" className="inline-flex items-center justify-center gap-2 min-h-12 px-5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-body-sm focus-ring transition-all shadow-sm hover:shadow-md">
+                  <FileText className="w-4 h-4" />
+                  <span>{isRTL ? 'اطلب بروشتة' : 'Order by Prescription'}</span>
+                </Link>
                 <Link href="/offers" className="inline-flex items-center justify-center min-h-12 px-3 text-ragab-ink-800 font-bold text-body-sm underline underline-offset-8 decoration-ragab-brand-500 hover:text-ragab-brand-700 focus-ring">{isRTL ? 'عروض اليوم' : 'Today’s offers'}</Link>
               </div>
             </div>
@@ -184,6 +188,34 @@ export default function HomePage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 bg-white border-t border-ragab-brand-200 px-3 py-2 sm:px-5">
             {features.map(({ icon: Icon, title, desc }) => <div key={title} className="flex items-start gap-2.5 p-3 sm:p-4"><Icon className="w-5 h-5 shrink-0 mt-1 text-ragab-brand-700" strokeWidth={1.6} /><div><p className="text-caption sm:text-body-sm font-bold text-ragab-ink-800">{title}</p><p className="text-[11px] sm:text-caption text-ragab-ink-500 mt-1">{desc}</p></div></div>)}
           </div>
+        </div>
+      </section>
+
+      {/* ===== Smart Prescription Callout Banner ===== */}
+      <section className="container-page pt-4 md:pt-6">
+        <div className="rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-700 to-ragab-brand-800 text-white p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0 backdrop-blur-sm">
+              <FileText className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-body sm:text-h3 text-white">
+                {isRTL ? 'عندك روشتة أو صورة دواء؟' : 'Have a Prescription or Medicine Photo?'}
+              </h3>
+              <p className="text-caption sm:text-body-sm text-emerald-100 mt-0.5">
+                {isRTL
+                  ? 'صورها وارفعها مباشرة، ودكتور الصيدلية هيراجعها ويحددلك كل العلاج ويضيفه لسلتك فوراً!'
+                  : 'Upload it now, and our pharmacist will review it, select all items, and add them to your cart.'}
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/prescription"
+            className="inline-flex items-center justify-center gap-2 min-h-11 px-5 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 font-bold text-body-sm shadow-sm transition-colors whitespace-nowrap shrink-0"
+          >
+            <span>{isRTL ? 'رفع الروشتة الآن' : 'Upload Prescription'}</span>
+            <DirectionArrow className="w-4 h-4" />
+          </Link>
         </div>
       </section>
 

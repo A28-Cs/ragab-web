@@ -20,6 +20,7 @@ import {
   LogOut,
   ShieldAlert,
   Grid2X2,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@ragab/utils';
 import { RagabLogo } from '../ui/RagabLogo';
@@ -315,6 +316,16 @@ export const Header: React.FC = () => {
                   {favorites.length > 99 ? '99+' : favorites.length}
                 </span>
               )}
+            </Link>
+
+            {/* Prescription Order Button */}
+            <Link
+              href="/prescription"
+              className="inline-flex items-center gap-1.5 h-11 px-3 sm:px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-caption sm:text-body-sm font-arabic transition-all focus-ring shadow-subtle hover:shadow-md shrink-0"
+              title={isRTL ? 'اطلب بروشتة' : 'Order by Prescription'}
+            >
+              <FileText className="w-4 h-4" />
+              <span className="whitespace-nowrap">{isRTL ? 'اطلب بروشتة' : 'Prescription'}</span>
             </Link>
 
             {/* Cart */}

@@ -20,5 +20,6 @@ export const AUDIT_ACTION_KEY: Record<AuditAction, string> = {
   order_cancelled_refunded: 'actOrderCancelledRefunded',
   payment_confirmed: 'actPaymentConfirmed',
   invoice_sent: 'actInvoiceSent',
+  prescription_reviewed: 'actPrescriptionReviewed',
   settings_changed: 'actSettingsChanged',
 };
