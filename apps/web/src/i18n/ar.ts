@@ -557,6 +557,7 @@ export const ar = {
     navCategories: 'الأقسام',
     navInventory: 'المخزون',
     navOrders: 'الطلبات',
+    navProductRequests: 'طلبات التوفير',
     navCustomers: 'العملاء',
     navPromotions: 'العروض',
     navPayments: 'المدفوعات',

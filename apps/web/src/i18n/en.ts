@@ -557,6 +557,7 @@ export const en = {
     navCategories: 'Categories',
     navInventory: 'Inventory',
     navOrders: 'Orders',
+    navProductRequests: 'Stock Requests',
     navCustomers: 'Customers',
     navPromotions: 'Promotions',
     navPayments: 'Payments',

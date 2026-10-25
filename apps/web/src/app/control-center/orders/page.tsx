@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Search, Download, MoreVertical, Eye, XCircle, Loader2 } from 'lucide-react';
+import { Search, Download, MoreVertical, Eye, XCircle, Loader2, BellRing } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useToast } from '../../../components/ui/Toast';
@@ -202,6 +202,24 @@ function OrdersAdminInner() {
 
   return (
     <div className="space-y-4">
+      {/* Switcher between Orders and Product Requests */}
+      <div className="flex items-center gap-2 border-b border-ragab-ink-100 pb-3">
+        <Link
+          href="/control-center/orders"
+          className="px-4 py-2 rounded-xl text-body-sm font-bold bg-ragab-brand-500 text-white shadow-sm flex items-center gap-1.5"
+        >
+          <span>{ar ? 'طلبات الشراء' : 'Customer Orders'}</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[11px] bg-white/20 text-white font-mono">{total}</span>
+        </Link>
+        <Link
+          href="/control-center/product-requests"
+          className="px-4 py-2 rounded-xl text-body-sm font-bold bg-white hover:bg-ragab-ink-50 text-ragab-ink-700 border border-ragab-ink-200 transition-colors inline-flex items-center gap-1.5"
+        >
+          <BellRing className="w-4 h-4 text-ragab-brand-600" />
+          <span>{ar ? 'طلبات التوفير' : 'Stock Requests'}</span>
+        </Link>
+      </div>
+
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-h2 text-ragab-ink-800">{t.adminOrders.title}</h2>
