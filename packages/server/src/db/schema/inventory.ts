@@ -114,3 +114,32 @@ export const inventoryAdjustments = pgTable(
   },
   (t) => [index('inventory_adjustments_product_idx').on(t.productId)],
 );
+
+export const productRequestStatusEnum = pgEnum(
+  'product_request_status',
+  ['pending', 'fulfilled', 'cancelled'],
+);
+
+export const productRequests = pgTable(
+  'product_requests',
+  {
+    id: primaryId(),
+    productId: text('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    variantId: text('variant_id'),
+    productNameAr: text('product_name_ar').notNull(),
+    productNameEn: text('product_name_en'),
+    customerName: text('customer_name').notNull(),
+    customerPhone: text('customer_phone').notNull(),
+    userId: text('user_id'),
+    notes: text('notes'),
+    status: productRequestStatusEnum('status').notNull().default('pending'),
+    ...timestamps,
+  },
+  (t) => [
+    index('product_requests_product_idx').on(t.productId),
+    index('product_requests_status_idx').on(t.status),
+    index('product_requests_created_idx').on(t.createdAt),
+  ],
+);

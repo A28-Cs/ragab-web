@@ -5,7 +5,7 @@
  * The optional `perms` argument on admin mutations is kept for source compatibility but
  * is ignored here — authorization is enforced server-side.
  */
-import { Product, PermissionKey } from '../types';
+import { Product, PermissionKey, ProductRequest, ProductRequestStatus } from '../types';
 import { api, type PageResult } from '../lib/apiClient';
 import { fetchAllPages } from '../lib/pageWalker';
 
@@ -179,4 +179,28 @@ export const bulkUpdateStock = async (
   _perms?: Set<PermissionKey>,
 ): Promise<{ count: number; updatedProducts: number }> => {
   return api.post<{ count: number; updatedProducts: number }>('/admin/inventory/bulk-adjust', payload);
+};
+
+export interface ProductRequestInput {
+  productId: string;
+  variantId?: string;
+  customerName: string;
+  customerPhone: string;
+  notes?: string;
+}
+
+export const submitProductRequest = async (data: ProductRequestInput): Promise<{ ok: boolean; id: string }> => {
+  return api.post<{ ok: boolean; id: string }>('/products/request', data);
+};
+
+export const getAdminProductRequests = async (status?: string): Promise<ProductRequest[]> => {
+  return api.get<ProductRequest[]>('/admin/product-requests', { status });
+};
+
+export const updateProductRequestStatus = async (
+  id: string,
+  status: ProductRequestStatus,
+  _perms?: Set<PermissionKey>,
+): Promise<void> => {
+  await api.patch(`/admin/product-requests/${encodeURIComponent(id)}`, { status });
 };

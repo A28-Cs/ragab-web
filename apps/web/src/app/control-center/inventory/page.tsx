@@ -1,15 +1,34 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search, Loader2, Check, PackageCheck, Layers } from 'lucide-react';
+import {
+  Search,
+  Loader2,
+  Check,
+  PackageCheck,
+  Layers,
+  BellRing,
+  Phone,
+  MessageCircle,
+  CheckCircle2,
+  ExternalLink,
+  RotateCcw,
+} from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useToast } from '../../../components/ui/Toast';
 import { useAudit } from '../../../lib/useAudit';
-import { getAdminProductsPage, updateStock, bulkUpdateStock } from '../../../services/productService';
+import {
+  getAdminProductsPage,
+  updateStock,
+  bulkUpdateStock,
+  getAdminProductRequests,
+  updateProductRequestStatus,
+} from '../../../services/productService';
 import { getCategories } from '../../../services/categoryService';
 import { PermissionError } from '../../../lib/rbac';
-import { Product, Category } from '../../../types';
+import { Product, Category, ProductRequest, ProductRequestStatus } from '../../../types';
+import { cn } from '@ragab/utils';
 import { RequirePermission } from '../../../components/auth/RequirePermission';
 import { Can } from '../../../components/auth/Can';
 import { Button } from '../../../components/ui/Button';
@@ -42,13 +61,19 @@ function InventoryInner() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [tab, setTab] = useState<'all' | 'low'>('all');
+  const [tab, setTab] = useState<'all' | 'low' | 'requests'>('all');
   const [target, setTarget] = useState<Row | null>(null);
   const [qty, setQty] = useState(0);
   const [saving, setSaving] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [totalItems, setTotalItems] = useState(0);
+
+  // Stock requests states
+  const [requests, setRequests] = useState<ProductRequest[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
+  const [requestStatusFilter, setRequestStatusFilter] = useState<'all' | ProductRequestStatus>('all');
+  const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null);
 
   // Bulk update states
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -67,7 +92,37 @@ function InventoryInner() {
       setCategories(cats);
       if (cats.length > 0) setTargetCategory(cats[0].id);
     });
+    // Initial fetch to populate pending requests count
+    getAdminProductRequests('pending')
+      .then((res) => {
+        setRequests(res);
+      })
+      .catch(() => {});
   }, []);
+
+  const loadRequests = async () => {
+    setRequestsLoading(true);
+    try {
+      const res = await getAdminProductRequests(
+        requestStatusFilter === 'all' ? undefined : requestStatusFilter
+      );
+      setRequests(res);
+    } catch (err) {
+      console.error('Failed to load product requests:', err);
+    } finally {
+      setRequestsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (tab === 'requests') {
+      loadRequests();
+    }
+  }, [tab, requestStatusFilter]);
+
+  const pendingRequestsCount = useMemo(() => {
+    return requests.filter((r) => r.status === 'pending').length;
+  }, [requests]);
 
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedQuery(query), 300);
@@ -96,6 +151,7 @@ function InventoryInner() {
   };
 
   useEffect(() => {
+    if (tab === 'requests') return;
     setNextCursor(null);
     setSelectedIds(new Set());
     load(true);
@@ -147,6 +203,9 @@ function InventoryInner() {
       await updateStock(target.productId, qty, permissions, target.variantId);
       record('inventory_adjusted', 'inventory', target.nameAr, { metadata: { quantity: String(qty) } });
       await load(true);
+      if (tab === 'requests') {
+        await loadRequests();
+      }
       showToast(t.adminInventory.stockUpdated, 'success');
       setTarget(null);
     } catch (e) {
@@ -208,6 +267,242 @@ function InventoryInner() {
       setCategorySaving(false);
     }
   };
+
+  const openUpdateForRequest = (req: ProductRequest) => {
+    const matchingRow = rows.find(
+      (row) => row.productId === req.productId && (!req.variantId || row.variantId === req.variantId)
+    );
+    if (matchingRow) {
+      openUpdate(matchingRow);
+    } else {
+      const customRow: Row = {
+        id: req.variantId ? `${req.productId}::${req.variantId}` : req.productId,
+        productId: req.productId,
+        variantId: req.variantId ?? undefined,
+        variantName: req.variantName ?? undefined,
+        nameAr: req.productNameAr,
+        nameEn: req.productNameEn ?? req.productNameAr,
+        slug: req.productSlug || req.productId,
+        image: req.productImage || '',
+        price: 0,
+        stockQuantity: 0,
+        categoryId: '',
+        categoryNameAr: req.categoryNameAr || '',
+        inStock: false,
+        unitAr: 'قطعة',
+        unitEn: 'pc',
+        descriptionAr: '',
+      };
+      setTarget(customRow);
+      setQty(10);
+    }
+  };
+
+  const handleUpdateStatus = async (id: string, newStatus: ProductRequestStatus) => {
+    setUpdatingRequestId(id);
+    try {
+      await updateProductRequestStatus(id, newStatus, permissions);
+      setRequests((prev) =>
+        prev.map((r) =>
+          r.id === id
+            ? {
+                ...r,
+                status: newStatus,
+                fulfilledAt: newStatus === 'fulfilled' ? new Date().toISOString() : r.fulfilledAt,
+              }
+            : r
+        )
+      );
+      showToast(ar ? 'تم تحديث حالة طلب التوفير بنجاح' : 'Request status updated', 'success');
+      record('inventory_adjusted', 'inventory', id, { metadata: { status: newStatus } });
+    } catch (e) {
+      showToast(e instanceof PermissionError ? t.states.forbiddenTitle : t.states.error, 'error');
+    } finally {
+      setUpdatingRequestId(null);
+    }
+  };
+
+  const requestTone = (status: ProductRequestStatus) => {
+    switch (status) {
+      case 'fulfilled':
+        return 'success';
+      case 'pending':
+        return 'warning';
+      case 'cancelled':
+        return 'neutral';
+      default:
+        return 'neutral';
+    }
+  };
+
+  const requestLabel = (status: ProductRequestStatus) => {
+    switch (status) {
+      case 'fulfilled':
+        return ar ? 'تم التوفير' : 'Fulfilled';
+      case 'pending':
+        return ar ? 'قيد الانتظار' : 'Pending';
+      case 'cancelled':
+        return ar ? 'ملغي' : 'Cancelled';
+      default:
+        return status;
+    }
+  };
+
+  const getWhatsAppLink = (phone: string, customerName: string, productName: string) => {
+    let clean = phone.replace(/\D/g, '');
+    if (clean.startsWith('0')) clean = '2' + clean;
+    else if (!clean.startsWith('20') && clean.length === 10) clean = '20' + clean;
+    const msg = ar
+      ? `أهلاً يا ${customerName}، بنبلغ حضرتك بخصوص طلب توفير منتج "${productName}" في صيدلية رجب.`
+      : `Hello ${customerName}, regarding your request for "${productName}" at Ragab Pharmacy.`;
+    return `https://wa.me/${clean}?text=${encodeURIComponent(msg)}`;
+  };
+
+  const requestColumns: DataColumn<ProductRequest>[] = [
+    {
+      key: 'product',
+      header: ar ? 'المنتج المطلوب' : 'Requested Product',
+      cell: (r) => (
+        <div className="flex items-center gap-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={r.productImage || '/placeholder.png'}
+            alt=""
+            className="w-10 h-10 rounded-lg object-cover border border-ragab-ink-100 shrink-0"
+          />
+          <div>
+            <a
+              href={r.productSlug ? `/product/${r.productSlug}` : `/product/${r.productId}`}
+              target="_blank"
+              rel="noreferrer"
+              className="font-bold text-ragab-ink-900 hover:text-ragab-brand-600 transition-colors inline-flex items-center gap-1"
+            >
+              <span>{r.productNameAr}</span>
+              <ExternalLink className="w-3 h-3 text-ragab-ink-400" />
+            </a>
+            {r.variantName && (
+              <div className="text-caption font-bold text-ragab-brand-700">
+                — {r.variantName}
+              </div>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'customer',
+      header: ar ? 'بيانات العميل' : 'Customer Info',
+      cell: (r) => (
+        <div className="space-y-1">
+          <div className="font-bold text-ragab-ink-800">{r.customerName}</div>
+          <div className="flex items-center gap-2 text-caption">
+            <span dir="ltr" className="text-ragab-ink-600 font-mono font-semibold">
+              {r.customerPhone}
+            </span>
+            <a
+              href={`tel:${r.customerPhone}`}
+              className="p-1 rounded-md bg-ragab-ink-100 hover:bg-ragab-ink-200 text-ragab-ink-700 transition-colors"
+              title={ar ? 'اتصال بالهاتف' : 'Call'}
+            >
+              <Phone className="w-3.5 h-3.5" />
+            </a>
+            <a
+              href={getWhatsAppLink(r.customerPhone, r.customerName, r.productNameAr)}
+              target="_blank"
+              rel="noreferrer"
+              className="p-1 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition-colors"
+              title={ar ? 'مراسلة واتساب' : 'WhatsApp'}
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'notes',
+      header: ar ? 'ملاحظات العميل' : 'Customer Notes',
+      hideOnMobile: true,
+      cell: (r) => (
+        <p className="text-body-sm text-ragab-ink-600 max-w-xs truncate" title={r.notes || undefined}>
+          {r.notes || <span className="text-ragab-ink-300">—</span>}
+        </p>
+      ),
+    },
+    {
+      key: 'date',
+      header: ar ? 'تاريخ الطلب' : 'Date',
+      hideOnMobile: true,
+      cell: (r) => {
+        const d = new Date(r.createdAt);
+        return (
+          <span className="text-caption text-ragab-ink-500 whitespace-nowrap">
+            {d.toLocaleDateString(ar ? 'ar-EG' : 'en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'status',
+      header: ar ? 'الحالة' : 'Status',
+      align: 'center',
+      cell: (r) => <StatusPill tone={requestTone(r.status)}>{requestLabel(r.status)}</StatusPill>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'end',
+      cell: (r) => (
+        <div className="flex items-center justify-end gap-1.5 flex-wrap">
+          {r.status === 'pending' ? (
+            <Button
+              variant="primary"
+              size="sm"
+              isLoading={updatingRequestId === r.id}
+              onClick={() => handleUpdateStatus(r.id, 'fulfilled')}
+              leftIcon={<CheckCircle2 className="w-3.5 h-3.5" />}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              {ar ? 'تم التوفير' : 'Fulfill'}
+            </Button>
+          ) : r.status === 'fulfilled' ? (
+            <Button
+              variant="outline"
+              size="sm"
+              isLoading={updatingRequestId === r.id}
+              onClick={() => handleUpdateStatus(r.id, 'pending')}
+            >
+              {ar ? 'إعادة فتح' : 'Reopen'}
+            </Button>
+          ) : null}
+          {r.status === 'pending' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              isLoading={updatingRequestId === r.id}
+              onClick={() => handleUpdateStatus(r.id, 'cancelled')}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              {ar ? 'إلغاء' : 'Cancel'}
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => openUpdateForRequest(r)}
+            disabled={!hasPermission('inventory', 'edit')}
+          >
+            {ar ? 'تحديث المخزون' : 'Stock'}
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
   const columns: DataColumn<Row>[] = [
     {
@@ -288,12 +583,64 @@ function InventoryInner() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr_220px] gap-3 items-center">
-        <Tabs variant="segmented" value={tab} onChange={(v) => setTab(v as 'all' | 'low')} items={[{ value: 'all', label: t.adminInventory.all }, { value: 'low', label: t.adminInventory.lowStockOnly, badge: tab === 'low' ? totalItems : undefined }]} />
-        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.adminInventory.search} startIcon={<Search className="w-4 h-4" />} />
-        <Select options={catOptions} value={catFilter} onChange={(e) => setCatFilter(e.target.value)} />
+        <Tabs
+          variant="segmented"
+          value={tab}
+          onChange={(v) => setTab(v as 'all' | 'low' | 'requests')}
+          items={[
+            { value: 'all', label: t.adminInventory.all },
+            { value: 'low', label: t.adminInventory.lowStockOnly, badge: tab === 'low' ? totalItems : undefined },
+            {
+              value: 'requests',
+              label: ar ? 'طلبات التوفير' : 'Stock Requests',
+              badge: pendingRequestsCount > 0 ? pendingRequestsCount : undefined,
+            },
+          ]}
+        />
+        {tab !== 'requests' ? (
+          <>
+            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.adminInventory.search} startIcon={<Search className="w-4 h-4" />} />
+            <Select options={catOptions} value={catFilter} onChange={(e) => setCatFilter(e.target.value)} />
+          </>
+        ) : (
+          <div className="sm:col-span-2 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5 overflow-x-auto">
+              {(['all', 'pending', 'fulfilled', 'cancelled'] as const).map((st) => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setRequestStatusFilter(st)}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg text-caption font-bold transition-colors whitespace-nowrap',
+                    requestStatusFilter === st
+                      ? 'bg-ragab-brand-500 text-white shadow-sm'
+                      : 'bg-ragab-ink-100 text-ragab-ink-700 hover:bg-ragab-ink-200'
+                  )}
+                >
+                  {st === 'all'
+                    ? (ar ? 'الكل' : 'All')
+                    : st === 'pending'
+                    ? (ar ? 'قيد الانتظار' : 'Pending')
+                    : st === 'fulfilled'
+                    ? (ar ? 'تم التوفير' : 'Fulfilled')
+                    : (ar ? 'ملغي' : 'Cancelled')}
+                </button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadRequests}
+              isLoading={requestsLoading}
+              leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+            >
+              {ar ? 'تحديث' : 'Refresh'}
+            </Button>
+          </div>
+        )}
       </div>
 
-      {selectedIds.size > 0 && (
+      {tab !== 'requests' && selectedIds.size > 0 && (
         <div className="flex items-center justify-between gap-3 p-3.5 bg-ragab-brand-50 border border-ragab-brand-200 rounded-xl animate-in fade-in duration-200">
           <div className="flex items-center gap-3">
             <span className="text-body-sm font-semibold text-ragab-brand-800">
@@ -320,7 +667,52 @@ function InventoryInner() {
         </div>
       )}
 
-      {loading ? (
+      {tab === 'requests' ? (
+        requestsLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-6 h-6 animate-spin text-ragab-ink-400" />
+          </div>
+        ) : requests.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-2xl border border-ragab-ink-200 p-8 space-y-3">
+            <div className="w-12 h-12 rounded-full bg-ragab-brand-50 text-ragab-brand-600 flex items-center justify-center mx-auto">
+              <BellRing className="w-6 h-6" />
+            </div>
+            <h3 className="text-h3 font-bold text-ragab-ink-800">
+              {ar ? 'لا توجد طلبات توفير حالياً' : 'No product requests found'}
+            </h3>
+            <p className="text-body-sm text-ragab-ink-500 max-w-sm mx-auto">
+              {ar
+                ? 'عند قيام العملاء بطلب توفير أي منتج غير متوفر، ستظهر طلباتهم وأرقام هواتفهم هنا مباشرة.'
+                : 'When customers request out-of-stock items, their requests and contact info will appear here.'}
+            </p>
+          </div>
+        ) : (
+          <DataTable
+            columns={requestColumns}
+            rows={requests}
+            keyField={(r) => r.id}
+            mobileTitle={(r) => (
+              <div className="flex items-center gap-2.5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={r.productImage || '/placeholder.png'}
+                  alt=""
+                  className="w-9 h-9 rounded-lg object-cover border border-ragab-ink-100"
+                />
+                <div>
+                  <span className="text-ragab-ink-900 font-bold block">{r.productNameAr}</span>
+                  <span className="text-caption text-ragab-ink-500 font-semibold">
+                    {r.customerName} - {r.customerPhone}
+                  </span>
+                </div>
+              </div>
+            )}
+            mobileMeta={(r) => (
+              <StatusPill tone={requestTone(r.status)}>{requestLabel(r.status)}</StatusPill>
+            )}
+          />
+        )
+      ) : loading ? (
         <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-ragab-ink-400" /></div>
       ) : (
         <>

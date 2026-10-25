@@ -509,3 +509,25 @@ export interface StoreSettings {
   onlinePaymentsEnabled: boolean;
   maintenanceMode: boolean;
 }
+
+export type ProductRequestStatus = 'pending' | 'fulfilled' | 'cancelled';
+
+export interface ProductRequest {
+  id: string;
+  productId: string;
+  variantId?: string;
+  variantName?: string;
+  productNameAr: string;
+  productNameEn?: string;
+  productSlug?: string;
+  customerName: string;
+  customerPhone: string;
+  userId?: string;
+  notes?: string;
+  status: ProductRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+  fulfilledAt?: string;
+  productImage?: string;
+  categoryNameAr?: string;
+}

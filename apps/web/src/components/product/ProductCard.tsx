@@ -3,7 +3,8 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, Plus, Trash2, Pencil, X, Check, Loader2 } from 'lucide-react';
+import { Heart, Plus, Trash2, Pencil, X, Check, Loader2, BellRing } from 'lucide-react';
+import { RequestProductModal } from './RequestProductModal';
 import { cn } from '@ragab/utils';
 import { Product } from '../../types';
 import { useCart } from '../../context/CartContext';
@@ -43,6 +44,7 @@ const ProductCardInner: React.FC<ProductCardProps> = ({ product, showCategory = 
   const [priceInput, setPriceInput] = React.useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const [actionLoading, setActionLoading] = React.useState(false);
+  const [requestModalOpen, setRequestModalOpen] = React.useState(false);
 
   const activeVariants = (product.variants ?? []).filter((v) => v.isActive);
   const selected =
@@ -400,9 +402,22 @@ const ProductCardInner: React.FC<ProductCardProps> = ({ product, showCategory = 
                 <span>{t.common.add}</span>
               </button>
             ) : (
-              <span className="h-10 w-full sm:w-auto px-3.5 rounded-xl bg-ragab-ink-100 text-ragab-ink-500 font-bold text-caption inline-flex items-center justify-center">
-                {t.common.soldOut}
-              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setRequestModalOpen(true);
+                }}
+                title={isRTL ? 'طلب توفير المنتج' : 'Request product'}
+                className="h-10 w-full sm:w-auto px-3.5 rounded-xl bg-ragab-brand-50 hover:bg-ragab-brand-100 text-ragab-brand-800 border border-ragab-brand-300 font-bold text-body-sm inline-flex items-center justify-center gap-1.5 transition-colors focus-ring shadow-sm"
+              >
+                <BellRing className="w-4 h-4 text-ragab-brand-600" />
+                <span>{isRTL ? 'طلب' : 'Request'}</span>
+              </button>
+
+
+
             )}
           </div>
         </div>
@@ -453,6 +468,13 @@ const ProductCardInner: React.FC<ProductCardProps> = ({ product, showCategory = 
           </div>
         </div>
       )}
+      <RequestProductModal
+        isOpen={requestModalOpen}
+        onClose={() => setRequestModalOpen(false)}
+        product={product}
+        variantId={selected?.id}
+        variantName={selected ? (isRTL ? selected.nameAr : selected.nameEn || selected.nameAr) : undefined}
+      />
     </article>
   );
 };

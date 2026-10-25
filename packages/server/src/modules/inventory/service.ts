@@ -12,15 +12,17 @@
  * are sorted by variant_id for a deterministic lock order (no deadlocks). Every change
  * appends an immutable stock_movements row.
  */
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { DbExecutor, Transaction } from '../../db/client';
 import { db } from '../../db/client';
-import { inventoryItems, productVariants, stockReservations, stockMovements, inventoryAdjustments, products, categories } from '../../db/schema';
+import { inventoryItems, productVariants, stockReservations, stockMovements, inventoryAdjustments, products, categories, productRequests } from '../../db/schema';
 import { DEFAULT_WAREHOUSE_ID } from '../../db/schema/inventory';
 import { BusinessRuleError, NotFoundError } from '../../lib/errors';
 import { prefixedId } from '../../lib/ids';
 import type { RequestContext } from '../../http/context';
 import { logAudit } from '../audit';
+import { publishEvent } from '../../lib/events';
+import type { ProductRequest, ProductRequestStatus } from '@ragab/types';
 
 export interface ReserveLine {
   productId: string;
@@ -421,4 +423,204 @@ export async function getInventoryLevels(productIds?: string[]) {
     .from(inventoryItems);
   const rows = productIds?.length ? await q.where(inArray(inventoryItems.productId, productIds)) : await q;
   return rows;
+}
+
+let productRequestsTableChecked = false;
+async function ensureProductRequestsTable() {
+  if (productRequestsTableChecked) return;
+  try {
+    await db().execute(sql`
+      DO $$ BEGIN
+        CREATE TYPE "product_request_status" AS ENUM('pending', 'fulfilled', 'cancelled');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+      CREATE TABLE IF NOT EXISTS "product_requests" (
+        "id" text PRIMARY KEY,
+        "product_id" text NOT NULL REFERENCES "products"("id") ON DELETE CASCADE,
+        "variant_id" text,
+        "product_name_ar" text NOT NULL,
+        "product_name_en" text,
+        "customer_name" text NOT NULL,
+        "customer_phone" text NOT NULL,
+        "user_id" text,
+        "notes" text,
+        "status" "product_request_status" NOT NULL DEFAULT 'pending',
+        "created_at" timestamptz NOT NULL DEFAULT now(),
+        "updated_at" timestamptz NOT NULL DEFAULT now()
+      );
+    `);
+    productRequestsTableChecked = true;
+  } catch {
+    // best-effort
+  }
+}
+
+export async function createProductRequest(
+  input: {
+    productId: string;
+    variantId?: string;
+    customerName: string;
+    customerPhone: string;
+    notes?: string;
+  },
+  ctx: RequestContext,
+): Promise<{ ok: boolean; id: string }> {
+  await ensureProductRequestsTable();
+
+  const [prod] = await db()
+    .select({ id: products.id, nameAr: products.nameAr, nameEn: products.nameEn, image: products.image })
+    .from(products)
+    .where(eq(products.id, input.productId))
+    .limit(1);
+
+  if (!prod) {
+    throw new NotFoundError({
+      code: 'PRODUCT_NOT_FOUND',
+      message: { ar: 'المنتج غير موجود.', en: 'Product not found.' },
+    });
+  }
+
+  const id = prefixedId('preq');
+  const userId = ctx.principal?.userId ?? null;
+
+  await db().insert(productRequests).values({
+    id,
+    productId: input.productId,
+    variantId: input.variantId ?? null,
+    productNameAr: prod.nameAr,
+    productNameEn: prod.nameEn ?? null,
+    customerName: input.customerName,
+    customerPhone: input.customerPhone,
+    userId,
+    notes: input.notes ?? null,
+    status: 'pending',
+  });
+
+  await logAudit({
+    actorId: userId,
+    actorName: input.customerName,
+    actorRole: 'customer',
+    action: 'product_requested' as any,
+    resource: 'inventory',
+    resourceId: input.productId,
+    target: `${prod.nameAr} - ${input.customerName} (${input.customerPhone})`,
+    metadata: {
+      customerName: input.customerName,
+      customerPhone: input.customerPhone,
+      notes: input.notes || '',
+      requestId: id,
+    },
+    requestId: ctx.requestId,
+  });
+
+  try {
+    await publishEvent('admin_orders', {
+      event: 'product.requested',
+      topic: 'admin_orders',
+      eventId: prefixedId('evt'),
+      timestamp: new Date().toISOString(),
+      version: 1,
+      data: {
+        requestId: id,
+        productId: input.productId,
+        productNameAr: prod.nameAr,
+        customerName: input.customerName,
+        customerPhone: input.customerPhone,
+      },
+    });
+  } catch {
+    // Best-effort realtime publish
+  }
+
+  return { ok: true, id };
+}
+
+export async function listProductRequests(
+  statusFilter?: string,
+  _ctx?: RequestContext,
+): Promise<ProductRequest[]> {
+  await ensureProductRequestsTable();
+
+  const query = db()
+    .select({
+      id: productRequests.id,
+      productId: productRequests.productId,
+      variantId: productRequests.variantId,
+      productNameAr: productRequests.productNameAr,
+      productNameEn: productRequests.productNameEn,
+      customerName: productRequests.customerName,
+      customerPhone: productRequests.customerPhone,
+      userId: productRequests.userId,
+      notes: productRequests.notes,
+      status: productRequests.status,
+      createdAt: productRequests.createdAt,
+      updatedAt: productRequests.updatedAt,
+      productImage: products.image,
+      categoryNameAr: categories.nameAr,
+    })
+    .from(productRequests)
+    .innerJoin(products, eq(productRequests.productId, products.id))
+    .leftJoin(categories, eq(products.categoryId, categories.id));
+
+  const rows = statusFilter && statusFilter !== 'all'
+    ? await query.where(eq(productRequests.status, statusFilter as any)).orderBy(desc(productRequests.createdAt)).limit(100)
+    : await query.orderBy(desc(productRequests.createdAt)).limit(100);
+
+  return rows.map((r) => ({
+    id: r.id,
+    productId: r.productId,
+    variantId: r.variantId ?? undefined,
+    productNameAr: r.productNameAr,
+    productNameEn: r.productNameEn ?? undefined,
+    customerName: r.customerName,
+    customerPhone: r.customerPhone,
+    userId: r.userId ?? undefined,
+    notes: r.notes ?? undefined,
+    status: r.status as ProductRequestStatus,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+    productImage: r.productImage ?? undefined,
+    categoryNameAr: r.categoryNameAr ?? undefined,
+  }));
+}
+
+export async function updateProductRequestStatus(
+  id: string,
+  status: ProductRequestStatus,
+  ctx: RequestContext,
+): Promise<{ ok: boolean }> {
+  await ensureProductRequestsTable();
+
+  const [existing] = await db()
+    .select()
+    .from(productRequests)
+    .where(eq(productRequests.id, id))
+    .limit(1);
+
+  if (!existing) {
+    throw new NotFoundError({
+      code: 'REQUEST_NOT_FOUND',
+      message: { ar: 'طلب المنتج غير موجود.', en: 'Product request not found.' },
+    });
+  }
+
+  await db()
+    .update(productRequests)
+    .set({ status, updatedAt: new Date() })
+    .where(eq(productRequests.id, id));
+
+  await logAudit({
+    actorId: ctx.principal?.userId,
+    actorName: ctx.principal?.user.name ?? 'system',
+    actorRole: 'staff',
+    action: 'inventory_adjusted',
+    resource: 'inventory',
+    resourceId: existing.productId,
+    target: `${existing.productNameAr} - status -> ${status}`,
+    metadata: { requestId: id, status },
+    requestId: ctx.requestId,
+  });
+
+  return { ok: true };
 }

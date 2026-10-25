@@ -12,6 +12,7 @@ import {
   WifiOff,
   SearchX,
   RotateCcw,
+  BellRing,
   Trash2,
   Pencil,
   X,
@@ -42,6 +43,7 @@ import { Skeleton } from '../../../components/ui/Skeleton';
 import { ProductGrid } from '../../../components/product/ProductGrid';
 import { ProductGallery } from '../../../components/product/ProductGallery';
 import { SectionHeader } from '../../../components/ui/SectionHeader';
+import { RequestProductModal } from '../../../components/product/RequestProductModal';
 
 const measureLabels: Record<string, { ar: string; en: string }> = {
   L: { ar: 'لتر', en: 'L' },
@@ -93,6 +95,7 @@ export default function ProductDetailPage() {
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [requestModalOpen, setRequestModalOpen] = useState(false);
 
   // Manager inline states
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -674,7 +677,7 @@ export default function ProductDetailPage() {
           <p className="text-body text-ragab-ink-600 leading-relaxed max-w-xl">{description}</p>
 
           {/* Actions */}
-          {view.inStock && (
+          {view.inStock ? (
             <div className="pt-2 flex flex-wrap items-center gap-3">
               <QuantitySelector
                 quantity={quantity}
@@ -705,6 +708,32 @@ export default function ProductDetailPage() {
                 aria-pressed={favorited}
                 className={cn(
                                     'w-14 h-14 flex items-center justify-center rounded-2xl border transition-colors focus-ring',
+                  favorited
+                    ? 'bg-ragab-danger-soft text-ragab-danger border-red-200'
+                    : 'bg-white text-ragab-ink-500 border-ragab-ink-200 hover:bg-ragab-ink-50'
+                )}
+              >
+                <Heart className={cn('w-5 h-5', favorited && 'fill-current')} />
+              </button>
+            </div>
+          ) : (
+            <div className="pt-2 flex flex-wrap items-center gap-3">
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => setRequestModalOpen(true)}
+                className="flex-1 min-w-[200px] h-14 rounded-2xl text-base shadow-card bg-ragab-brand-500 hover:bg-ragab-brand-600 text-white"
+              >
+                <BellRing className="w-5 h-5" />
+                <span>{isRTL ? 'طلب توفير هذا المنتج' : 'Request This Product'}</span>
+              </Button>
+
+              <button
+                onClick={() => toggleFavorite(product.id)}
+                aria-label={favorited ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}
+                aria-pressed={favorited}
+                className={cn(
+                  'w-14 h-14 flex items-center justify-center rounded-2xl border transition-colors focus-ring',
                   favorited
                     ? 'bg-ragab-danger-soft text-ragab-danger border-red-200'
                     : 'bg-white text-ragab-ink-500 border-ragab-ink-200 hover:bg-ragab-ink-50'
@@ -775,18 +804,28 @@ export default function ProductDetailPage() {
       )}
 
       {/* ===== Mobile sticky CTA — sits above the bottom nav ===== */}
-      {product.inStock && (
-        <div
-          className="mobile-sticky-cta md:hidden fixed inset-x-0 z-30 bg-white border-t border-ragab-ink-200 p-3 shadow-sticky flex items-center justify-between gap-3 transition-all duration-200"
-          style={{ bottom: 'calc(var(--bottom-nav-h) + env(safe-area-inset-bottom))' }}
-        >
-          <Price price={product.price} oldPrice={product.oldPrice} size="md" />
+      <div
+        className="mobile-sticky-cta md:hidden fixed inset-x-0 z-30 bg-white border-t border-ragab-ink-200 p-3 shadow-sticky flex items-center justify-between gap-3 transition-all duration-200"
+        style={{ bottom: 'calc(var(--bottom-nav-h) + env(safe-area-inset-bottom))' }}
+      >
+        <Price price={view.price} oldPrice={view.oldPrice} size="md" />
+        {view.inStock ? (
           <Button variant="primary" size="md" onClick={handleAdd} className="flex-1 max-w-[220px]">
             <ShoppingBag className="w-4 h-4" />
             <span>{t.common.addToCart}</span>
           </Button>
-        </div>
-      )}
+        ) : (
+          <Button
+            variant="primary"
+            size="md"
+            onClick={() => setRequestModalOpen(true)}
+            className="flex-1 max-w-[220px] bg-ragab-brand-500 hover:bg-ragab-brand-600 text-white"
+          >
+            <BellRing className="w-4 h-4" />
+            <span>{isRTL ? 'طلب توفير' : 'Request Item'}</span>
+          </Button>
+        )}
+      </div>
 
       {/* Delete confirmation modal for Manager/Owner */}
       {showDeleteConfirm && (
@@ -836,6 +875,14 @@ export default function ProductDetailPage() {
           </div>
         </div>
       )}
+      {/* Request Out-of-Stock Modal */}
+      <RequestProductModal
+        isOpen={requestModalOpen}
+        onClose={() => setRequestModalOpen(false)}
+        product={product}
+        variantId={selected?.id}
+        variantName={selected ? (isRTL ? selected.nameAr : selected.nameEn || selected.nameAr) : undefined}
+      />
     </div>
   );
 }

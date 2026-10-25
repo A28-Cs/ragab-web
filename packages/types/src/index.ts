@@ -175,4 +175,37 @@ export type OrderCreatedEvent = BaseRealtimeEvent<
   }
 >;
 
-export type AppRealtimeEvent = OrderStatusUpdatedEvent | OrderCreatedEvent;
+export type ProductRequestedEvent = BaseRealtimeEvent<
+  'product.requested',
+  {
+    requestId: string;
+    productId: string;
+    productNameAr: string;
+    customerName: string;
+    customerPhone: string;
+  }
+>;
+
+export type AppRealtimeEvent = OrderStatusUpdatedEvent | OrderCreatedEvent | ProductRequestedEvent;
+
+export type ProductRequestStatus = 'pending' | 'fulfilled' | 'cancelled';
+
+export interface ProductRequest {
+  id: string;
+  productId: string;
+  variantId?: string;
+  variantName?: string;
+  productNameAr: string;
+  productNameEn?: string;
+  productSlug?: string;
+  customerName: string;
+  customerPhone: string;
+  userId?: string;
+  notes?: string;
+  status: ProductRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+  fulfilledAt?: string;
+  productImage?: string;
+  categoryNameAr?: string;
+}
