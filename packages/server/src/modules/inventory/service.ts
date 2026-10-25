@@ -15,7 +15,7 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { DbExecutor, Transaction } from '../../db/client';
 import { db } from '../../db/client';
-import { inventoryItems, productVariants, stockReservations, stockMovements, inventoryAdjustments } from '../../db/schema';
+import { inventoryItems, productVariants, stockReservations, stockMovements, inventoryAdjustments, products, categories } from '../../db/schema';
 import { DEFAULT_WAREHOUSE_ID } from '../../db/schema/inventory';
 import { BusinessRuleError, NotFoundError } from '../../lib/errors';
 import { prefixedId } from '../../lib/ids';
@@ -257,6 +257,155 @@ export async function adjustStock(
     metadata: { variantId: result.variantId, newQuantity: String(newQuantity), reason }, requestId: ctx.requestId,
   });
   return result;
+}
+
+export async function bulkAdjustStock(
+  input: {
+    quantity: number;
+    reason?: string;
+    items?: Array<{ productId: string; variantId?: string }>;
+    productIds?: string[];
+    categoryId?: string;
+  },
+  ctx: RequestContext,
+): Promise<{ count: number; updatedProducts: number }> {
+  const { quantity, reason = 'bulk stock adjustment', categoryId } = input;
+
+  let productIdsToUpdate: string[] = [];
+
+  if (categoryId) {
+    const children = await db()
+      .select({ id: categories.id })
+      .from(categories)
+      .where(and(eq(categories.parentId, categoryId), sql`${categories.deletedAt} IS NULL`));
+    const catIds = [categoryId, ...children.map((c) => c.id)];
+
+    const catProducts = await db()
+      .select({ id: products.id })
+      .from(products)
+      .where(and(inArray(products.categoryId, catIds), sql`${products.deletedAt} IS NULL`));
+    productIdsToUpdate = catProducts.map((p) => p.id);
+  } else if (input.productIds && input.productIds.length > 0) {
+    productIdsToUpdate = input.productIds;
+  } else if (input.items && input.items.length > 0) {
+    productIdsToUpdate = Array.from(new Set(input.items.map((it) => it.productId)));
+  }
+
+  if (productIdsToUpdate.length === 0) {
+    return { count: 0, updatedProducts: 0 };
+  }
+
+  const allVariants = await db()
+    .select({ id: productVariants.id, productId: productVariants.productId, isDefault: productVariants.isDefault })
+    .from(productVariants)
+    .where(inArray(productVariants.productId, productIdsToUpdate));
+
+  let targetVariantEntries: Array<{ productId: string; variantId: string }> = [];
+  if (input.items && input.items.length > 0 && input.items.some((it) => it.variantId)) {
+    for (const it of input.items) {
+      if (it.variantId) {
+        targetVariantEntries.push({ productId: it.productId, variantId: it.variantId });
+      } else {
+        const def = allVariants.find((v) => v.productId === it.productId && v.isDefault) || allVariants.find((v) => v.productId === it.productId);
+        if (def) targetVariantEntries.push({ productId: it.productId, variantId: def.id });
+      }
+    }
+  } else {
+    for (const v of allVariants) {
+      targetVariantEntries.push({ productId: v.productId, variantId: v.id });
+    }
+  }
+
+  if (targetVariantEntries.length === 0) {
+    return { count: 0, updatedProducts: 0 };
+  }
+
+  const distinctProductIds = new Set(targetVariantEntries.map((e) => e.productId));
+  const variantIds = targetVariantEntries.map((e) => e.variantId);
+
+  // Fetch existing inventory rows
+  const existingInv = await db()
+    .select()
+    .from(inventoryItems)
+    .where(inArray(inventoryItems.variantId, variantIds));
+
+  const existingMap = new Map(existingInv.map((inv) => [inv.variantId, inv]));
+
+  await db().transaction(async (tx) => {
+    for (const entry of targetVariantEntries) {
+      const inv = existingMap.get(entry.variantId);
+      if (!inv) {
+        await tx.insert(inventoryItems).values({
+          id: prefixedId('inv'),
+          productId: entry.productId,
+          variantId: entry.variantId,
+          warehouseId: DEFAULT_WAREHOUSE_ID,
+          quantityOnHand: quantity,
+          quantityReserved: 0,
+        });
+        await tx.insert(stockMovements).values({
+          productId: entry.productId,
+          variantId: entry.variantId,
+          warehouseId: DEFAULT_WAREHOUSE_ID,
+          type: 'adjustment',
+          quantityDelta: quantity,
+          reason,
+          actorId: ctx.principal?.userId,
+        });
+      } else {
+        const safeQuantity = Math.max(quantity, inv.quantityReserved);
+        const delta = safeQuantity - inv.quantityOnHand;
+        await tx
+          .update(inventoryItems)
+          .set({ quantityOnHand: safeQuantity, version: sql`${inventoryItems.version} + 1` })
+          .where(eq(inventoryItems.id, inv.id));
+
+        await tx.insert(inventoryAdjustments).values({
+          productId: entry.productId,
+          variantId: entry.variantId,
+          warehouseId: inv.warehouseId,
+          previousQuantity: inv.quantityOnHand,
+          newQuantity: safeQuantity,
+          reason,
+          actorId: ctx.principal?.userId,
+        });
+
+        if (delta !== 0) {
+          await tx.insert(stockMovements).values({
+            productId: entry.productId,
+            variantId: entry.variantId,
+            warehouseId: inv.warehouseId,
+            type: 'adjustment',
+            quantityDelta: delta,
+            reason,
+            actorId: ctx.principal?.userId,
+          });
+        }
+      }
+    }
+  });
+
+  await logAudit({
+    actorId: ctx.principal?.userId,
+    actorName: ctx.principal?.user.name ?? 'system',
+    actorRole: 'staff',
+    action: 'inventory_adjusted',
+    resource: 'inventory',
+    resourceId: categoryId || 'bulk',
+    metadata: {
+      bulk: 'true',
+      quantity: String(quantity),
+      categoryId: categoryId || '',
+      updatedCount: String(targetVariantEntries.length),
+      reason,
+    },
+    requestId: ctx.requestId,
+  });
+
+  return {
+    count: targetVariantEntries.length,
+    updatedProducts: distinctProductIds.size,
+  };
 }
 
 export async function getInventoryLevels(productIds?: string[]) {

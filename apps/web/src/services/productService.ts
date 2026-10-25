@@ -167,3 +167,16 @@ export const deleteProducts = async (ids: string[], _perms?: Set<PermissionKey>)
 export const updateStock = async (id: string, quantity: number, _perms?: Set<PermissionKey>, variantId?: string): Promise<void> => {
   await api.post(`/admin/inventory/${encodeURIComponent(id)}/adjust`, { quantity, reason: 'admin stock update', ...(variantId ? { variantId } : {}) });
 };
+
+export const bulkUpdateStock = async (
+  payload: {
+    quantity: number;
+    reason?: string;
+    items?: Array<{ productId: string; variantId?: string }>;
+    productIds?: string[];
+    categoryId?: string;
+  },
+  _perms?: Set<PermissionKey>,
+): Promise<{ count: number; updatedProducts: number }> => {
+  return api.post<{ count: number; updatedProducts: number }>('/admin/inventory/bulk-adjust', payload);
+};
