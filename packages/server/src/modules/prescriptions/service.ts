@@ -6,6 +6,7 @@ import {
   cartItems,
   notifications,
   productVariants,
+  users,
 } from '../../db/schema';
 import { prefixedId } from '../../lib/ids';
 import { publishEvent } from '../../lib/events';
@@ -16,8 +17,8 @@ import type { RequestContext } from '../../http/context';
 
 export interface CreatePrescriptionInput {
   userId?: string | null;
-  customerName: string;
-  customerPhone: string;
+  customerName?: string;
+  customerPhone?: string;
   imageUrl: string;
   notes?: string;
 }
@@ -89,18 +90,6 @@ function mapPrescription(r: typeof prescriptions.$inferSelect): Prescription {
 export async function createPrescription(input: CreatePrescriptionInput): Promise<{ ok: boolean; id: string }> {
   await ensurePrescriptionsTable();
 
-  if (!input.customerName?.trim()) {
-    throw new ValidationError({
-      code: 'CUSTOMER_NAME_REQUIRED',
-      message: { ar: 'يرجى إدخال اسم العميل.', en: 'Customer name is required.' },
-    });
-  }
-  if (!input.customerPhone?.trim()) {
-    throw new ValidationError({
-      code: 'CUSTOMER_PHONE_REQUIRED',
-      message: { ar: 'يرجى إدخال رقم الهاتف.', en: 'Customer phone is required.' },
-    });
-  }
   if (!input.imageUrl?.trim()) {
     throw new ValidationError({
       code: 'IMAGE_REQUIRED',
@@ -108,12 +97,31 @@ export async function createPrescription(input: CreatePrescriptionInput): Promis
     });
   }
 
+  let resolvedName = input.customerName?.trim();
+  let resolvedPhone = input.customerPhone?.trim();
+
+  if (input.userId && (!resolvedName || !resolvedPhone)) {
+    const userRow = await db()
+      .select({ name: users.name, phone: users.phone })
+      .from(users)
+      .where(eq(users.id, input.userId))
+      .limit(1)
+      .then((rows) => rows[0]);
+    if (userRow) {
+      if (!resolvedName) resolvedName = userRow.name;
+      if (!resolvedPhone) resolvedPhone = userRow.phone || '-';
+    }
+  }
+
+  resolvedName = resolvedName || 'عميل';
+  resolvedPhone = resolvedPhone || '-';
+
   const id = prefixedId('rx');
   await db().insert(prescriptions).values({
     id,
     userId: input.userId ?? null,
-    customerName: input.customerName.trim(),
-    customerPhone: input.customerPhone.trim(),
+    customerName: resolvedName,
+    customerPhone: resolvedPhone,
     imageUrl: input.imageUrl.trim(),
     notes: input.notes?.trim() || null,
     status: 'pending',
@@ -130,8 +138,8 @@ export async function createPrescription(input: CreatePrescriptionInput): Promis
       version: 1,
       data: {
         prescriptionId: id,
-        customerName: input.customerName.trim(),
-        customerPhone: input.customerPhone.trim(),
+        customerName: resolvedName,
+        customerPhone: resolvedPhone,
       },
     });
   } catch (err) {

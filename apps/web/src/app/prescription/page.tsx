@@ -12,7 +12,6 @@ import {
   ShoppingBag,
   FileText,
   AlertCircle,
-  Phone,
   MessageCircle,
   Loader2,
   ExternalLink,
@@ -25,7 +24,6 @@ import { useCart } from '../../context/CartContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../components/ui/Toast';
 import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
 import { FormField } from '../../components/ui/FormField';
 import { StatusPill } from '../../components/ui/StatusPill';
 import {
@@ -55,18 +53,10 @@ export default function PrescriptionPage() {
   // Form state
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [customerName, setCustomerName] = useState(user?.name || '');
-  const [customerPhone, setCustomerPhone] = useState(user?.phone || '');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Sync user info if user logs in
-  useEffect(() => {
-    if (user?.name && !customerName) setCustomerName(user.name);
-    if (user?.phone && !customerPhone) setCustomerPhone(user.phone);
-  }, [user]);
 
   // Load prescription by ID if in query params
   useEffect(() => {
@@ -112,14 +102,6 @@ export default function PrescriptionPage() {
       showToast(isRTL ? 'يرجى اختيار صورة الروشتة أولاً' : 'Please upload a prescription image', 'error');
       return;
     }
-    if (!customerName.trim()) {
-      showToast(isRTL ? 'يرجى كتابة الاسم' : 'Please enter your name', 'error');
-      return;
-    }
-    if (!customerPhone.trim()) {
-      showToast(isRTL ? 'يرجى كتابة رقم الهاتف' : 'Please enter your phone number', 'error');
-      return;
-    }
 
     setIsSubmitting(true);
     try {
@@ -128,8 +110,6 @@ export default function PrescriptionPage() {
 
       // 2. Submit prescription
       const res = await submitPrescription({
-        customerName: customerName.trim(),
-        customerPhone: customerPhone.trim(),
         imageUrl: uploadedUrl,
         notes: notes.trim() || undefined,
       });
@@ -202,16 +182,16 @@ export default function PrescriptionPage() {
   return (
     <div className="container-page py-6 md:py-10 font-arabic max-w-4xl space-y-8">
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-ragab-brand-600 via-ragab-brand-700 to-ragab-brand-900 text-white p-6 sm:p-8 shadow-card">
-        <div className="relative z-10 space-y-2 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-white text-caption font-bold backdrop-blur-sm">
-            <FileText className="w-4 h-4" />
+      <div className="rounded-2xl border border-ragab-brand-200 bg-[#edf7f5] p-6 sm:p-8">
+        <div className="space-y-2 max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ragab-brand-100 text-ragab-brand-800 text-caption font-bold">
+            <FileText className="w-4 h-4 text-ragab-brand-700" />
             <span>{isRTL ? 'خدمة الروشتة الذكية · صيدلية رجب' : 'Smart Prescription Service · Ragab Pharmacy'}</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-ragab-ink-900 tracking-tight">
             {isRTL ? 'اطلب علاجك برفع صورة الروشتة' : 'Order Medicine with your Prescription'}
           </h1>
-          <p className="text-body-sm sm:text-base text-ragab-brand-100 leading-relaxed">
+          <p className="text-body-sm sm:text-base text-ragab-ink-600 leading-relaxed">
             {isRTL
               ? 'صور الروشتة أو عبوة الدواء وارفعها، وسيقوم الطبيب الصيدلي بقراءتها وتحديد كل الأدوية المطلوبة وإضافتها إلى سلتك فوراً لتأكيد طلبك وتوصيله لباب بيتك.'
               : 'Snap and upload your prescription. Our pharmacist will review it, identify all required medicines, and add them directly to your cart.'}
@@ -290,12 +270,12 @@ export default function PrescriptionPage() {
             <div className={cn(
               'p-4 rounded-2xl border text-center space-y-1.5 transition-all',
               activePrescription.status === 'reviewed' || activePrescription.status === 'completed'
-                ? 'bg-emerald-50 border-emerald-300 text-emerald-900 ring-2 ring-emerald-400/20'
+                ? 'bg-ragab-brand-50 border-ragab-brand-300 text-ragab-brand-900 ring-2 ring-ragab-brand-400/20'
                 : activePrescription.status === 'rejected'
                 ? 'bg-red-50 border-red-200 text-red-800'
                 : 'bg-ragab-ink-50 border-ragab-ink-200 text-ragab-ink-400'
             )}>
-              <div className="w-8 h-8 rounded-full bg-white text-emerald-600 font-bold flex items-center justify-center mx-auto shadow-xs">
+              <div className="w-8 h-8 rounded-full bg-white text-ragab-brand-600 font-bold flex items-center justify-center mx-auto shadow-xs">
                 {activePrescription.status === 'reviewed' || activePrescription.status === 'completed' ? (
                   <CheckCircle2 className="w-4 h-4" />
                 ) : activePrescription.status === 'rejected' ? (
@@ -341,14 +321,14 @@ export default function PrescriptionPage() {
           {/* Pharmacist Review Feedback & Prescribed Items */}
           {activePrescription.status === 'reviewed' && (
             <div className="space-y-4 pt-4 border-t border-ragab-ink-100 animate-in fade-in duration-300">
-              <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 space-y-2">
-                <div className="flex items-center gap-2 text-emerald-900 font-bold text-body">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <div className="p-4 rounded-2xl bg-ragab-brand-50/70 border border-ragab-brand-200 space-y-2">
+                <div className="flex items-center gap-2 text-ragab-brand-900 font-bold text-body">
+                  <CheckCircle2 className="w-5 h-5 text-ragab-brand-700 shrink-0" />
                   <span>{isRTL ? 'تم تجهيز الأدوية المطلوبة بواسطة الطبيب الصيدلي!' : 'Medications prepared by the pharmacist!'}</span>
                 </div>
                 {activePrescription.pharmacistNotes && (
-                  <div className="p-3 bg-white/80 rounded-xl border border-emerald-100 text-body-sm text-emerald-950">
-                    <span className="font-bold block text-caption text-emerald-800">{isRTL ? 'ملاحظات الصيدلي:' : 'Pharmacist Advice:'}</span>
+                  <div className="p-3 bg-white/80 rounded-xl border border-ragab-brand-100 text-body-sm text-ragab-ink-900">
+                    <span className="font-bold block text-caption text-ragab-brand-800">{isRTL ? 'ملاحظات الصيدلي:' : 'Pharmacist Advice:'}</span>
                     {activePrescription.pharmacistNotes}
                   </div>
                 )}
@@ -405,7 +385,7 @@ export default function PrescriptionPage() {
                 <Button
                   variant="primary"
                   size="lg"
-                  className="flex-1 text-base bg-emerald-600 hover:bg-emerald-700 text-white shadow-card py-6"
+                  className="flex-1 text-base bg-ragab-brand-700 hover:bg-ragab-brand-800 text-white shadow-card py-6"
                   leftIcon={<ShoppingBag className="w-5 h-5" />}
                   onClick={() => setIsCartOpen(true)}
                 >
@@ -443,7 +423,7 @@ export default function PrescriptionPage() {
                   )}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-caption hover:bg-emerald-700 transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-caption transition-colors"
                 >
                   <MessageCircle className="w-4 h-4" />
                   <span>{isRTL ? 'مراسلة الصيدلية عبر واتساب للاستفسار' : 'Chat on WhatsApp'}</span>
@@ -476,7 +456,7 @@ export default function PrescriptionPage() {
             className={cn(
               'border-2 border-dashed rounded-3xl p-6 sm:p-10 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-3',
               previewUrl
-                ? 'border-emerald-400 bg-emerald-50/20'
+                ? 'border-ragab-brand-400 bg-ragab-brand-50/30'
                 : 'border-ragab-brand-300 hover:border-ragab-brand-500 bg-ragab-brand-50/30 hover:bg-ragab-brand-50/60'
             )}
           >
@@ -491,12 +471,12 @@ export default function PrescriptionPage() {
 
             {previewUrl ? (
               <div className="space-y-3">
-                <div className="relative max-w-xs mx-auto rounded-2xl overflow-hidden border border-emerald-200 shadow-sm">
+                <div className="relative max-w-xs mx-auto rounded-2xl overflow-hidden border border-ragab-brand-200 shadow-sm">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={previewUrl} alt="Preview" className="max-h-64 object-contain mx-auto" />
                 </div>
-                <div className="flex items-center justify-center gap-2 text-caption text-emerald-800 font-bold">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <div className="flex items-center justify-center gap-2 text-caption text-ragab-brand-800 font-bold">
+                  <CheckCircle2 className="w-4 h-4 text-ragab-brand-700" />
                   <span>{file?.name}</span>
                   <button
                     type="button"
@@ -538,38 +518,15 @@ export default function PrescriptionPage() {
             )}
           </div>
 
-          {/* Customer Inputs */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField label={isRTL ? 'الاسم بالكامل' : 'Full Name'}>
-              <Input
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder={isRTL ? 'أدخل اسمك' : 'Your name'}
-                required
-              />
-            </FormField>
-
-            <FormField label={isRTL ? 'رقم الهاتف (للتواصل وتأكيد الطلب)' : 'Phone Number'}>
-              <Input
-                type="tel"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="010XXXXXXXX"
-                dir="ltr"
-                required
-              />
-            </FormField>
-          </div>
-
-          <FormField label={isRTL ? 'ملاحظات إضافية للصيدلي (اختياري)' : 'Additional Notes (Optional)'}>
+          <FormField label={isRTL ? 'تعليمات وملاحظات الروشتة (اختياري)' : 'Prescription Instructions & Notes (Optional)'}>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder={
                 isRTL
-                  ? 'مثال: محتاج بدائل مصرية أرخص، أو محتاج علبة واحدة فقط، أو اتصل بي قبل التأكيد...'
-                  : 'E.g., prefer generic alternatives, need only 1 pack, etc.'
+                  ? 'مثال: محتاج بدائل أرخص، أو محتاج علبة واحدة فقط، أو أصناف معينة من الروشتة...'
+                  : 'E.g., prefer generic alternatives, need only 1 pack, specific items, etc.'
               }
               className="w-full px-4 py-3 rounded-xl border border-ragab-ink-200 focus:border-ragab-brand-500 focus:ring-4 focus:ring-ragab-brand-500/10 focus:outline-none text-body-sm text-ragab-ink-800 placeholder-ragab-ink-400 font-arabic resize-y"
             />
@@ -582,7 +539,7 @@ export default function PrescriptionPage() {
             fullWidth
             isLoading={isSubmitting}
             leftIcon={<UploadCloud className="w-5 h-5" />}
-            className="py-5 text-base shadow-card bg-ragab-brand-600 hover:bg-ragab-brand-700 text-white"
+            className="py-5 text-base shadow-card bg-ragab-brand-700 hover:bg-ragab-brand-800 text-white"
           >
             {isRTL ? 'إرسال الروشتة للصيدلي الآن' : 'Send Prescription to Pharmacist'}
           </Button>

@@ -161,8 +161,8 @@ export default function HomePage() {
               <p className="text-body-sm sm:text-base text-ragab-ink-600 leading-7 sm:leading-8 mt-4 max-w-lg">{t.home.heroSubtitle}</p>
               <div className="flex flex-wrap items-center gap-3 mt-6">
                 <Link href="/categories" className="inline-flex items-center justify-center gap-3 min-h-12 px-5 rounded-lg bg-ragab-brand-700 hover:bg-ragab-brand-800 text-white font-bold text-body-sm focus-ring transition-colors">{t.home.shopNow}<DirectionArrow className="w-4 h-4" /></Link>
-                <Link href="/prescription" className="inline-flex items-center justify-center gap-2 min-h-12 px-5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-body-sm focus-ring transition-all shadow-sm hover:shadow-md">
-                  <FileText className="w-4 h-4" />
+                <Link href="/prescription" className="inline-flex items-center justify-center gap-2 min-h-12 px-5 rounded-lg border border-ragab-brand-300 bg-white hover:bg-ragab-brand-50 text-ragab-brand-800 font-bold text-body-sm focus-ring transition-all shadow-subtle">
+                  <FileText className="w-4 h-4 text-ragab-brand-700" />
                   <span>{isRTL ? 'اطلب بروشتة' : 'Order by Prescription'}</span>
                 </Link>
                 <Link href="/offers" className="inline-flex items-center justify-center min-h-12 px-3 text-ragab-ink-800 font-bold text-body-sm underline underline-offset-8 decoration-ragab-brand-500 hover:text-ragab-brand-700 focus-ring">{isRTL ? 'عروض اليوم' : 'Today’s offers'}</Link>
@@ -193,16 +193,16 @@ export default function HomePage() {
 
       {/* ===== Smart Prescription Callout Banner ===== */}
       <section className="container-page pt-4 md:pt-6">
-        <div className="rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-700 to-ragab-brand-800 text-white p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="rounded-2xl border border-ragab-brand-200 bg-[#edf7f5] p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0 backdrop-blur-sm">
-              <FileText className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 rounded-xl bg-ragab-brand-700 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <FileText className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-extrabold text-body sm:text-h3 text-white">
+              <h3 className="font-extrabold text-body sm:text-h3 text-ragab-ink-900">
                 {isRTL ? 'عندك روشتة أو صورة دواء؟' : 'Have a Prescription or Medicine Photo?'}
               </h3>
-              <p className="text-caption sm:text-body-sm text-emerald-100 mt-0.5">
+              <p className="text-caption sm:text-body-sm text-ragab-ink-600 mt-0.5">
                 {isRTL
                   ? 'صورها وارفعها مباشرة، ودكتور الصيدلية هيراجعها ويحددلك كل العلاج ويضيفه لسلتك فوراً!'
                   : 'Upload it now, and our pharmacist will review it, select all items, and add them to your cart.'}
@@ -211,7 +211,7 @@ export default function HomePage() {
           </div>
           <Link
             href="/prescription"
-            className="inline-flex items-center justify-center gap-2 min-h-11 px-5 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 font-bold text-body-sm shadow-sm transition-colors whitespace-nowrap shrink-0"
+            className="inline-flex items-center justify-center gap-2 min-h-11 px-5 rounded-lg bg-ragab-brand-700 hover:bg-ragab-brand-800 text-white font-bold text-body-sm shadow-sm transition-colors whitespace-nowrap shrink-0"
           >
             <span>{isRTL ? 'رفع الروشتة الآن' : 'Upload Prescription'}</span>
             <DirectionArrow className="w-4 h-4" />

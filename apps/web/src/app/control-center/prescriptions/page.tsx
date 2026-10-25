@@ -749,7 +749,7 @@ function PrescriptionsAdminInner() {
                   size="sm"
                   onClick={handleSubmitReview}
                   isLoading={isSubmittingReview}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                  className="bg-ragab-brand-700 hover:bg-ragab-brand-800 text-white font-bold"
                   leftIcon={<Check className="w-4 h-4" />}
                 >
                   {ar ? 'اعتماد الروشتة وإضافتها للسلة' : 'Approve & Add to Cart'}

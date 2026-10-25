@@ -321,10 +321,10 @@ export const Header: React.FC = () => {
             {/* Prescription Order Button */}
             <Link
               href="/prescription"
-              className="inline-flex items-center gap-1.5 h-11 px-3 sm:px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-caption sm:text-body-sm font-arabic transition-all focus-ring shadow-subtle hover:shadow-md shrink-0"
+              className="inline-flex items-center gap-1.5 h-11 px-3 sm:px-3.5 rounded-lg border border-ragab-brand-300 bg-ragab-brand-50 hover:bg-ragab-brand-100 text-ragab-brand-800 font-bold text-caption sm:text-body-sm font-arabic transition-all focus-ring shadow-subtle shrink-0"
               title={isRTL ? 'اطلب بروشتة' : 'Order by Prescription'}
             >
-              <FileText className="w-4 h-4" />
+              <FileText className="w-4 h-4 text-ragab-brand-700" />
               <span className="whitespace-nowrap">{isRTL ? 'اطلب بروشتة' : 'Prescription'}</span>
             </Link>
 

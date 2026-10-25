@@ -2,8 +2,8 @@ import { api } from '../lib/apiClient';
 import type { Prescription, PrescriptionItem, PrescriptionStatus, PermissionKey } from '../types';
 
 export interface SubmitPrescriptionInput {
-  customerName: string;
-  customerPhone: string;
+  customerName?: string;
+  customerPhone?: string;
   imageUrl: string;
   notes?: string;
 }

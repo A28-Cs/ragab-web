@@ -18,22 +18,25 @@ export const POST = defineRoute({
       notes?: string;
     };
 
-    if (!data.customerName || !data.customerPhone || !data.imageUrl) {
+    if (!data.imageUrl?.trim()) {
       throw new ValidationError({
-        code: 'MISSING_FIELDS',
+        code: 'IMAGE_REQUIRED',
         message: {
-          ar: 'الاسم ورقم الهاتف وصورة الروشتة حقول مطلوبة.',
-          en: 'Name, phone number, and prescription image are required.',
+          ar: 'يرجى رفع صورة الروشتة.',
+          en: 'Prescription image is required.',
         },
       });
     }
 
+    const userName = (ctx.principal as any)?.user?.name;
+    const userPhone = (ctx.principal as any)?.user?.phone;
+
     return createPrescription({
       userId: ctx.principal?.userId ?? null,
-      customerName: data.customerName,
-      customerPhone: data.customerPhone,
-      imageUrl: data.imageUrl,
-      notes: data.notes,
+      customerName: data.customerName?.trim() || userName || 'عميل',
+      customerPhone: data.customerPhone?.trim() || userPhone || '-',
+      imageUrl: data.imageUrl.trim(),
+      notes: data.notes?.trim() || undefined,
     });
   },
 });
