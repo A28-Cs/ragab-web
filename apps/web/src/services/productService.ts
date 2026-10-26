@@ -6,7 +6,7 @@
  * is ignored here — authorization is enforced server-side.
  */
 import { Product, PermissionKey, ProductRequest, ProductRequestStatus } from '../types';
-import { api, type PageResult } from '../lib/apiClient';
+import { api, uploadRawFile, type PageResult } from '../lib/apiClient';
 import { fetchAllPages } from '../lib/pageWalker';
 
 export interface ProductFilters {
@@ -195,18 +195,8 @@ export interface ProductRequestInput {
 }
 
 export const uploadProductRequestImage = async (file: File): Promise<string> => {
-  const headers: Record<string, string> = { 'content-type': file.type || 'application/octet-stream' };
-  const res = await fetch('/api/v1/products/request/upload', {
-    method: 'POST',
-    headers,
-    credentials: 'include',
-    body: file,
-  });
-  const json = await res.json().catch(() => null);
-  if (!res.ok) {
-    throw new Error(json?.error?.message?.ar || 'فشل رفع صورة المنتج');
-  }
-  return json.data.url;
+  const data = await uploadRawFile('/products/request/upload', file);
+  return data.url;
 };
 
 export const submitProductRequest = async (data: ProductRequestInput): Promise<{ ok: boolean; id: string }> => {

@@ -1,4 +1,4 @@
-import { api } from '../lib/apiClient';
+import { api, uploadRawFile } from '../lib/apiClient';
 import type { Prescription, PrescriptionItem, PrescriptionStatus, PermissionKey } from '../types';
 
 export interface SubmitPrescriptionInput {
@@ -15,18 +15,8 @@ export interface ReviewPrescriptionPayload {
 }
 
 export const uploadPrescriptionImage = async (file: File): Promise<string> => {
-  const headers: Record<string, string> = { 'content-type': file.type || 'application/octet-stream' };
-  const res = await fetch('/api/v1/prescriptions/upload', {
-    method: 'POST',
-    headers,
-    credentials: 'include',
-    body: file,
-  });
-  const json = await res.json().catch(() => null);
-  if (!res.ok) {
-    throw new Error(json?.error?.message?.ar || 'فشل رفع صورة الروشتة');
-  }
-  return json.data.url;
+  const data = await uploadRawFile('/prescriptions/upload', file);
+  return data.url;
 };
 
 export const submitPrescription = async (data: SubmitPrescriptionInput): Promise<{ ok: boolean; id: string }> => {

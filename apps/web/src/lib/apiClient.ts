@@ -23,7 +23,7 @@ export class ApiError extends Error {
   readonly bilingual: { ar: string; en: string };
   readonly details?: unknown;
   constructor(status: number, err: ApiErrorShape) {
-    super(err.message?.en ?? 'Request failed');
+    super(err.message?.ar || err.message?.en || 'Request failed');
     this.name = 'ApiError';
     this.status = status;
     this.code = err.code ?? 'UNKNOWN';
@@ -38,6 +38,18 @@ function readCookie(name: string): string | undefined {
   if (typeof document === 'undefined') return undefined;
   const match = document.cookie.split('; ').find((c) => c.startsWith(`${name}=`));
   return match ? decodeURIComponent(match.split('=').slice(1).join('=')) : undefined;
+}
+
+export function getCsrfToken(): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  let csrf = readCookie('ragab_csrf');
+  if (!csrf && typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const arr = new Uint8Array(24);
+    crypto.getRandomValues(arr);
+    csrf = btoa(String.fromCharCode(...arr)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    document.cookie = `ragab_csrf=${encodeURIComponent(csrf)}; path=/; SameSite=Lax`;
+  }
+  return csrf;
 }
 
 interface RequestOptions {
@@ -63,7 +75,7 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
   const headers: Record<string, string> = { accept: 'application/json' };
   if (opts.body !== undefined) headers['content-type'] = 'application/json';
   if (method !== 'GET') {
-    const csrf = readCookie('ragab_csrf');
+    const csrf = getCsrfToken();
     if (csrf) headers['x-csrf-token'] = csrf;
   }
   if (opts.idempotencyKey) headers['idempotency-key'] = opts.idempotencyKey;
@@ -109,16 +121,21 @@ export interface PageResult<T> {
   total?: number;
 }
 
-/** Upload a raw image file (product images). Sends bytes; the server validates the type. */
-export async function uploadImageFile(file: File): Promise<{ url: string; contentType: string; size: number }> {
-  const csrf = readCookie('ragab_csrf');
+/** Upload a raw file (images/prescriptions) to any endpoint. Sends bytes; attaches CSRF header. */
+export async function uploadRawFile(path: string, file: File): Promise<{ url: string; contentType: string; size: number }> {
+  const csrf = getCsrfToken();
   const headers: Record<string, string> = { 'content-type': file.type || 'application/octet-stream' };
   if (csrf) headers['x-csrf-token'] = csrf;
-  const res = await fetch(buildUrl('/admin/uploads'), { method: 'POST', headers, credentials: 'include', body: file });
+  const res = await fetch(buildUrl(path), { method: 'POST', headers, credentials: 'include', body: file });
   const json = await res.json().catch(() => null);
   if (!res.ok) {
     const err = (json as { error?: ApiErrorShape } | null)?.error;
     throw new ApiError(res.status, err ?? { code: 'UPLOAD_FAILED', message: { ar: 'فشل الرفع', en: 'Upload failed' } });
   }
   return (json as { data: { url: string; contentType: string; size: number } }).data;
+}
+
+/** Upload a raw image file (product images). Sends bytes; the server validates the type. */
+export async function uploadImageFile(file: File): Promise<{ url: string; contentType: string; size: number }> {
+  return uploadRawFile('/admin/uploads', file);
 }
