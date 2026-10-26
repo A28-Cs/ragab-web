@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, ChevronLeft, Package, Undo2 } from 'lucide-react';
+import { ShoppingBag, ChevronLeft, Package, Undo2, FileText } from 'lucide-react';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useAuth } from '../../../context/AuthContext';
 import { getOrders } from '../../../services/orderService';
@@ -86,7 +86,25 @@ export default function OrdersPage() {
                     <p className="text-caption text-ragab-ink-500">{o.createdAt}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                  {(o.hasPrescriptionItems || o.prescriptionUrl) && (
+                    o.prescriptionStatus === 'rejected_visit_required' ? (
+                      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold bg-red-100 text-red-700 border border-red-200">
+                        <span>🛑</span>
+                        <span>استلام بالصيدلية</span>
+                      </span>
+                    ) : o.prescriptionStatus === 'approved' ? (
+                      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                        <span>✓</span>
+                        <span>روشتة معتمدة</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                        <FileText className="w-3 h-3 text-amber-600" />
+                        <span>روشتة مرفقة</span>
+                      </span>
+                    )
+                  )}
                   {o.refunded && (
                     <StatusPill tone="info" dot={false}>
                       <span className="inline-flex items-center gap-1"><Undo2 className="w-3 h-3" />{t.account.refunded}</span>

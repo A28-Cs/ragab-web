@@ -1,15 +1,31 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useOrderEvents } from '../../context/OrderEventsContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { Drawer } from '../ui/Drawer';
+import { Modal } from '../ui/Modal';
 import { Order } from '../../types';
-import { updateOrderStatus } from '../../services/orderService';
+import { updateOrderStatus, updatePrescriptionDecision } from '../../services/orderService';
 import { useToast } from '../ui/Toast';
 import { cn } from '@ragab/utils';
-import { ShoppingCart, Clock, User, Phone, MapPin, ArrowRight, Loader2, CheckCircle2, ChefHat } from 'lucide-react';
+import {
+  ShoppingCart,
+  Clock,
+  User,
+  Phone,
+  MapPin,
+  ArrowRight,
+  Loader2,
+  CheckCircle2,
+  ChefHat,
+  FileText,
+  Eye,
+  ExternalLink,
+  ShieldAlert,
+} from 'lucide-react';
 import { Price } from '../ui/Price';
 
 export function OrdersQuickAccessTrigger({ children }: { children: (props: { onClick: () => void, unreadCount: number, pendingOrders: Order[] }) => React.ReactNode }) {
@@ -82,47 +98,108 @@ function PendingOrdersList({ orders, onSelect }: { orders: Order[], onSelect: (o
 
   return (
     <div className="space-y-3">
-      {orders.map(order => (
-        <button
-          key={order.id}
-          onClick={() => onSelect(order)}
-          className="w-full text-start bg-white border border-ragab-ink-100 rounded-xl p-4 hover:border-ragab-brand-300 hover:shadow-sm transition-all flex flex-col gap-2"
-        >
-          <div className="flex justify-between items-start">
-            <span className="font-bold text-body text-ragab-ink-800">#{order.orderNumber}</span>
-            <span className="text-caption font-semibold text-ragab-brand-600 bg-ragab-brand-50 px-2 py-0.5 rounded-full">
-              {order.items?.length || 0} منتجات
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-2 text-ragab-ink-600 text-body-sm">
-            <User className="w-4 h-4" />
-            <span>{order.deliveryAddress?.recipientName}</span>
-          </div>
-          
-          <div className="flex items-center gap-2 text-ragab-ink-400 text-caption">
-            <Clock className="w-3.5 h-3.5" />
-            <span>{new Date(order.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
-            <span className="mx-1">•</span>
-            <Price price={order.total} className="font-bold text-ragab-ink-700" />
-          </div>
-        </button>
-      ))}
+      {orders.map(order => {
+        const hasPrescription = order.hasPrescriptionItems || Boolean(order.prescriptionUrl);
+        return (
+          <button
+            key={order.id}
+            onClick={() => onSelect(order)}
+            className={cn(
+              "w-full text-start bg-white border rounded-xl p-4 transition-all flex flex-col gap-2 hover:shadow-sm",
+              hasPrescription
+                ? "border-amber-300 bg-amber-50/25 hover:border-amber-400 hover:bg-amber-50/40"
+                : "border-ragab-ink-100 hover:border-ragab-brand-300"
+            )}
+          >
+            <div className="flex justify-between items-start gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-body text-ragab-ink-800">#{order.orderNumber}</span>
+                {hasPrescription && (
+                  order.prescriptionStatus === 'rejected_visit_required' ? (
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold bg-red-100 text-red-700 border border-red-200">
+                      <span>🛑</span>
+                      <span>استلام بالصيدلية</span>
+                    </span>
+                  ) : order.prescriptionStatus === 'approved' ? (
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                      <span>✓</span>
+                      <span>روشتة معتمدة</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold bg-amber-500 text-white shadow-xs animate-pulse">
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>📜 روشتة مرفقة</span>
+                    </span>
+                  )
+                )}
+              </div>
+              <span className="text-caption font-semibold text-ragab-brand-600 bg-ragab-brand-50 px-2 py-0.5 rounded-full shrink-0">
+                {order.items?.length || 0} منتجات
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2 text-ragab-ink-600 text-body-sm">
+              <User className="w-4 h-4 text-ragab-ink-400" />
+              <span>{order.deliveryAddress?.recipientName}</span>
+            </div>
+            
+            <div className="flex items-center justify-between text-caption pt-1 border-t border-ragab-ink-50">
+              <div className="flex items-center gap-2 text-ragab-ink-400">
+                <Clock className="w-3.5 h-3.5" />
+                <span>{new Date(order.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
+                <span className="mx-1">•</span>
+                <Price price={order.total} className="font-bold text-ragab-ink-700" />
+              </div>
+              {hasPrescription && !order.prescriptionUrl && (
+                <span className="text-[10px] font-bold text-red-600">⚠️ لم تُرفع روشتة</span>
+              )}
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-function OrderQuickDetail({ order, onBack, onAccepted }: { order: Order, onBack: () => void, onAccepted: () => void }) {
+function OrderQuickDetail({ order: initialOrder, onBack, onAccepted }: { order: Order, onBack: () => void, onAccepted: () => void }) {
+  const [order, setOrder] = useState<Order>(initialOrder);
   const [isAccepting, setIsAccepting] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [countdown, setCountdown] = useState(3);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isUpdatingDecision, setIsUpdatingDecision] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('يرجى الحضور لمقر الصيدلية مع أصل الروشتة وبطاقة الرقم القومي.');
   const { showToast } = useToast();
-  
+
+  const hasPrescription = order.hasPrescriptionItems || Boolean(order.prescriptionUrl);
+
+  const handleDecision = async (decision: 'approved' | 'rejected_visit_required', reason?: string) => {
+    setIsUpdatingDecision(true);
+    try {
+      const updated = await updatePrescriptionDecision(order.id, decision, reason);
+      setOrder(prev => ({
+        ...prev,
+        prescriptionStatus: updated.prescriptionStatus,
+        prescriptionRejectionReason: updated.prescriptionRejectionReason
+      }));
+      showToast(decision === 'approved' ? 'تم اعتماد الروشتة وتأكيد التوصيل ✓' : 'تم رفض التوصيل - استلام من الصيدلية فقط 🛑', 'success');
+      setShowRejectModal(false);
+    } catch (err: any) {
+      showToast(err.bilingual?.ar || err.message || 'فشل تحديث قرار الروشتة', 'error');
+    } finally {
+      setIsUpdatingDecision(false);
+    }
+  };
+
   const handleAccept = async () => {
     setIsAccepting(true);
     try {
+      if (hasPrescription && order.prescriptionStatus === 'pending') {
+        await updatePrescriptionDecision(order.id, 'approved');
+      }
       await updateOrderStatus(order.id, 'preparing');
-      showToast('تم قبول الطلب بنجاح ✅', 'success');
+      showToast('تم قبول الطلب وبدء التحضير بنجاح ✅', 'success');
       setAccepted(true);
       setIsAccepting(false);
 
@@ -160,7 +237,11 @@ function OrderQuickDetail({ order, onBack, onAccepted }: { order: Order, onBack:
         {/* Preparing status badge */}
         <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl px-4 py-3 font-semibold text-body-sm">
           <ChefHat className="w-5 h-5 text-amber-500 shrink-0" />
-          <span>جاري التحضير – في انتظار المندوب</span>
+          <span>
+            {order.prescriptionStatus === 'rejected_visit_required'
+              ? 'جاري التحضير – استلام بالصيدلية (لا يُسلّم للمندوب)'
+              : 'جاري التحضير – في انتظار المندوب'}
+          </span>
         </div>
 
         {/* Countdown */}
@@ -176,15 +257,148 @@ function OrderQuickDetail({ order, onBack, onAccepted }: { order: Order, onBack:
   // ======= DETAIL SCREEN =======
   return (
     <div className="flex flex-col h-full">
-      <button 
-        onClick={onBack}
-        className="flex items-center gap-2 text-ragab-brand-600 mb-4 font-semibold hover:underline w-fit touch-target"
-      >
-        <ArrowRight className="w-4 h-4" />
-        العودة للقائمة
-      </button>
+      <div className="flex items-center justify-between mb-4">
+        <button 
+          onClick={onBack}
+          className="flex items-center gap-2 text-ragab-brand-600 font-semibold hover:underline w-fit touch-target"
+        >
+          <ArrowRight className="w-4 h-4" />
+          العودة للقائمة
+        </button>
+        <Link
+          href={`/control-center/orders/${order.id}`}
+          className="text-caption font-bold text-ragab-ink-500 hover:text-ragab-brand-600 flex items-center gap-1"
+        >
+          <span>فتح صفحة الطلب الكاملة</span>
+          <ExternalLink className="w-3.5 h-3.5" />
+        </Link>
+      </div>
 
-      <div className="space-y-4 flex-1 overflow-y-auto pb-24">
+      <div className="space-y-4 flex-1 overflow-y-auto pb-28">
+        {/* Prescription Highlight Box */}
+        {hasPrescription && (
+          <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-3.5 space-y-3 shadow-xs">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">📜</span>
+                <div>
+                  <h4 className="font-bold text-body-sm text-amber-950">روشتة طبية مرفقة بالطلب</h4>
+                  <p className="text-caption text-amber-800">
+                    {order.prescriptionStatus === 'approved'
+                      ? 'تم اعتماد الروشتة – التوصيل مسموح'
+                      : order.prescriptionStatus === 'rejected_visit_required'
+                      ? 'مرفوضة للتوصيل – الاستلام من مقر الصيدلية فقط'
+                      : 'يرجى فحص صورة الروشتة واتخاذ القرار الطبي'}
+                  </p>
+                </div>
+              </div>
+              <div>
+                {order.prescriptionStatus === 'rejected_visit_required' ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-600 text-white shadow-xs">
+                    🛑 استلام بالصيدلية فقط
+                  </span>
+                ) : order.prescriptionStatus === 'approved' ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-xs">
+                    ✓ معتمدة للتوصيل
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500 text-white shadow-xs animate-pulse">
+                    ⏳ بانتظار قرار الصيدلي
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {order.prescriptionUrl ? (
+              <div className="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-amber-200">
+                <button
+                  type="button"
+                  onClick={() => setIsPreviewOpen(true)}
+                  className="relative group w-14 h-14 rounded-lg overflow-hidden border border-amber-300 shrink-0 bg-ragab-surface focus:outline-none"
+                  title="اضغط لمعاينة وتكبير الروشتة"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={order.prescriptionUrl}
+                    alt="Prescription"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  />
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                    <Eye className="w-4 h-4" />
+                  </div>
+                </button>
+                <div className="min-w-0 flex-1">
+                  <p className="text-body-sm font-bold text-ragab-ink-800">صورة الروشتة المرفوعة من العميل</p>
+                  <div className="flex items-center gap-3 mt-1 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setIsPreviewOpen(true)}
+                      className="text-caption font-bold text-ragab-brand-600 hover:underline flex items-center gap-1"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      معاينة وتكبير الروشتة
+                    </button>
+                    <a
+                      href={order.prescriptionUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-caption text-ragab-ink-500 hover:text-ragab-ink-700 flex items-center gap-1"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      فتح بنافذة جديدة
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-2.5 bg-red-50 border border-red-200 rounded-lg text-caption font-bold text-red-700 flex items-center gap-2">
+                <span>⚠️</span>
+                <span>الطلب يحتوي على أدوية خاضعة للرقابة ولكن العميل لم يرفع صورة الروشتة!</span>
+              </div>
+            )}
+
+            {/* Doctor Decision Controls */}
+            <div className="pt-2 border-t border-amber-200 flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                disabled={isUpdatingDecision || order.prescriptionStatus === 'approved'}
+                onClick={() => handleDecision('approved')}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-caption font-bold flex items-center gap-1.5 transition-all",
+                  order.prescriptionStatus === 'approved'
+                    ? "bg-emerald-100 text-emerald-800 cursor-default"
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs active:scale-95"
+                )}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>اعتماد الروشتة (توصيل مسموح)</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isUpdatingDecision || order.prescriptionStatus === 'rejected_visit_required'}
+                onClick={() => setShowRejectModal(true)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-caption font-bold flex items-center gap-1.5 transition-all",
+                  order.prescriptionStatus === 'rejected_visit_required'
+                    ? "bg-red-100 text-red-800 cursor-default"
+                    : "bg-red-600 hover:bg-red-700 text-white shadow-xs active:scale-95"
+                )}
+              >
+                <ShieldAlert className="w-3.5 h-3.5" />
+                <span>رفض التوصيل (شك الصيدلي - استلام بالصيدلية)</span>
+              </button>
+            </div>
+
+            {order.prescriptionRejectionReason && (
+              <div className="p-2.5 bg-red-50 rounded-lg border border-red-200 text-caption text-red-800">
+                <span className="font-bold">سبب التحفظ: </span>
+                <span>{order.prescriptionRejectionReason}</span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Customer Info */}
         <div className="bg-ragab-surface rounded-xl p-3 space-y-2 border border-ragab-ink-100">
           <div className="flex items-center gap-2 text-ragab-ink-800 font-semibold">
@@ -221,7 +435,15 @@ function OrderQuickDetail({ order, onBack, onAccepted }: { order: Order, onBack:
                     )}
                   </div>
                   <div>
-                    <p className="font-semibold text-body-sm text-ragab-ink-800 line-clamp-1">{item.productNameAr}</p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="font-semibold text-body-sm text-ragab-ink-800 line-clamp-1">{item.productNameAr}</p>
+                      {item.requiresPrescription && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                          <span className="font-black">Rx</span>
+                          <span>خاضع للرقابة</span>
+                        </span>
+                      )}
+                    </div>
                     <p className="text-caption text-ragab-ink-500">{item.unit}</p>
                   </div>
                 </div>
@@ -266,6 +488,8 @@ function OrderQuickDetail({ order, onBack, onAccepted }: { order: Order, onBack:
             "w-full h-14 rounded-xl font-bold text-body flex items-center justify-center transition-all",
             isAccepting 
               ? "bg-ragab-ink-200 text-ragab-ink-400 cursor-not-allowed" 
+              : order.prescriptionStatus === 'rejected_visit_required'
+              ? "bg-amber-600 text-white hover:bg-amber-700 shadow-md active:scale-[0.98]"
               : "bg-ragab-brand-500 text-ragab-ink-900 hover:bg-ragab-brand-400 shadow-md active:scale-[0.98]"
           )}
         >
@@ -274,12 +498,75 @@ function OrderQuickDetail({ order, onBack, onAccepted }: { order: Order, onBack:
               <Loader2 className="w-5 h-5 animate-spin" />
               جاري قبول الطلب...
             </span>
+          ) : order.prescriptionStatus === 'rejected_visit_required' ? (
+            "بدء التحضير (استلام شخصي بالصيدلية)"
+          ) : hasPrescription && order.prescriptionStatus === 'pending' ? (
+            "اعتماد الروشتة وبدء التحضير"
           ) : (
             "قبول وبدء التحضير"
           )}
         </button>
       </div>
+
+      {/* Prescription Preview Modal */}
+      {isPreviewOpen && order.prescriptionUrl && (
+        <Modal isOpen={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} title="معاينة الروشتة الطبية" maxWidth="lg">
+          <div className="space-y-4">
+            <div className="max-h-[70vh] overflow-auto rounded-xl border border-ragab-ink-100 bg-black/5 flex items-center justify-center p-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={order.prescriptionUrl} alt="Prescription Full Preview" className="max-w-full h-auto object-contain rounded-lg" />
+            </div>
+            <div className="flex justify-end gap-2">
+              <a
+                href={order.prescriptionUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2 rounded-xl text-body-sm font-bold bg-ragab-surface border border-ragab-ink-200 text-ragab-ink-700 hover:bg-ragab-ink-50 flex items-center gap-1.5"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>فتح بحجم أصلي في نافذة مستقلة</span>
+              </a>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Reject Visit Required Modal */}
+      {showRejectModal && (
+        <Modal isOpen={showRejectModal} onClose={() => setShowRejectModal(false)} title="رفض التوصيل – إلزام الاستلام من الصيدلية" maxWidth="md">
+          <div className="space-y-4">
+            <p className="text-body-sm text-ragab-ink-600">
+              سيتم إشعار العميل والمندوب بأن هذا الدواء خاضع للرقابة ولا يُصرف عبر التوصيل إلا بعد فحص الروشتة الأصلية وبطاقة الرقم القومي بمقر الصيدلية.
+            </p>
+            <div>
+              <label className="block text-caption font-bold text-ragab-ink-700 mb-1">سبب التحفظ أو ملاحظة للعميل:</label>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                rows={3}
+                className="w-full text-body-sm p-3 rounded-xl border border-ragab-ink-200 focus:outline-none focus:ring-2 focus:ring-red-400"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowRejectModal(false)}
+                className="px-4 py-2 rounded-xl text-body-sm font-bold text-ragab-ink-600 hover:bg-ragab-ink-100"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                disabled={isUpdatingDecision}
+                onClick={() => handleDecision('rejected_visit_required', rejectReason)}
+                className="px-4 py-2 rounded-xl text-body-sm font-bold bg-red-600 hover:bg-red-700 text-white shadow-xs"
+              >
+                تأكيد رفض التوصيل
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
-

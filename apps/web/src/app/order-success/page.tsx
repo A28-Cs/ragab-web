@@ -188,6 +188,49 @@ function OrderSuccessContent() {
           </div>
         </div>
 
+        {/* Prescription status */}
+        {(order?.hasPrescriptionItems || order?.prescriptionUrl) && (
+          <div className="text-start bg-amber-50 border border-amber-300 rounded-xl p-4 space-y-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">📜</span>
+                <span className="font-bold text-body-sm text-amber-950">
+                  {isRTL ? 'الروشتة الطبية المرفقة' : 'Attached Prescription'}
+                </span>
+              </div>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900">
+                {order.prescriptionStatus === 'approved'
+                  ? (isRTL ? '✓ معتمدة للتوصيل' : 'Approved')
+                  : order.prescriptionStatus === 'rejected_visit_required'
+                  ? (isRTL ? '🛑 استلام بالصيدلية' : 'Pickup at pharmacy')
+                  : (isRTL ? '⏳ قيد المراجعة الطبية' : 'Under pharmacist review')}
+              </span>
+            </div>
+            <p className="text-caption text-amber-800 leading-relaxed">
+              {order.prescriptionStatus === 'rejected_visit_required'
+                ? (isRTL
+                    ? 'بناءً على تعليمات الصيدلي، يُلزم استلام هذا الدواء من مقر الصيدلية مباشرة مصطحبًا أصل الروشتة وبطاقة الرقم القومي.'
+                    : 'Per pharmacist review, this medication requires in-person pickup at the pharmacy with original Rx and ID.')
+                : (isRTL
+                    ? 'تم استلام صورة الروشتة بنجاح، ويقوم الصيدلي بمراجعتها حاليًا للتحقق من الجرعات ومطابقة الأدوية قبل انطلاق المندوب.'
+                    : 'Your prescription was received and is being verified by our pharmacist before dispatch.')}
+            </p>
+            {order.prescriptionUrl && (
+              <div className="pt-1">
+                <a
+                  href={order.prescriptionUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-caption font-bold text-amber-700 hover:underline inline-flex items-center gap-1"
+                >
+                  <span>{isRTL ? 'معاينة صورة الروشتة المرفوعة' : 'View uploaded prescription'}</span>
+                  <span>↗</span>
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Payment — what happens next, as the server sees it */}
         <div className="text-start rounded-xl border border-ragab-ink-200 p-4 space-y-3">
           <h4 className="font-bold text-ragab-ink-800 text-body-sm flex items-center gap-2">
