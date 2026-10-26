@@ -430,9 +430,14 @@ export default function CheckoutPage() {
               {submitError && step === 1 && <p role="alert" className="text-body-sm font-bold text-ragab-danger">{submitError}</p>}
 
               <div className="pt-4 flex justify-end">
-                <Button type="button" variant="primary" onClick={goToStep2} disabled={!selectedAddressId || showNewForm}>
-                  <span>{t.checkout.step2}</span>
-                  <ArrowLeft className="w-4 h-4 ltr:rotate-180" />
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={goToStep2}
+                  disabled={!selectedAddressId || showNewForm}
+                  rightIcon={<ArrowLeft className="w-4 h-4 ltr:rotate-180" />}
+                >
+                  {t.checkout.step2}
                 </Button>
               </div>
             </div>
@@ -556,10 +561,24 @@ export default function CheckoutPage() {
               </div>
               <div className="pt-4 flex items-center justify-between gap-3 flex-wrap">
                 <Button type="button" variant="outline" onClick={() => setStep(1)}>{t.common.edit}</Button>
-                <Button type="button" variant="primary" onClick={goToStep3}>
-                  <span>{t.checkout.step3}</span>
-                  <ArrowLeft className="w-4 h-4 ltr:rotate-180" />
-                </Button>
+                <div className="flex flex-col items-end gap-1.5">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={goToStep3}
+                    disabled={hasPrescriptionItems && !prescriptionUrl}
+                    rightIcon={<ArrowLeft className="w-4 h-4 ltr:rotate-180" />}
+                    title={hasPrescriptionItems && !prescriptionUrl ? (isRTL ? 'يرجى رفع صورة الروشتة أولاً' : 'Upload prescription to proceed') : undefined}
+                  >
+                    {t.checkout.step3}
+                  </Button>
+                  {hasPrescriptionItems && !prescriptionUrl && (
+                    <span className="text-[11px] font-bold text-amber-800 flex items-center gap-1">
+                      <span>⚠️</span>
+                      <span>{isRTL ? 'ارفع صورة الروشتة أعلاه لتفعيل زر المتابعة' : 'Upload prescription above to enable button'}</span>
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           )}
