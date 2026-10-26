@@ -154,7 +154,10 @@ export default function HomePage() {
           <div className="grid lg:grid-cols-2">
             <div className="p-5 sm:p-8 lg:p-10 flex flex-col justify-center">
               <div className="flex flex-wrap items-center gap-3 text-caption font-bold text-ragab-brand-800 mb-5">
-                <span className="inline-flex items-center gap-2"><Cross className="w-4 h-4" />{isRTL ? 'صيدلية رجب · رعاية أقرب إليك' : 'Ragab Pharmacy · Care, closer to you'}</span>
+                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-ragab-brand-100/80 border border-ragab-brand-200 text-ragab-brand-900 font-bold">
+                  <Cross className="w-4 h-4 text-ragab-brand-700" />
+                  {isRTL ? 'صيدلية رجب · تحت إشراف دكتور علي عمر رجب' : 'Ragab Pharmacy · Under the supervision of Dr. Ali Omar Ragab'}
+                </span>
                 <span className="inline-flex items-center gap-1.5 text-ragab-ink-600"><Clock className="w-3.5 h-3.5" />{t.home.openNow}</span>
               </div>
               <h1 id="home-hero" className="text-[28px] sm:text-[38px] xl:text-[46px] leading-[1.4] font-extrabold text-ragab-ink-900 tracking-tight max-w-xl">{t.home.heroTitle}</h1>
