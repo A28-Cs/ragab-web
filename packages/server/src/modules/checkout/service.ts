@@ -39,10 +39,11 @@ export interface CheckoutInput {
   paymentMethod: PaymentMethod;
   couponCode?: string;
   notes?: string;
+  prescriptionUrl?: string;
 }
 
 interface PreparedCheckout {
-  lines: { productId: string; variantId: string; quantity: number; unitPriceMinor: number; nameAr: string; nameEn: string | null; unit: string; image: string; isGift?: boolean }[];
+  lines: { productId: string; variantId: string; quantity: number; unitPriceMinor: number; nameAr: string; nameEn: string | null; unit: string; image: string; isGift?: boolean; requiresPrescription?: boolean }[];
   priceLines: PriceLine[];
   address: Address;
   /** The zone whose fee/min-order applied; null = legacy free-text village on the store default fee. */
@@ -108,7 +109,7 @@ async function prepare(ctx: RequestContext, input: { addressId: string; couponCo
     // Snapshot names the packaging when it is not the plain default ("بيض — كرتونة 12").
     const nameAr = variant.isDefault ? row.nameAr : `${row.nameAr} — ${variant.nameAr}`;
     const nameEn = row.nameEn ? (variant.isDefault ? row.nameEn : `${row.nameEn} — ${variant.nameEn ?? variant.nameAr}`) : null;
-    lines.push({ productId: row.id, variantId: variant.id, quantity: line.quantity, unitPriceMinor: variant.priceMinor, nameAr, nameEn, unit: variant.unitAr ?? row.unitAr, image: row.image });
+    lines.push({ productId: row.id, variantId: variant.id, quantity: line.quantity, unitPriceMinor: variant.priceMinor, nameAr, nameEn, unit: variant.unitAr ?? row.unitAr, image: row.image, requiresPrescription: row.requiresPrescription ?? false });
     priceLines.push({ productId: row.id, variantId: variant.id, quantity: line.quantity, unitPriceMinor: variant.priceMinor, categoryId: row.categoryId });
   }
 
@@ -139,6 +140,7 @@ export async function quote(ctx: RequestContext, input: { addressId: string; cou
     tax: Money.ofMinor(prepared.totals.taxMinor).toMajor(),
     total: Money.ofMinor(prepared.totals.totalMinor).toMajor(),
     couponCode: prepared.coupon?.code,
+    hasPrescriptionItems: prepared.lines.some((l) => l.requiresPrescription),
     currency: 'EGP',
     itemCount: prepared.lines.reduce((n, l) => n + l.quantity, 0),
     promotions: prepared.applied.map((a) => ({
@@ -199,6 +201,8 @@ export async function placeOrder(ctx: RequestContext, input: CheckoutInput): Pro
       discountMinor: prepared.totals.discountMinor,
       totalMinor: prepared.totals.totalMinor,
       couponCode: prepared.coupon?.code ?? null,
+      hasPrescriptionItems: prepared.lines.some((l) => l.requiresPrescription),
+      prescriptionUrl: input.prescriptionUrl ?? null,
       // Immutable snapshot incl. the zone it was priced with (§28) — the fee stays explainable later.
       deliveryAddress: {
         ...prepared.address,
@@ -224,6 +228,7 @@ export async function placeOrder(ctx: RequestContext, input: CheckoutInput): Pro
           quantity: l.quantity,
           unitPriceMinor: l.unitPriceMinor,
           lineTotalMinor: l.unitPriceMinor * l.quantity,
+          requiresPrescription: l.requiresPrescription ?? false,
         })),
       );
     }

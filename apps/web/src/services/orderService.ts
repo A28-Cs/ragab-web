@@ -97,6 +97,7 @@ export const createOrder = async (payload: {
   paymentMethod: 'cod' | 'vodafone_cash' | 'instapay';
   couponCode?: string | null;
   notes?: string;
+  prescriptionUrl?: string;
   /** Held by the caller across retries so a dropped connection replays, never double-orders. */
   idempotencyKey: string;
 }): Promise<CheckoutResult> => {
@@ -118,7 +119,7 @@ export const createOrder = async (payload: {
   }
   return api.post<CheckoutResult>(
     '/checkout',
-    { addressId, paymentMethod: payload.paymentMethod, couponCode: payload.couponCode || undefined, notes: payload.notes || undefined },
+    { addressId, paymentMethod: payload.paymentMethod, couponCode: payload.couponCode || undefined, notes: payload.notes || undefined, prescriptionUrl: payload.prescriptionUrl || undefined },
     { idempotencyKey: payload.idempotencyKey },
   );
 };

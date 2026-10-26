@@ -471,7 +471,15 @@ export default function ProductDetailPage() {
                     {isRTL ? product.brandAr : product.brandEn || product.brandAr}
                   </p>
                 )}
-                <h1 className="text-h1 md:text-3xl text-ragab-ink-900 leading-tight font-extrabold">{title}</h1>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h1 className="text-h1 md:text-3xl text-ragab-ink-900 leading-tight font-extrabold">{title}</h1>
+                  {product.requiresPrescription && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-amber-600 px-2 py-0.5 text-caption font-bold text-white shadow-xs">
+                      <span className="font-black">Rx</span>
+                      <span>{isRTL ? 'روشتة مطلوبة' : 'Prescription Required'}</span>
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Red button for deleting product */}
@@ -491,6 +499,36 @@ export default function ProductDetailPage() {
               <Rating value={product.rating} reviewCount={product.reviewCount} size="md" />
             )}
           </div>
+
+          {/* Prescription Medical Advisory Banner */}
+          {product.requiresPrescription && (
+            <div className="rounded-2xl border border-amber-300 bg-amber-50/70 p-4 shadow-xs">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-600 text-white font-black text-sm shadow-xs">
+                  Rx
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-body font-bold text-amber-950">
+                    {isRTL ? 'دواء خاضع لرقابة الروشتة الطبية' : 'Prescription-Required Medication (Rx)'}
+                  </h3>
+                  <p className="text-body-sm text-amber-900/85 leading-relaxed">
+                    {product.prescriptionInstructionsAr ||
+                      (isRTL
+                        ? 'تنبيه صيدلاني: هذا الدواء لا يصرف إلا بموجب روشتة طبية معتمدة من الطبيب المعالج. يمكنك إرفاق الروشتة أثناء إتمام الطلب أو تسليمها للصيدلي عند الاستلام.'
+                        : 'Pharmaceutical notice: This medicine is strictly dispensed against a valid doctor prescription. You can attach your prescription at checkout or provide it upon delivery.')}
+                  </p>
+                  <div className="pt-1">
+                    <Link
+                      href="/prescription"
+                      className="inline-flex items-center gap-1.5 text-caption font-bold text-amber-900 hover:text-amber-950 underline decoration-amber-400 underline-offset-4"
+                    >
+                      <span>{isRTL ? 'أو اطلب عبر خدمة رفع الروشتة الذكية مباشرة ←' : 'Or order directly via smart prescription upload ←'}</span>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Packaging — piece / box / weight (only when the product has more than one unit) */}
           {activeVariants.length > 1 && (

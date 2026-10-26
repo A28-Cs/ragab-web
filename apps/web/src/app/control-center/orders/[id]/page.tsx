@@ -52,6 +52,7 @@ function OrderAdminDetailInner() {
   const id = String(params?.id ?? '');
   const { t, language } = useLanguage();
   const ar = language === 'ar';
+  const isRTL = ar;
   const { permissions, hasPermission } = useAuth();
   const { showToast } = useToast();
   const record = useAudit();
@@ -231,6 +232,12 @@ function OrderAdminDetailInner() {
           <h2 className="text-h2 text-ragab-ink-800" dir="ltr">{order.orderNumber}</h2>
           {order.manual && <Badge variant="neutral">{t.adminOrders.manualBadge}</Badge>}
           {order.refunded && <Badge variant="warning">{t.adminOrders.refundedBadge}</Badge>}
+          {order.hasPrescriptionItems && (
+            <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-caption font-bold bg-amber-600 text-white shadow-xs">
+              <span className="font-black">Rx</span>
+              <span>{isRTL ? 'يتطلب روشتة طبية' : 'Prescription Required'}</span>
+            </span>
+          )}
         </div>
         <StatusPill tone={ORDER_STATUS_TONE[order.status]}>{t.account.orderStatus[order.status]}</StatusPill>
       </div>
@@ -272,6 +279,56 @@ function OrderAdminDetailInner() {
             </div>
           </Card>
 
+          {/* Prescription Information Card */}
+          {order.hasPrescriptionItems && (
+            <Card className="border-2 border-amber-300 bg-amber-50/50">
+              <CardHeader
+                title={isRTL ? 'بيانات الروشتة الطبية المطلوبة (Rx)' : 'Prescription Details (Rx)'}
+              />
+              <div className="space-y-3">
+                {order.prescriptionUrl ? (
+                  <div className="space-y-2">
+                    <p className="text-body-sm font-semibold text-amber-950">
+                      {isRTL ? 'قام العميل بإرفاق صورة الروشتة التالية:' : 'Customer attached the following prescription:'}
+                    </p>
+                    <div className="relative inline-block border-2 border-amber-300 rounded-xl overflow-hidden bg-white shadow-sm">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={order.prescriptionUrl}
+                        alt="Prescription"
+                        className="max-h-80 w-auto object-contain cursor-pointer hover:opacity-95 transition-opacity"
+                        onClick={() => window.open(order.prescriptionUrl, '_blank')}
+                      />
+                    </div>
+                    <div>
+                      <a
+                        href={order.prescriptionUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-body-sm font-bold text-amber-800 hover:text-amber-950 underline"
+                      >
+                        {isRTL ? 'فتح صورة الروشتة بالحجم الكامل ↗' : 'Open full image ↗'}
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-white rounded-xl border border-amber-200 text-body-sm text-amber-950">
+                    <p className="font-bold">
+                      {isRTL
+                        ? 'تنبيه: العميل اختار تسليم الروشتة الورقية الأصلية للمندوب أو في الصيدلية عند الاستلام.'
+                        : 'Notice: Customer confirmed they will hand the paper prescription upon delivery.'}
+                    </p>
+                    <p className="text-caption text-ragab-ink-500 mt-1">
+                      {isRTL
+                        ? 'يرجى من الصيدلي / المندوب التأكد من استلام الروشتة الورقية ومطابقتها للأدوية قبل تسليم الطلب.'
+                        : 'Please ensure collecting and validating the physical prescription before order handover.'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
           {/* Items */}
           <Card>
             <CardHeader title={t.adminOrders.orderDetails} />
@@ -281,7 +338,12 @@ function OrderAdminDetailInner() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={it.image} alt={it.productNameAr} className="w-14 h-14 rounded-lg object-cover border border-ragab-ink-100 shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-body-sm font-semibold text-ragab-ink-800 truncate">{it.productNameAr}</p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-body-sm font-semibold text-ragab-ink-800 truncate">{it.productNameAr}</p>
+                      {it.requiresPrescription && (
+                        <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-600 text-white font-black">Rx</span>
+                      )}
+                    </div>
                     <p className="text-caption text-ragab-ink-500">
                       {it.unit} · {it.quantity} × {it.price} {t.common.egp}
                     </p>

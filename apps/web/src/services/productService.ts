@@ -129,6 +129,9 @@ export const saveProduct = async (product: Product, _perms?: Set<PermissionKey>)
     descriptionEn: product.descriptionEn,
     isPopular: product.isPopular,
     isEssential: product.isEssential,
+    requiresPrescription: product.requiresPrescription,
+    prescriptionInstructionsAr: product.prescriptionInstructionsAr,
+    prescriptionInstructionsEn: product.prescriptionInstructionsEn,
     // With explicit units the product-level stock is derived from the default unit.
     stockQuantity: product.variants ? undefined : product.stockQuantity,
     ...(product.variants

@@ -23,6 +23,7 @@ function toItemDto(row: OrderItemRow): OrderItem {
     price: Money.ofMinor(row.unitPriceMinor).toMajor(),
     total: Money.ofMinor(row.lineTotalMinor).toMajor(),
     image: row.image,
+    requiresPrescription: row.requiresPrescription ?? false,
   };
 }
 
@@ -46,5 +47,7 @@ export function toOrderDto(order: OrderRow, items: OrderItemRow[]): Order {
     manual: order.manual || undefined,
     refunded: order.refunded || undefined,
     couponCode: order.couponCode ?? undefined,
+    hasPrescriptionItems: order.hasPrescriptionItems ?? false,
+    prescriptionUrl: order.prescriptionUrl ?? undefined,
   };
 }

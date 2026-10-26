@@ -252,6 +252,9 @@ export async function listCategories(): Promise<Category[]> {
       descriptionEn: input.descriptionEn ?? null,
       isPopular: input.isPopular ?? false,
       isEssential: input.isEssential ?? false,
+      requiresPrescription: input.requiresPrescription ?? false,
+      prescriptionInstructionsAr: input.prescriptionInstructionsAr ?? null,
+      prescriptionInstructionsEn: input.prescriptionInstructionsEn ?? null,
       isActive: input.isActive ?? true,
       isVisible: input.isVisible ?? true,
     };

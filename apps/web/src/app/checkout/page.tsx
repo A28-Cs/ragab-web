@@ -16,6 +16,8 @@ import {
   Plus,
   Loader2,
   LogIn,
+  UploadCloud,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@ragab/utils';
 import { validateEgyptianPhone, validateRecipientName, validateStreetAddress } from '@ragab/validation';
@@ -27,6 +29,8 @@ import { getAddresses, saveAddress } from '../../services/addressService';
 import { cartService, type CheckoutQuote } from '../../services/cartService';
 import { api, ApiError } from '../../lib/apiClient';
 import { Address, DeliveryZone } from '../../types';
+import { uploadPrescriptionImage } from '../../services/prescriptionService';
+import { useToast } from '../../components/ui/Toast';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 
@@ -72,6 +76,12 @@ export default function CheckoutPage() {
   const [newErrors, setNewErrors] = useState<NewAddressErrors>({});
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [notes, setNotes] = useState('');
+  const { showToast } = useToast();
+  const [prescriptionUrl, setPrescriptionUrl] = useState<string>('');
+  const [handPaperPrescription, setHandPaperPrescription] = useState<boolean>(false);
+  const [uploadingPrescription, setUploadingPrescription] = useState<boolean>(false);
+  const prescFileRef = useRef<HTMLInputElement>(null);
+  const hasPrescriptionItems = useMemo(() => cart.some((i) => i.product.requiresPrescription), [cart]);
   const [quote, setQuote] = useState<CheckoutQuote | null>(null);
   const [quoteState, setQuoteState] = useState<'idle' | 'loading' | 'error'>('idle');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -187,6 +197,14 @@ export default function CheckoutPage() {
       setStep(1);
       return;
     }
+    if (hasPrescriptionItems && !prescriptionUrl && !handPaperPrescription) {
+      setSubmitError(
+        isRTL
+          ? 'يحتوي طلبك على أدوية تتطلب روشتة طبية. يرجى إرفاق صورة الروشتة أو تأكيد تسليم الروشتة الورقية عند الاستلام.'
+          : 'Your order contains prescription medicines. Please upload your prescription or confirm handing the physical prescription upon delivery.'
+      );
+      return;
+    }
     setIsSubmitting(true);
     setSubmitError(null);
     try {
@@ -195,6 +213,7 @@ export default function CheckoutPage() {
         paymentMethod,
         couponCode,
         notes: notes.trim() || undefined,
+        prescriptionUrl: prescriptionUrl || undefined,
         idempotencyKey: idempotencyKey.current,
       });
       // Hand the payment step to the success page (redirect / transfer instructions).
@@ -434,6 +453,106 @@ export default function CheckoutPage() {
                   </label>
                 ))}
               </div>
+              {/* Prescription Attachment Section */}
+              {hasPrescriptionItems && (
+                <div className="rounded-2xl border-2 border-amber-300 bg-amber-50/70 p-4 sm:p-5 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-600 font-black text-white text-xs shadow-xs">
+                      Rx
+                    </span>
+                    <div className="space-y-1">
+                      <h3 className="text-body font-bold text-amber-950">
+                        {isRTL ? 'مطلوب إرفاق روشتة طبية (أدوية خاضعة للرقابة)' : 'Prescription Required (Regulated Medicines)'}
+                      </h3>
+                      <p className="text-body-sm text-amber-900/80 leading-relaxed">
+                        {isRTL
+                          ? 'تحتوي سلتك على أدوية لا تُصرف إلا بموجب روشتة معتمدة. يمكنك رفع صورة الروشتة الآن أو تأكيد تسليم الروشتة الأصلية للمندوب عند الاستلام.'
+                          : 'Your cart contains prescription items. Upload an image of your prescription now or confirm handing the physical prescription upon delivery.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 pt-2 border-t border-amber-200">
+                    <input
+                      ref={prescFileRef}
+                      type="file"
+                      accept="image/*,.pdf"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setUploadingPrescription(true);
+                        try {
+                          const url = await uploadPrescriptionImage(file);
+                          setPrescriptionUrl(url);
+                          setHandPaperPrescription(false);
+                          showToast(isRTL ? 'تم رفع صورة الروشتة بنجاح' : 'Prescription uploaded successfully', 'success');
+                        } catch (err: any) {
+                          showToast(err?.message || (isRTL ? 'فشل رفع الروشتة' : 'Failed to upload prescription'), 'error');
+                        } finally {
+                          setUploadingPrescription(false);
+                        }
+                      }}
+                    />
+
+                    {prescriptionUrl ? (
+                      <div className="flex items-center justify-between gap-3 bg-white p-3 rounded-xl border border-amber-300 shadow-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={prescriptionUrl} alt="Prescription" className="w-12 h-12 object-cover rounded-lg border border-amber-200 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-body-sm font-bold text-amber-950 truncate">
+                              {isRTL ? 'تم إرفاق صورة الروشتة بنجاح' : 'Prescription attached'}
+                            </p>
+                            <a href={prescriptionUrl} target="_blank" rel="noreferrer" className="text-caption font-bold text-amber-700 hover:underline">
+                              {isRTL ? 'معاينة الصورة' : 'View image'}
+                            </a>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setPrescriptionUrl('')}
+                          className="text-caption text-ragab-danger font-bold hover:underline shrink-0"
+                        >
+                          {isRTL ? 'حذف' : 'Remove'}
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          isLoading={uploadingPrescription}
+                          leftIcon={<UploadCloud className="w-4 h-4 text-amber-700" />}
+                          onClick={() => prescFileRef.current?.click()}
+                          className="border-amber-400 bg-white hover:bg-amber-100/50 text-amber-900 font-bold"
+                        >
+                          {isRTL ? 'رفع صورة الروشتة الآن' : 'Upload Prescription Photo'}
+                        </Button>
+                      </div>
+                    )}
+
+                    <label className="flex items-center gap-2 cursor-pointer pt-1">
+                      <input
+                        type="checkbox"
+                        checked={handPaperPrescription}
+                        onChange={(e) => {
+                          setHandPaperPrescription(e.target.checked);
+                          if (e.target.checked) setPrescriptionUrl('');
+                        }}
+                        className="accent-amber-600 w-4 h-4 rounded"
+                      />
+                      <span className="text-body-sm font-semibold text-amber-950">
+                        {isRTL
+                          ? 'سأقوم بتسليم الروشتة الورقية الأصلية لمندوب التوصيل / الصيدلي عند الاستلام'
+                          : 'I will hand the physical prescription upon delivery'}
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label htmlFor="co-notes" className="text-label text-ragab-ink-700 block mb-1">{t.checkout.notes}</label>
                 <textarea id="co-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full p-3 bg-ragab-ink-50 border border-ragab-ink-200 rounded-lg text-body-sm focus:outline-none focus:ring-2 focus:ring-ragab-brand-500/40 focus:border-ragab-brand-500 focus:bg-white transition-colors" />
@@ -460,11 +579,27 @@ export default function CheckoutPage() {
                   </>
                 )}
                 <div><strong>{t.checkout.paymentMethod}:</strong> {paymentLabel(paymentMethod)}</div>
+                {hasPrescriptionItems && (
+                  <div className="pt-1 text-amber-900 font-semibold flex items-center gap-1.5">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-600 text-white font-black">Rx</span>
+                    <span>
+                      {prescriptionUrl
+                        ? (isRTL ? 'تم إرفاق صورة الروشتة الطبية' : 'Prescription photo attached')
+                        : (isRTL ? 'تسليم الروشتة الورقية الأصلية عند الاستلام' : 'Handing paper prescription upon delivery')}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="divide-y divide-ragab-ink-100 border border-ragab-ink-100 rounded-xl p-3">
                 {cart.map(({ product, quantity }) => (
                   <div key={product.id} className="py-2 flex justify-between gap-3 text-body-sm">
-                    <span className="min-w-0 truncate">{product.nameAr} <span className="text-ragab-ink-500">×{quantity}</span></span>
+                    <span className="min-w-0 truncate">
+                      {product.nameAr}{' '}
+                      {product.requiresPrescription && (
+                        <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-600 text-white font-black ms-1">Rx</span>
+                      )}{' '}
+                      <span className="text-ragab-ink-500">×{quantity}</span>
+                    </span>
                     <span className="font-bold shrink-0">{(product.price * quantity).toFixed(2)} {t.common.egp}</span>
                   </div>
                 ))}

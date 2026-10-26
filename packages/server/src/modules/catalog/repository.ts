@@ -54,6 +54,9 @@ function baseSelect(exec: DbExecutor) {
       unitValue: products.unitValue,
       unitMeasure: products.unitMeasure,
       lowStockThreshold: products.lowStockThreshold,
+      requiresPrescription: products.requiresPrescription,
+      prescriptionInstructionsAr: products.prescriptionInstructionsAr,
+      prescriptionInstructionsEn: products.prescriptionInstructionsEn,
       createdAt: products.createdAt,
       // Full-precision text, for the keyset cursor — see ProductRow.createdAtRaw.
       createdAtRaw: sql<string>`${products.createdAt}::text`,

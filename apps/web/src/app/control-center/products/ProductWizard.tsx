@@ -461,6 +461,46 @@ export const ProductWizard: React.FC<ProductWizardProps> = ({
                   <Switch checked={!!form.isPopular} onChange={(v) => set({ isPopular: v })} label={t.adminProducts.popular} />
                 </div>
               </div>
+
+              {/* Prescription requirement (Rx) */}
+              <div className="rounded-xl border border-amber-300 bg-amber-50/60 p-3.5 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-start">
+                    <div className="flex items-center gap-1.5">
+                      <span className="inline-flex items-center rounded bg-amber-600 px-1.5 py-0.5 text-[10px] font-black text-white">
+                        Rx
+                      </span>
+                      <p className="text-body-sm font-bold text-ragab-ink-800">
+                        {ar ? 'يتطلب روشتة طبية (Rx)' : 'Requires Prescription (Rx)'}
+                      </p>
+                    </div>
+                    <p className="text-caption text-ragab-ink-500 mt-0.5">
+                      {ar
+                        ? 'دواء خاضع لرقابة الصيدلية ولا يُصرف للعميل إلا بموجب روشتة معتمدة'
+                        : 'Regulated medication dispensed strictly against a valid doctor prescription'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={!!form.requiresPrescription}
+                    onChange={(v) => set({ requiresPrescription: v })}
+                    label="Rx"
+                  />
+                </div>
+                {form.requiresPrescription && (
+                  <div className="pt-2 border-t border-amber-200">
+                    <label className="text-caption font-bold text-ragab-ink-700 block mb-1">
+                      {ar ? 'تعليمات الصرف أو التحذير (اختياري)' : 'Dispensing Instructions / Notice (Optional)'}
+                    </label>
+                    <input
+                      type="text"
+                      value={form.prescriptionInstructionsAr || ''}
+                      placeholder={ar ? 'مثال: لا يصرف إلا بجرعة محددة ووفقاً للروشتة' : 'e.g., Dispensed strictly per prescribed dosage'}
+                      onChange={(e) => set({ prescriptionInstructionsAr: e.target.value })}
+                      className="w-full h-9 px-3 text-body-sm rounded-lg border border-amber-300 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

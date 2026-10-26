@@ -80,6 +80,9 @@ export interface ProductRow {
   unitValue: number | null;
   unitMeasure: string | null;
   lowStockThreshold: number;
+  requiresPrescription: boolean;
+  prescriptionInstructionsAr: string | null;
+  prescriptionInstructionsEn: string | null;
   available: number;
   createdAt: Date;
   /**
@@ -139,6 +142,9 @@ export function toProductDto(row: ProductRow): Product {
     lowStockThreshold: row.lowStockThreshold,
     tags: row.tags ?? undefined,
     isNew: row.isNew,
+    requiresPrescription: row.requiresPrescription ?? false,
+    prescriptionInstructionsAr: row.prescriptionInstructionsAr ?? undefined,
+    prescriptionInstructionsEn: row.prescriptionInstructionsEn ?? undefined,
     createdAtIso: row.createdAt.toISOString(),
     variants: row.variants?.map(toVariantDto),
     defaultVariantId: row.variants?.find((v) => v.isDefault)?.id,

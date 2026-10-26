@@ -55,6 +55,9 @@ export interface Product {
   defaultVariantId?: string;
   tags?: string[];
   isNew?: boolean;
+  requiresPrescription?: boolean;
+  prescriptionInstructionsAr?: string;
+  prescriptionInstructionsEn?: string;
 }
 
 export interface Offer {
@@ -211,6 +214,7 @@ export interface DeliveryZone {
 export type OrderStatus = 'pending' | 'preparing' | 'on_the_way' | 'delivered' | 'cancelled';
 
 export interface OrderItem {
+  requiresPrescription?: boolean;
   id: string;
   productId?: string;
   productNameAr: string;
@@ -235,6 +239,8 @@ export interface Order {
   paymentMethod: 'cod' | 'vodafone_cash' | 'instapay';
   deliveryAddress: Address;
   estimatedDelivery: string;
+  hasPrescriptionItems?: boolean;
+  prescriptionUrl?: string;
   /** Admin-set: order was created manually by staff (phone/walk-in) */
   manual?: boolean;
   /** Admin-set: a refund was issued against this order */

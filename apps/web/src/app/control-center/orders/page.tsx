@@ -165,6 +165,12 @@ function OrdersAdminInner() {
           </Link>
           {o.manual && <Badge variant="neutral" size="sm">{t.adminOrders.manualBadge}</Badge>}
           {o.refunded && <Badge variant="warning" size="sm">{t.adminOrders.refundedBadge}</Badge>}
+          {o.hasPrescriptionItems && (
+            <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold bg-amber-600 text-white shadow-xs">
+              <span className="font-black">Rx</span>
+              <span>{ar ? 'روشتة' : 'Prescription'}</span>
+            </span>
+          )}
         </div>
       ),
     },
@@ -262,6 +268,11 @@ function OrdersAdminInner() {
                   {o.orderNumber}
                 </Link>
                 {o.manual && <Badge variant="neutral" size="sm">{t.adminOrders.manualBadge}</Badge>}
+                {o.hasPrescriptionItems && (
+                  <span className="inline-flex items-center rounded px-1 py-0.2 text-[9px] font-black bg-amber-600 text-white">
+                    Rx
+                  </span>
+                )}
               </div>
             )}
           />

@@ -96,6 +96,9 @@ export const products = pgTable(
     rating: real('rating'),
     reviewCount: integer('review_count').notNull().default(0),
     lowStockThreshold: integer('low_stock_threshold').notNull().default(5),
+    requiresPrescription: boolean('requires_prescription').notNull().default(false),
+    prescriptionInstructionsAr: text('prescription_instructions_ar'),
+    prescriptionInstructionsEn: text('prescription_instructions_en'),
     /** Visibility & lifecycle. */
     isActive: boolean('is_active').notNull().default(true),
     isVisible: boolean('is_visible').notNull().default(true),

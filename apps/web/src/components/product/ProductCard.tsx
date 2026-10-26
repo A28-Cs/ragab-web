@@ -196,7 +196,13 @@ const ProductCardInner: React.FC<ProductCardProps> = ({ product, showCategory = 
       </div>
 
       {/* Status badge — top-start over the media */}
-      <div className="absolute top-3 start-3 z-10 pointer-events-none">
+      <div className="absolute top-3 start-3 z-10 pointer-events-none flex flex-col gap-1 items-start">
+        {product.requiresPrescription && (
+          <span className="inline-flex items-center gap-1 rounded-md bg-amber-600/95 backdrop-blur-xs px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
+            <span className="font-black">Rx</span>
+            <span>{isRTL ? 'روشتة' : 'Prescription'}</span>
+          </span>
+        )}
         {!view.inStock ? (
           <Badge variant="dark">{t.common.unavailable}</Badge>
         ) : discountPct > 0 ? (

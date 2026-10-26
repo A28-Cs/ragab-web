@@ -63,6 +63,9 @@ export interface Product {
   lowStockThreshold?: number;
   tags?: string[];
   isNew?: boolean;
+  requiresPrescription?: boolean;
+  prescriptionInstructionsAr?: string;
+  prescriptionInstructionsEn?: string;
   /** Additive: true ISO timestamp alongside the legacy fields. */
   createdAtIso?: string;
   /** Sellable units (piece / box / weight). Single-unit products carry one default variant. */
@@ -220,6 +223,7 @@ export type ApiPaymentStatus =
   | 'cancelled';
 
 export interface OrderItem {
+  requiresPrescription?: boolean;
   id: string;
   productId?: string;
   productNameAr: string;
@@ -245,6 +249,8 @@ export interface Order {
   paymentMethod: PaymentMethod;
   deliveryAddress: Address;
   estimatedDelivery: string;
+  hasPrescriptionItems?: boolean;
+  prescriptionUrl?: string;
   manual?: boolean;
   refunded?: boolean;
   /** Additive fields — richer lifecycle, safe to ignore. */

@@ -48,6 +48,9 @@ export interface Product {
   lowStockThreshold?: number;
   tags?: string[];
   isNew?: boolean;
+  requiresPrescription?: boolean;
+  prescriptionInstructionsAr?: string;
+  prescriptionInstructionsEn?: string;
 }
 
 export interface Offer {
@@ -103,6 +106,7 @@ export interface DeliveryZone {
 export type OrderStatus = 'pending' | 'preparing' | 'on_the_way' | 'delivered' | 'cancelled';
 
 export interface OrderItem {
+  requiresPrescription?: boolean;
   id: string;
   productNameAr: string;
   productNameEn?: string;
@@ -126,6 +130,8 @@ export interface Order {
   paymentMethod: 'cod' | 'vodafone_cash' | 'instapay';
   deliveryAddress: Address;
   estimatedDelivery: string;
+  hasPrescriptionItems?: boolean;
+  prescriptionUrl?: string;
 }
 
 export interface BusinessConfig {
