@@ -45,6 +45,8 @@ export const orders = pgTable(
     notes: text('notes'),
     hasPrescriptionItems: boolean('has_prescription_items').notNull().default(false),
     prescriptionUrl: text('prescription_url'),
+    prescriptionStatus: text('prescription_status').notNull().default('pending'),
+    prescriptionRejectionReason: text('prescription_rejection_reason'),
     manual: boolean('manual').notNull().default(false),
     refunded: boolean('refunded').notNull().default(false),
     placedAt: timestamp('placed_at', { withTimezone: true }).notNull().defaultNow(),

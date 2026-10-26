@@ -49,5 +49,7 @@ export function toOrderDto(order: OrderRow, items: OrderItemRow[]): Order {
     couponCode: order.couponCode ?? undefined,
     hasPrescriptionItems: order.hasPrescriptionItems ?? false,
     prescriptionUrl: order.prescriptionUrl ?? undefined,
+    prescriptionStatus: (order.prescriptionStatus as Order['prescriptionStatus']) ?? (order.hasPrescriptionItems ? 'pending' : undefined),
+    prescriptionRejectionReason: order.prescriptionRejectionReason ?? undefined,
   };
 }

@@ -78,7 +78,6 @@ export default function CheckoutPage() {
   const [notes, setNotes] = useState('');
   const { showToast } = useToast();
   const [prescriptionUrl, setPrescriptionUrl] = useState<string>('');
-  const [handPaperPrescription, setHandPaperPrescription] = useState<boolean>(false);
   const [uploadingPrescription, setUploadingPrescription] = useState<boolean>(false);
   const prescFileRef = useRef<HTMLInputElement>(null);
   const hasPrescriptionItems = useMemo(() => cart.some((i) => i.product.requiresPrescription), [cart]);
@@ -191,18 +190,32 @@ export default function CheckoutPage() {
     setStep(2);
   };
 
+  const goToStep3 = () => {
+    if (hasPrescriptionItems && !prescriptionUrl) {
+      setSubmitError(
+        isRTL
+          ? '⚠️ إلزامي: يجب رفع صورة الروشتة الطبية أولاً للمتابعة وتأكيد طلب الدواء.'
+          : 'Prescription photo is required before proceeding to confirmation.'
+      );
+      return;
+    }
+    setSubmitError(null);
+    setStep(3);
+  };
+
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAddressId) {
       setStep(1);
       return;
     }
-    if (hasPrescriptionItems && !prescriptionUrl && !handPaperPrescription) {
+    if (hasPrescriptionItems && !prescriptionUrl) {
       setSubmitError(
         isRTL
-          ? 'يحتوي طلبك على أدوية تتطلب روشتة طبية. يرجى إرفاق صورة الروشتة أو تأكيد تسليم الروشتة الورقية عند الاستلام.'
-          : 'Your order contains prescription medicines. Please upload your prescription or confirm handing the physical prescription upon delivery.'
+          ? '⚠️ لا يمكن تأكيد الطلب: يجب رفع صورة الروشتة الطبية أولاً لإتمام طلب الأدوية الخاضعة للرقابة.'
+          : 'Prescription image upload is strictly required to confirm this order.'
       );
+      setStep(2);
       return;
     }
     setIsSubmitting(true);
@@ -466,7 +479,7 @@ export default function CheckoutPage() {
                       </h3>
                       <p className="text-body-sm text-amber-900/80 leading-relaxed">
                         {isRTL
-                          ? 'تحتوي سلتك على أدوية لا تُصرف إلا بموجب روشتة معتمدة. يمكنك رفع صورة الروشتة الآن أو تأكيد تسليم الروشتة الأصلية للمندوب عند الاستلام.'
+                          ? 'تحتوي سلتك على أدوية خاضعة للرقابة ولا تُصرف إلا بروشتة معتمدة. يرجى رفع صورة الروشتة للمتابعة (لا يمكن تأكيد الطلب بدونها).'
                           : 'Your cart contains prescription items. Upload an image of your prescription now or confirm handing the physical prescription upon delivery.'}
                       </p>
                     </div>
@@ -485,8 +498,7 @@ export default function CheckoutPage() {
                         try {
                           const url = await uploadPrescriptionImage(file);
                           setPrescriptionUrl(url);
-                          setHandPaperPrescription(false);
-                          showToast(isRTL ? 'تم رفع صورة الروشتة بنجاح' : 'Prescription uploaded successfully', 'success');
+                                                    showToast(isRTL ? 'تم رفع صورة الروشتة بنجاح' : 'Prescription uploaded successfully', 'success');
                         } catch (err: any) {
                           showToast(err?.message || (isRTL ? 'فشل رفع الروشتة' : 'Failed to upload prescription'), 'error');
                         } finally {
@@ -533,22 +545,7 @@ export default function CheckoutPage() {
                       </div>
                     )}
 
-                    <label className="flex items-center gap-2 cursor-pointer pt-1">
-                      <input
-                        type="checkbox"
-                        checked={handPaperPrescription}
-                        onChange={(e) => {
-                          setHandPaperPrescription(e.target.checked);
-                          if (e.target.checked) setPrescriptionUrl('');
-                        }}
-                        className="accent-amber-600 w-4 h-4 rounded"
-                      />
-                      <span className="text-body-sm font-semibold text-amber-950">
-                        {isRTL
-                          ? 'سأقوم بتسليم الروشتة الورقية الأصلية لمندوب التوصيل / الصيدلي عند الاستلام'
-                          : 'I will hand the physical prescription upon delivery'}
-                      </span>
-                    </label>
+                    
                   </div>
                 </div>
               )}
@@ -559,7 +556,7 @@ export default function CheckoutPage() {
               </div>
               <div className="pt-4 flex items-center justify-between gap-3 flex-wrap">
                 <Button type="button" variant="outline" onClick={() => setStep(1)}>{t.common.edit}</Button>
-                <Button type="button" variant="primary" onClick={() => setStep(3)}>
+                <Button type="button" variant="primary" onClick={goToStep3}>
                   <span>{t.checkout.step3}</span>
                   <ArrowLeft className="w-4 h-4 ltr:rotate-180" />
                 </Button>
@@ -580,13 +577,36 @@ export default function CheckoutPage() {
                 )}
                 <div><strong>{t.checkout.paymentMethod}:</strong> {paymentLabel(paymentMethod)}</div>
                 {hasPrescriptionItems && (
-                  <div className="pt-1 text-amber-900 font-semibold flex items-center gap-1.5">
-                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-600 text-white font-black">Rx</span>
-                    <span>
-                      {prescriptionUrl
-                        ? (isRTL ? 'تم إرفاق صورة الروشتة الطبية' : 'Prescription photo attached')
-                        : (isRTL ? 'تسليم الروشتة الورقية الأصلية عند الاستلام' : 'Handing paper prescription upon delivery')}
-                    </span>
+                  <div className="pt-2 border-t border-ragab-ink-200 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 text-amber-950 font-bold">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-600 text-white font-black">Rx</span>
+                        <span>{isRTL ? 'الروشتة الطبية المرفقة:' : 'Attached Prescription:'}</span>
+                      </div>
+                      {prescriptionUrl && (
+                        <a
+                          href={prescriptionUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-caption font-bold text-amber-800 hover:underline"
+                        >
+                          {isRTL ? 'معاينة الصورة ↗' : 'View photo ↗'}
+                        </a>
+                      )}
+                    </div>
+                    {prescriptionUrl ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={prescriptionUrl} alt="Prescription" className="w-10 h-10 object-cover rounded-lg border border-amber-300" />
+                        <span className="text-caption text-ragab-success font-bold">
+                          {isRTL ? '✓ تم إرفاق صورة الروشتة وستخضع للفحص الطبي من قِبل الدكتور' : '✓ Prescription attached for doctor verification'}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-caption text-ragab-danger font-bold">
+                        {isRTL ? 'لم يتم إرفاق الروشتة - يرجى العودة للخطوة 2 ورفعها' : 'Missing prescription'}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -607,7 +627,7 @@ export default function CheckoutPage() {
               {submitError && <p role="alert" className="text-body-sm font-bold text-ragab-danger bg-ragab-danger-soft border border-red-200 rounded-lg p-3">{submitError}</p>}
               <div className="pt-4 flex items-center justify-between gap-3 flex-wrap">
                 <Button type="button" variant="outline" onClick={() => setStep(2)}>{t.common.edit}</Button>
-                <Button type="submit" variant="primary" size="lg" isLoading={isSubmitting} disabled={quoteState !== 'idle' || !quote}>
+                <Button type="submit" variant="primary" size="lg" isLoading={isSubmitting} disabled={quoteState !== 'idle' || !quote || (hasPrescriptionItems && !prescriptionUrl)}>
                   <CheckCircle2 className="w-5 h-5" />
                   <span>{t.checkout.placeOrder}</span>
                 </Button>

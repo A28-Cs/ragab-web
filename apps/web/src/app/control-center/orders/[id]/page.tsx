@@ -15,6 +15,7 @@ import {
   ArrowLeftRight,
   Phone,
   MessageSquare,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useLanguage } from '../../../../context/LanguageContext';
@@ -23,6 +24,7 @@ import {
   getOrderById,
   updateOrderStatus,
   updateOrderDelivery,
+  updatePrescriptionDecision,
 } from '../../../../services/orderService';
 import { issueRefund, cancelOrder } from '../../../../services/refundService';
 import { getPaymentByOrderNumber } from '../../../../services/paymentService';
@@ -70,6 +72,9 @@ function OrderAdminDetailInner() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [refundOpen, setRefundOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [decisionBusy, setDecisionBusy] = useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState('شك في صحة الروشتة / دواء خاضع للرقابة المشددة - يلزم زيارة الصيدلية شخصياً بصحبة أصل الروشتة الورقية والبطاقة لاستلام العلاج');
 
   const load = async () => {
     setLoading(true);
@@ -286,10 +291,42 @@ function OrderAdminDetailInner() {
                 title={isRTL ? 'بيانات الروشتة الطبية المطلوبة (Rx)' : 'Prescription Details (Rx)'}
               />
               <div className="space-y-3">
+                {/* Decision Status Banner */}
+                {order.prescriptionStatus === 'approved' ? (
+                  <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-3 flex items-center gap-2 text-emerald-950 font-bold text-body-sm shadow-xs">
+                    <Check className="w-5 h-5 text-emerald-700 shrink-0" />
+                    <span>{isRTL ? '✓ تم فحص الروشتة واعتمادها من قِبل الدكتور والموافقة على التوصيل' : '✓ Prescription approved by pharmacist for delivery'}</span>
+                  </div>
+                ) : order.prescriptionStatus === 'rejected_visit_required' ? (
+                  <div className="rounded-xl border-2 border-red-300 bg-red-50 p-3.5 space-y-2 text-red-950 shadow-xs">
+                    <div className="flex items-center gap-2 font-bold text-body text-red-950">
+                      <span className="text-lg">🛑</span>
+                      <span>{isRTL ? 'تم رفض التوصيل - يلزم حضور العميل شخصياً للصيدلية' : 'Delivery Refused - Pharmacy Visit Required'}</span>
+                    </div>
+                    <p className="text-caption text-red-900 leading-relaxed font-semibold">
+                      {isRTL
+                        ? 'تم تعليق توصيل الطلب بسبب شك في صحة الروشتة أو لكون الدواء خاضعاً لرقابة مشددة. تم إشعار العميل بضرورة الحضور للصيدلية مصطحباً أصل الروشتة والبطاقة.'
+                        : 'Delivery suspended. Customer notified to visit pharmacy in person with original prescription and ID.'}
+                    </p>
+                    {order.prescriptionRejectionReason && (
+                      <div className="bg-white/80 rounded-lg p-2 border border-red-200 text-caption text-red-900">
+                        <strong>{isRTL ? 'سبب الرفض: ' : 'Reason: '}</strong>
+                        {order.prescriptionRejectionReason}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 flex items-center gap-2 text-amber-950 font-bold text-body-sm shadow-xs">
+                    <Clock className="w-5 h-5 text-amber-700 shrink-0" />
+                    <span>{isRTL ? '🟡 بانتظار فحص الدكتور للروشتة المرفقة واتخاذ قرار الصرف والتوصيل' : '🟡 Pending pharmacist verification'}</span>
+                  </div>
+                )}
+
+                {/* Prescription Image */}
                 {order.prescriptionUrl ? (
-                  <div className="space-y-2">
-                    <p className="text-body-sm font-semibold text-amber-950">
-                      {isRTL ? 'قام العميل بإرفاق صورة الروشتة التالية:' : 'Customer attached the following prescription:'}
+                  <div className="space-y-2 pt-1">
+                    <p className="text-caption font-bold text-ragab-ink-700">
+                      {isRTL ? 'صورة الروشتة المرفقة من العميل:' : 'Customer attached prescription photo:'}
                     </p>
                     <div className="relative inline-block border-2 border-amber-300 rounded-xl overflow-hidden bg-white shadow-sm">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -313,16 +350,53 @@ function OrderAdminDetailInner() {
                   </div>
                 ) : (
                   <div className="p-3 bg-white rounded-xl border border-amber-200 text-body-sm text-amber-950">
-                    <p className="font-bold">
-                      {isRTL
-                        ? 'تنبيه: العميل اختار تسليم الروشتة الورقية الأصلية للمندوب أو في الصيدلية عند الاستلام.'
-                        : 'Notice: Customer confirmed they will hand the paper prescription upon delivery.'}
+                    <p className="font-bold text-ragab-danger">
+                      {isRTL ? 'لم يتم إرفاق صورة روشتة بهذا الطلب.' : 'No prescription photo attached.'}
                     </p>
-                    <p className="text-caption text-ragab-ink-500 mt-1">
-                      {isRTL
-                        ? 'يرجى من الصيدلي / المندوب التأكد من استلام الروشتة الورقية ومطابقتها للأدوية قبل تسليم الطلب.'
-                        : 'Please ensure collecting and validating the physical prescription before order handover.'}
-                    </p>
+                  </div>
+                )}
+
+                {/* Pharmacist Action Controls */}
+                {canEdit && (
+                  <div className="pt-3 border-t border-amber-200 flex items-center gap-3 flex-wrap">
+                    {order.prescriptionStatus !== 'approved' && (
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        isLoading={decisionBusy}
+                        onClick={async () => {
+                          setDecisionBusy(true);
+                          try {
+                            await updatePrescriptionDecision(order.id, 'approved');
+                            await load();
+                            showToast(isRTL ? 'تم اعتماد الروشتة والموافقة على التوصيل' : 'Prescription approved for delivery', 'success');
+                          } catch (err: any) {
+                            showToast(err?.message || (isRTL ? 'فشل اعتماد الروشتة' : 'Failed to approve'), 'error');
+                          } finally {
+                            setDecisionBusy(false);
+                          }
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                      >
+                        <Check className="w-4 h-4 me-1.5" />
+                        {isRTL ? 'اعتماد الروشتة والموافقة على التوصيل' : 'Approve for Delivery'}
+                      </Button>
+                    )}
+
+                    {order.prescriptionStatus !== 'rejected_visit_required' && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={decisionBusy}
+                        onClick={() => setRejectModalOpen(true)}
+                        className="border-red-400 bg-red-50 hover:bg-red-100 text-red-700 font-bold"
+                      >
+                        <XCircle className="w-4 h-4 me-1.5" />
+                        {isRTL ? 'رفض التوصيل (شك / يلزم زيارة الصيدلية)' : 'Reject Delivery (Require Pharmacy Visit)'}
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -503,6 +577,58 @@ function OrderAdminDetailInner() {
             </div>
           </div>
         )}
+      </Drawer>
+
+      <Drawer isOpen={rejectModalOpen} onClose={() => setRejectModalOpen(false)} title={isRTL ? 'رفض التوصيل - إلزام العميل بزيارة الصيدلية' : 'Require Pharmacy Visit'}>
+        <div className="space-y-4">
+          <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-body-sm text-red-950 space-y-1">
+            <p className="font-bold flex items-center gap-1.5">
+              <span>🛑</span>
+              <span>{isRTL ? 'إيقاف توصيل الدواء وإلزام الحضور للصيدلية' : 'Suspend delivery & require in-person visit'}</span>
+            </p>
+            <p className="text-caption text-red-900 leading-relaxed">
+              {isRTL
+                ? 'في حال الشك في صحة الروشتة أو لكون الدواء خاضعاً لرقابة وجداول مشددة، سيتم تعليق التوصيل فوراً وإبلاغ العميل بضرورة التوجه لمقر الصيدلية مصطحباً أصل الروشتة الورقية والبطاقة الشخصية لاستلام العلاج بعد الفحص.'
+                : 'Delivery will be suspended. Customer will be notified to visit the pharmacy with original prescription and ID.'}
+            </p>
+          </div>
+
+          <FormField label={isRTL ? 'سبب رفض التوصيل أو توجيهات الصيدلي:' : 'Reason / Pharmacist Notes:'}>
+            <Textarea
+              rows={3}
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder={isRTL ? 'اكتب سبب الرفض هنا ليظهر للعميل...' : 'Write reason here...'}
+            />
+          </FormField>
+
+          <div className="flex items-center gap-2.5 pt-2">
+            <Button
+              variant="primary"
+              fullWidth
+              isLoading={decisionBusy}
+              onClick={async () => {
+                setDecisionBusy(true);
+                try {
+                  await updatePrescriptionDecision(order.id, 'rejected_visit_required', rejectReason.trim());
+                  await load();
+                  showToast(isRTL ? 'تم رفض التوصيل وإلزام العميل بالحضور للصيدلية' : 'Delivery rejected, pharmacy visit required', 'success');
+                  setRejectModalOpen(false);
+                } catch (err: any) {
+                  showToast(err?.message || (isRTL ? 'فشل تحديث القرار' : 'Failed to update decision'), 'error');
+                } finally {
+                  setDecisionBusy(false);
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold"
+            >
+              {isRTL ? 'تأكيد الرفض وإلزام الزيارة' : 'Confirm & Require Visit'}
+            </Button>
+            <Button variant="outline" onClick={() => setRejectModalOpen(false)} disabled={decisionBusy}>
+              {t.common.cancel}
+            </Button>
+          </div>
+        </div>
       </Drawer>
 
       <ConfirmDialog isOpen={cancelOpen} onClose={() => setCancelOpen(false)} onConfirm={onCancel} title={t.adminOrders.cancelConfirmTitle} description={t.adminOrders.cancelConfirmDesc} confirmLabel={t.adminOrders.cancelOrder} destructive isLoading={busy} />

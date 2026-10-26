@@ -132,6 +132,15 @@ export const updateOrderStatus = async (id: string, status: OrderStatus, _perms?
   await api.patch(`/admin/orders/${encodeURIComponent(id)}/status`, { status });
 };
 
+export const updatePrescriptionDecision = async (
+  id: string,
+  decision: 'approved' | 'rejected_visit_required',
+  reason?: string,
+  _perms?: Set<PermissionKey>
+): Promise<Order> => {
+  return api.patch<Order>(`/admin/orders/${encodeURIComponent(id)}/prescription-decision`, { decision, reason });
+};
+
 /** Staff correction of the delivery snapshot (allowed while pending / preparing). */
 export const updateOrderDelivery = async (id: string, address: Address, _perms?: Set<PermissionKey>): Promise<Order> =>
   api.patch<Order>(`/admin/orders/${encodeURIComponent(id)}/delivery`, {

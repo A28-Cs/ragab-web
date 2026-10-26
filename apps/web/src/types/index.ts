@@ -241,6 +241,8 @@ export interface Order {
   estimatedDelivery: string;
   hasPrescriptionItems?: boolean;
   prescriptionUrl?: string;
+  prescriptionStatus?: 'pending' | 'approved' | 'rejected_visit_required';
+  prescriptionRejectionReason?: string;
   /** Admin-set: order was created manually by staff (phone/walk-in) */
   manual?: boolean;
   /** Admin-set: a refund was issued against this order */

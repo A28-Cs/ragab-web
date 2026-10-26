@@ -29,6 +29,11 @@ export const assignCourierSchema = z.object({
   driverPhone: z.string().trim().regex(/^01[0125]\d{8}$/),
 }).strict();
 
+export const prescriptionDecisionSchema = z.object({
+  decision: z.enum(['approved', 'rejected_visit_required']),
+  reason: z.string().trim().max(1000).optional(),
+}).strict();
+
 export const manualOrderSchema = z.object({
   lines: z.array(z.object({ productId: z.string().min(1).max(64), quantity: z.number().int().min(1).max(999) })).min(1).max(100),
   paymentMethod: z.enum(['cod', 'vodafone_cash', 'instapay']),

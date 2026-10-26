@@ -567,3 +567,65 @@ export async function createManualOrder(
   });
   return created;
 }
+
+/**
+ * Pharmacist verification decision for prescription items.
+ * If doubted/suspected, delivery is refused and customer must visit the pharmacy in person.
+ */
+export async function updatePrescriptionDecision(
+  ctx: RequestContext,
+  orderId: string,
+  decision: 'approved' | 'rejected_visit_required',
+  reason?: string
+): Promise<Order> {
+  requireOrdersPermission(ctx, 'edit');
+
+  const { row: updated } = await db().transaction(async (tx) => {
+    const [order] = await tx.select().from(orders).where(eq(orders.id, orderId)).limit(1);
+    if (!order) throw new NotFoundError({ code: 'ORDER_NOT_FOUND', message: { ar: 'الطلب غير موجود.', en: 'Order not found.' } });
+
+    const noteText =
+      decision === 'approved'
+        ? 'تمت مراجعة الروشتة واعتمادها من قبل الصيدلي المختص والتصريح بالصرف والتوصيل.'
+        : `رفض توصيل الدواء - يلزم حضور العميل شخصياً للصيدلية. السبب: ${reason || 'التحقق من صحة الروشتة'}`;
+
+    await tx
+      .update(orders)
+      .set({
+        prescriptionStatus: decision,
+        prescriptionRejectionReason:
+          decision === 'rejected_visit_required'
+            ? reason || 'شك في صحة الروشتة / دواء خاضع لرقابة مشددة - يلزم زيارة الصيدلية شخصياً بصحبة الروشتة الأصلية'
+            : null,
+        version: sql`${orders.version} + 1`,
+      })
+      .where(eq(orders.id, orderId));
+
+    await tx.insert(orderStatusHistory).values({
+      orderId,
+      fromStatus: order.status,
+      toStatus: order.status,
+      kind: 'fulfillment',
+      actorId: ctx.principal?.userId,
+      note: noteText,
+    });
+
+    const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, orderId));
+    const [fresh] = await tx.select().from(orders).where(eq(orders.id, orderId)).limit(1);
+    return { row: toOrderDto(fresh!, items) };
+  });
+
+  await logAudit({
+    actorId: ctx.principal?.userId,
+    actorName: ctx.principal?.user.name ?? 'pharmacist',
+    actorRole: 'staff',
+    action: 'order_status_changed',
+    resource: 'orders',
+    resourceId: orderId,
+    target: updated.orderNumber,
+    metadata: { prescriptionDecision: decision, reason: reason ?? '' },
+    requestId: ctx.requestId,
+  });
+
+  return updated;
+}

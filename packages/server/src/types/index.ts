@@ -251,6 +251,8 @@ export interface Order {
   estimatedDelivery: string;
   hasPrescriptionItems?: boolean;
   prescriptionUrl?: string;
+  prescriptionStatus?: 'pending' | 'approved' | 'rejected_visit_required';
+  prescriptionRejectionReason?: string;
   manual?: boolean;
   refunded?: boolean;
   /** Additive fields — richer lifecycle, safe to ignore. */

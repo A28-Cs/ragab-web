@@ -166,10 +166,22 @@ function OrdersAdminInner() {
           {o.manual && <Badge variant="neutral" size="sm">{t.adminOrders.manualBadge}</Badge>}
           {o.refunded && <Badge variant="warning" size="sm">{t.adminOrders.refundedBadge}</Badge>}
           {o.hasPrescriptionItems && (
-            <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold bg-amber-600 text-white shadow-xs">
-              <span className="font-black">Rx</span>
-              <span>{ar ? 'روشتة' : 'Prescription'}</span>
-            </span>
+            o.prescriptionStatus === 'rejected_visit_required' ? (
+              <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold bg-red-600 text-white shadow-xs">
+                <span>🛑</span>
+                <span>{ar ? 'زيارة الصيدلية' : 'Visit Required'}</span>
+              </span>
+            ) : o.prescriptionStatus === 'approved' ? (
+              <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold bg-emerald-600 text-white shadow-xs">
+                <span>✓</span>
+                <span>{ar ? 'روشتة معتمدة' : 'Rx Approved'}</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold bg-amber-600 text-white shadow-xs">
+                <span className="font-black">Rx</span>
+                <span>{ar ? 'فحص روشتة' : 'Pending Rx'}</span>
+              </span>
+            )
           )}
         </div>
       ),

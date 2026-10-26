@@ -166,6 +166,17 @@ export async function placeOrder(ctx: RequestContext, input: CheckoutInput): Pro
   const prepared = await prepare(ctx, input);
   const settings = await getSettings();
 
+  const hasPrescriptionItems = prepared.lines.some((l) => l.requiresPrescription);
+  if (hasPrescriptionItems && !input.prescriptionUrl) {
+    throw new BusinessRuleError({
+      code: 'PRESCRIPTION_REQUIRED',
+      message: {
+        ar: 'يجب رفع صورة الروشتة الطبية أولاً لتأكيد طلب الأدوية الخاضعة للرقابة.',
+        en: 'Prescription image upload is required to confirm regulated medications.',
+      },
+    });
+  }
+
   if (input.paymentMethod === 'cod' && !settings.codEnabled) {
     throw new BusinessRuleError({ code: 'COD_DISABLED', message: { ar: 'الدفع عند الاستلام غير متاح حالياً.', en: 'Cash on delivery is currently unavailable.' } });
   }
@@ -201,8 +212,9 @@ export async function placeOrder(ctx: RequestContext, input: CheckoutInput): Pro
       discountMinor: prepared.totals.discountMinor,
       totalMinor: prepared.totals.totalMinor,
       couponCode: prepared.coupon?.code ?? null,
-      hasPrescriptionItems: prepared.lines.some((l) => l.requiresPrescription),
+      hasPrescriptionItems,
       prescriptionUrl: input.prescriptionUrl ?? null,
+      prescriptionStatus: hasPrescriptionItems ? 'pending' : 'approved',
       // Immutable snapshot incl. the zone it was priced with (§28) — the fee stays explainable later.
       deliveryAddress: {
         ...prepared.address,

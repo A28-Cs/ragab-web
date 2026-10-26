@@ -157,6 +157,31 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
+      {/* Pharmacist Prescription Visit Notice */}
+      {order.prescriptionStatus === 'rejected_visit_required' && (
+        <div className="rounded-2xl border-2 border-red-400 bg-red-50/90 p-5 shadow-sm space-y-2 text-red-950">
+          <div className="flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-600 text-white font-black text-sm shadow-xs">
+              !
+            </span>
+            <h3 className="text-body font-extrabold text-red-950">
+              {isRTL ? 'تنبيه صيدلاني هام: يلزم الحضور شخصياً للصيدلية لاستلام العلاج' : 'Important Notice: In-Person Pharmacy Visit Required'}
+            </h3>
+          </div>
+          <p className="text-body-sm text-red-900 leading-relaxed font-semibold">
+            {isRTL
+              ? 'بناءً على فحص الدكتور للروشتة، يتعذر تسليم هذا العلاج عبر خدمة التوصيل لدواعي السلامة والتحقق من الروشتة. يرجى التوجه لمقر صيدلية رجب مصطحباً أصل الروشتة الورقية المعتمدة وبطاقة إثبات الشخصية لاستلام الدواء.'
+              : 'Per pharmaceutical review, this medication cannot be delivered. Please visit the pharmacy in person with the original prescription and ID.'}
+          </p>
+          {order.prescriptionRejectionReason && (
+            <div className="text-caption text-red-900 bg-white/80 p-3 rounded-xl border border-red-200">
+              <strong>{isRTL ? 'توجيهات الصيدلي: ' : 'Pharmacist note: '}</strong>
+              {order.prescriptionRejectionReason}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-[1fr_340px] gap-4 items-start">
         <div className="space-y-4">
           {order.status === 'on_the_way' && (
@@ -183,7 +208,12 @@ export default function OrderDetailPage() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={it.image} alt={it.productNameAr} className="w-14 h-14 rounded-lg object-cover border border-ragab-ink-100 shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-body-sm font-semibold text-ragab-ink-800 truncate">{it.productNameAr}</p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-body-sm font-semibold text-ragab-ink-800 truncate">{it.productNameAr}</p>
+                      {it.requiresPrescription && (
+                        <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-600 text-white font-black">Rx</span>
+                      )}
+                    </div>
                     <p className="text-caption text-ragab-ink-500">
                       {it.unit} · {it.quantity} × {it.price} {t.common.egp}
                     </p>
