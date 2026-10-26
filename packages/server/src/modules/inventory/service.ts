@@ -17,7 +17,7 @@ import type { DbExecutor, Transaction } from '../../db/client';
 import { db } from '../../db/client';
 import { inventoryItems, productVariants, stockReservations, stockMovements, inventoryAdjustments, products, categories, productRequests } from '../../db/schema';
 import { DEFAULT_WAREHOUSE_ID } from '../../db/schema/inventory';
-import { BusinessRuleError, NotFoundError } from '../../lib/errors';
+import { BusinessRuleError, NotFoundError, ValidationError } from '../../lib/errors';
 import { prefixedId } from '../../lib/ids';
 import type { RequestContext } from '../../http/context';
 import { logAudit } from '../audit';
@@ -437,7 +437,7 @@ async function ensureProductRequestsTable() {
       END $$;
       CREATE TABLE IF NOT EXISTS "product_requests" (
         "id" text PRIMARY KEY,
-        "product_id" text NOT NULL REFERENCES "products"("id") ON DELETE CASCADE,
+        "product_id" text REFERENCES "products"("id") ON DELETE CASCADE,
         "variant_id" text,
         "product_name_ar" text NOT NULL,
         "product_name_en" text,
@@ -446,9 +446,13 @@ async function ensureProductRequestsTable() {
         "user_id" text,
         "notes" text,
         "status" "product_request_status" NOT NULL DEFAULT 'pending',
+        "image_url" text,
         "created_at" timestamptz NOT NULL DEFAULT now(),
         "updated_at" timestamptz NOT NULL DEFAULT now()
       );
+
+      ALTER TABLE "product_requests" ALTER COLUMN "product_id" DROP NOT NULL;
+      ALTER TABLE "product_requests" ADD COLUMN IF NOT EXISTS "image_url" text;
     `);
     productRequestsTableChecked = true;
   } catch {
@@ -458,58 +462,84 @@ async function ensureProductRequestsTable() {
 
 export async function createProductRequest(
   input: {
-    productId: string;
+    productId?: string;
+    productName?: string;
     variantId?: string;
-    customerName: string;
-    customerPhone: string;
+    customerName?: string;
+    customerPhone?: string;
+    imageUrl?: string;
     notes?: string;
   },
   ctx: RequestContext,
 ): Promise<{ ok: boolean; id: string }> {
   await ensureProductRequestsTable();
 
-  const [prod] = await db()
-    .select({ id: products.id, nameAr: products.nameAr, nameEn: products.nameEn, image: products.image })
-    .from(products)
-    .where(eq(products.id, input.productId))
-    .limit(1);
+  let productNameAr = input.productName?.trim() || '';
+  let productNameEn: string | null = null;
+  let productId: string | null = input.productId || null;
 
-  if (!prod) {
-    throw new NotFoundError({
-      code: 'PRODUCT_NOT_FOUND',
-      message: { ar: 'المنتج غير موجود.', en: 'Product not found.' },
+  if (productId) {
+    const [prod] = await db()
+      .select({ id: products.id, nameAr: products.nameAr, nameEn: products.nameEn, image: products.image })
+      .from(products)
+      .where(eq(products.id, productId))
+      .limit(1);
+
+    if (!prod) {
+      throw new NotFoundError({
+        code: 'PRODUCT_NOT_FOUND',
+        message: { ar: 'المنتج غير موجود.', en: 'Product not found.' },
+      });
+    }
+    productNameAr = prod.nameAr;
+    productNameEn = prod.nameEn ?? null;
+  }
+
+  if (!productNameAr) {
+    throw new ValidationError({
+      code: 'PRODUCT_NAME_REQUIRED',
+      message: { ar: 'اسم الدواء أو المنتج مطلوب.', en: 'Product name is required.' },
     });
   }
 
-  const id = prefixedId('preq');
   const userId = ctx.principal?.userId ?? null;
+  const userName = (ctx.principal as any)?.user?.name;
+  const userPhone = (ctx.principal as any)?.user?.phone;
+
+  const customerName = input.customerName?.trim() || userName || 'عميل';
+  const customerPhone = input.customerPhone?.trim() || userPhone || '-';
+
+  const id = prefixedId('preq');
 
   await db().insert(productRequests).values({
     id,
-    productId: input.productId,
+    productId,
     variantId: input.variantId ?? null,
-    productNameAr: prod.nameAr,
-    productNameEn: prod.nameEn ?? null,
-    customerName: input.customerName,
-    customerPhone: input.customerPhone,
+    productNameAr,
+    productNameEn,
+    customerName,
+    customerPhone,
     userId,
-    notes: input.notes ?? null,
+    notes: input.notes?.trim() || null,
+    imageUrl: input.imageUrl?.trim() || null,
     status: 'pending',
   });
 
   await logAudit({
     actorId: userId,
-    actorName: input.customerName,
+    actorName: customerName,
     actorRole: 'customer',
     action: 'product_requested' as any,
     resource: 'inventory',
-    resourceId: input.productId,
-    target: `${prod.nameAr} - ${input.customerName} (${input.customerPhone})`,
+    resourceId: productId ?? id,
+    target: `${productNameAr} - ${customerName} (${customerPhone})`,
     metadata: {
-      customerName: input.customerName,
-      customerPhone: input.customerPhone,
+      customerName,
+      customerPhone,
       notes: input.notes || '',
+      imageUrl: input.imageUrl || '',
       requestId: id,
+      isCustom: !productId ? 'true' : 'false',
     },
     requestId: ctx.requestId,
   });
@@ -523,10 +553,12 @@ export async function createProductRequest(
       version: 1,
       data: {
         requestId: id,
-        productId: input.productId,
-        productNameAr: prod.nameAr,
-        customerName: input.customerName,
-        customerPhone: input.customerPhone,
+        productId: productId ?? undefined,
+        productNameAr,
+        customerName,
+        customerPhone,
+        imageUrl: input.imageUrl,
+        isCustom: !productId,
       },
     });
   } catch {
@@ -554,13 +586,14 @@ export async function listProductRequests(
       userId: productRequests.userId,
       notes: productRequests.notes,
       status: productRequests.status,
+      imageUrl: productRequests.imageUrl,
       createdAt: productRequests.createdAt,
       updatedAt: productRequests.updatedAt,
       productImage: products.image,
       categoryNameAr: categories.nameAr,
     })
     .from(productRequests)
-    .innerJoin(products, eq(productRequests.productId, products.id))
+    .leftJoin(products, eq(productRequests.productId, products.id))
     .leftJoin(categories, eq(products.categoryId, categories.id));
 
   const rows = statusFilter && statusFilter !== 'all'
@@ -569,7 +602,7 @@ export async function listProductRequests(
 
   return rows.map((r) => ({
     id: r.id,
-    productId: r.productId,
+    productId: r.productId ?? undefined,
     variantId: r.variantId ?? undefined,
     productNameAr: r.productNameAr,
     productNameEn: r.productNameEn ?? undefined,
@@ -577,10 +610,12 @@ export async function listProductRequests(
     customerPhone: r.customerPhone,
     userId: r.userId ?? undefined,
     notes: r.notes ?? undefined,
+    imageUrl: r.imageUrl ?? undefined,
+    isCustom: !r.productId,
     status: r.status as ProductRequestStatus,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
-    productImage: r.productImage ?? undefined,
+    productImage: r.imageUrl || r.productImage || undefined,
     categoryNameAr: r.categoryNameAr ?? undefined,
   }));
 }

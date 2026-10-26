@@ -13,6 +13,7 @@ import {
   PackageCheck,
   Check,
   FileText,
+  PackageSearch,
 } from 'lucide-react';
 import { cn } from '@ragab/utils';
 import { useAuth } from '../../../context/AuthContext';
@@ -31,6 +32,7 @@ import { Button } from '../../../components/ui/Button';
 import { DataTable, DataColumn } from '../../../components/ui/DataTable';
 import { StatusPill } from '../../../components/ui/StatusPill';
 import { Drawer } from '../../../components/ui/Drawer';
+import { Modal } from '../../../components/ui/Modal';
 import { FormField } from '../../../components/ui/FormField';
 import { Input } from '../../../components/ui/Input';
 
@@ -58,6 +60,7 @@ function ProductRequestsInner() {
   const [stockTarget, setStockTarget] = useState<StockTarget | null>(null);
   const [stockQty, setStockQty] = useState(10);
   const [savingStock, setSavingStock] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const loadRequests = async () => {
     setLoading(true);
@@ -161,22 +164,44 @@ function ProductRequestsInner() {
       header: ar ? 'المنتج المطلوب' : 'Requested Product',
       cell: (r) => (
         <div className="flex items-center gap-2.5">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={r.productImage || '/placeholder.png'}
-            alt=""
-            className="w-10 h-10 rounded-lg object-cover border border-ragab-ink-100 shrink-0"
-          />
+          <div
+            className={cn(
+              'w-11 h-11 rounded-lg border border-ragab-ink-100 shrink-0 relative overflow-hidden bg-ragab-ink-50 flex items-center justify-center',
+              r.productImage ? 'cursor-pointer hover:opacity-80' : ''
+            )}
+            onClick={() => r.productImage && setPreviewImage(r.productImage)}
+            title={r.productImage ? (ar ? 'اضغط لتكبير الصورة' : 'Click to enlarge') : undefined}
+          >
+            {r.productImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={r.productImage}
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <PackageSearch className="w-5 h-5 text-ragab-ink-400" />
+            )}
+          </div>
           <div>
-            <a
-              href={r.productSlug ? `/product/${r.productSlug}` : `/product/${r.productId}`}
-              target="_blank"
-              rel="noreferrer"
-              className="font-bold text-ragab-ink-900 hover:text-ragab-brand-600 transition-colors inline-flex items-center gap-1"
-            >
-              <span>{r.productNameAr}</span>
-              <ExternalLink className="w-3 h-3 text-ragab-ink-400" />
-            </a>
+            {r.productId ? (
+              <a
+                href={r.productSlug ? `/product/${r.productSlug}` : `/product/${r.productId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="font-bold text-ragab-ink-900 hover:text-ragab-brand-600 transition-colors inline-flex items-center gap-1"
+              >
+                <span>{r.productNameAr}</span>
+                <ExternalLink className="w-3 h-3 text-ragab-ink-400" />
+              </a>
+            ) : (
+              <div className="space-y-0.5">
+                <span className="font-bold text-ragab-ink-900 block">{r.productNameAr}</span>
+                <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+                  {ar ? 'طلب خاص (غير متوفر بالكتالوج)' : 'Custom Sourcing Request'}
+                </span>
+              </div>
+            )}
             {r.variantName && (
               <div className="text-caption font-bold text-ragab-brand-700">
                 — {r.variantName}
@@ -207,7 +232,7 @@ function ProductRequestsInner() {
               href={getWhatsAppLink(r.customerPhone, r.customerName, r.productNameAr)}
               target="_blank"
               rel="noreferrer"
-              className="p-1 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition-colors"
+              className="p-1 rounded-md bg-[#25D366] hover:bg-[#20bd5a] text-white transition-colors"
               title={ar ? 'مراسلة واتساب' : 'WhatsApp'}
             >
               <MessageCircle className="w-3.5 h-3.5" />
@@ -263,7 +288,7 @@ function ProductRequestsInner() {
               isLoading={updatingId === r.id}
               onClick={() => handleUpdateStatus(r.id, 'fulfilled')}
               leftIcon={<CheckCircle2 className="w-3.5 h-3.5" />}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="bg-ragab-brand-700 hover:bg-ragab-brand-800 text-white"
             >
               {ar ? 'تم التوفير' : 'Fulfill'}
             </Button>
@@ -288,23 +313,25 @@ function ProductRequestsInner() {
               {ar ? 'إلغاء' : 'Cancel'}
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setStockTarget({
-                productId: r.productId,
-                variantId: r.variantId,
-                variantName: r.variantName,
-                nameAr: r.productNameAr,
-                image: r.productImage || '',
-              });
-              setStockQty(10);
-            }}
-            disabled={!hasPermission('inventory', 'edit')}
-          >
-            {ar ? 'تحديث المخزون' : 'Stock'}
-          </Button>
+          {r.productId && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setStockTarget({
+                  productId: r.productId!,
+                  variantId: r.variantId,
+                  variantName: r.variantName,
+                  nameAr: r.productNameAr,
+                  image: r.productImage || '',
+                });
+                setStockQty(10);
+              }}
+              disabled={!hasPermission('inventory', 'edit')}
+            >
+              {ar ? 'تحديث المخزون' : 'Stock'}
+            </Button>
+          )}
         </div>
       ),
     },
@@ -476,6 +503,25 @@ function ProductRequestsInner() {
           </div>
         )}
       </Drawer>
+
+      {/* Product Image Lightbox Modal */}
+      {previewImage && (
+        <Modal
+          isOpen={Boolean(previewImage)}
+          onClose={() => setPreviewImage(null)}
+          title={ar ? 'صورة المنتج المطلوب' : 'Requested Product Image'}
+          maxWidth="lg"
+        >
+          <div className="p-4 flex items-center justify-center bg-ragab-surface-sunken rounded-2xl overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewImage}
+              alt=""
+              className="max-h-[70vh] object-contain rounded-xl shadow-sm"
+            />
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

@@ -182,12 +182,29 @@ export const bulkUpdateStock = async (
 };
 
 export interface ProductRequestInput {
-  productId: string;
+  productId?: string;
+  productName?: string;
   variantId?: string;
-  customerName: string;
-  customerPhone: string;
+  customerName?: string;
+  customerPhone?: string;
+  imageUrl?: string;
   notes?: string;
 }
+
+export const uploadProductRequestImage = async (file: File): Promise<string> => {
+  const headers: Record<string, string> = { 'content-type': file.type || 'application/octet-stream' };
+  const res = await fetch('/api/v1/products/request/upload', {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: file,
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(json?.error?.message?.ar || 'فشل رفع صورة المنتج');
+  }
+  return json.data.url;
+};
 
 export const submitProductRequest = async (data: ProductRequestInput): Promise<{ ok: boolean; id: string }> => {
   return api.post<{ ok: boolean; id: string }>('/products/request', data);

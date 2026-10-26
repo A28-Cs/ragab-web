@@ -269,20 +269,21 @@ function InventoryInner() {
   };
 
   const openUpdateForRequest = (req: ProductRequest) => {
+    const prodId = req.productId || req.id;
     const matchingRow = rows.find(
-      (row) => row.productId === req.productId && (!req.variantId || row.variantId === req.variantId)
+      (row) => row.productId === prodId && (!req.variantId || row.variantId === req.variantId)
     );
     if (matchingRow) {
       openUpdate(matchingRow);
     } else {
       const customRow: Row = {
-        id: req.variantId ? `${req.productId}::${req.variantId}` : req.productId,
-        productId: req.productId,
+        id: req.variantId ? `${prodId}::${req.variantId}` : prodId,
+        productId: prodId,
         variantId: req.variantId ?? undefined,
         variantName: req.variantName ?? undefined,
         nameAr: req.productNameAr,
         nameEn: req.productNameEn ?? req.productNameAr,
-        slug: req.productSlug || req.productId,
+        slug: req.productSlug || prodId,
         image: req.productImage || '',
         price: 0,
         stockQuantity: 0,

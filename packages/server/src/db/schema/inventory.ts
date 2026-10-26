@@ -125,7 +125,6 @@ export const productRequests = pgTable(
   {
     id: primaryId(),
     productId: text('product_id')
-      .notNull()
       .references(() => products.id, { onDelete: 'cascade' }),
     variantId: text('variant_id'),
     productNameAr: text('product_name_ar').notNull(),
@@ -135,6 +134,7 @@ export const productRequests = pgTable(
     userId: text('user_id'),
     notes: text('notes'),
     status: productRequestStatusEnum('status').notNull().default('pending'),
+    imageUrl: text('image_url'),
     ...timestamps,
   },
   (t) => [

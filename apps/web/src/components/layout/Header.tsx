@@ -236,6 +236,14 @@ export const Header: React.FC = () => {
                       </span>
                     </Link>
                   ))}
+                  <Link
+                    href={`/request-product?name=${encodeURIComponent(searchQuery)}`}
+                    onClick={() => setShowSuggestions(false)}
+                    className="flex items-center justify-between p-3 bg-ragab-brand-50/60 hover:bg-ragab-brand-50 text-caption font-bold text-ragab-brand-800 transition-colors"
+                  >
+                    <span>{isRTL ? 'مش لاقي طلبك في النتائج؟ اطلب توفيره فوراً' : "Can't find what you need? Request it here"}</span>
+                    <span className="underline underline-offset-4">{isRTL ? 'طلب توفير دواء' : 'Request Product'}</span>
+                  </Link>
                 </div>
               </div>
             )}
@@ -448,6 +456,8 @@ export const Header: React.FC = () => {
           </section>
           {[
             { href: '/', label: t.navigation.home },
+            { href: '/prescription', label: isRTL ? 'اطلب بروشتة' : 'Order by Prescription' },
+            { href: '/request-product', label: isRTL ? 'طلب توفير دواء أو منتج' : 'Request a Product' },
             { href: '/offers', label: t.navigation.offers },
             { href: '/categories?sort=popular', label: t.navigation.bestSellers },
             { href: '/favorites', label: t.navigation.favorites },

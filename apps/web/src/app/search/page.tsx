@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState, Suspense } from 'react';
+import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
@@ -168,6 +169,25 @@ function SearchContent() {
             emptyActionLabel={t.products.browseCategories}
             emptyActionHref="/categories"
           />
+
+          {!listing.isLoading && listing.visibleProducts.length === 0 && (
+            <div className="mt-6 p-6 rounded-2xl border border-ragab-brand-200 bg-[#edf7f5] text-center space-y-3 font-arabic">
+              <h3 className="font-extrabold text-body sm:text-h3 text-ragab-ink-900">
+                {isRTL ? 'مش لاقي المنتج اللي بتدور عليه؟' : "Couldn't find what you are looking for?"}
+              </h3>
+              <p className="text-body-sm text-ragab-ink-600 max-w-md mx-auto">
+                {isRTL
+                  ? 'تقدر تطلب من مسؤولي الصيدلية توفيره لك مباشرة بكتابة اسمه وصورته وتعليماتك.'
+                  : 'You can request our pharmacy team to source it directly for you.'}
+              </p>
+              <Link
+                href={`/request-product?name=${encodeURIComponent(query)}`}
+                className="inline-flex items-center justify-center gap-2 min-h-11 px-6 rounded-xl bg-ragab-brand-700 hover:bg-ragab-brand-800 text-white font-bold text-body-sm shadow-sm transition-colors"
+              >
+                <span>{isRTL ? 'طلب توفير هذا المنتج الآن' : 'Request Product Now'}</span>
+              </Link>
+            </div>
+          )}
 
           <InfiniteScrollTrigger
             hasMore={listing.hasMore}

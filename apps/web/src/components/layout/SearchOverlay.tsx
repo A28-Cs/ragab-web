@@ -167,7 +167,34 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose })
                   </span>
                 </Link>
               ))}
+              <Link
+                href={`/request-product?name=${encodeURIComponent(query.trim())}`}
+                onClick={onClose}
+                className="flex items-center justify-between p-3 bg-ragab-brand-50/60 hover:bg-ragab-brand-50 text-caption font-bold text-ragab-brand-800 transition-colors"
+              >
+                <span>{isRTL ? 'مش لاقي طلبك؟ اطلب توفير المنتج الآن' : "Can't find what you need? Request it now"}</span>
+                <span className="underline underline-offset-4">{isRTL ? 'طلب توفير' : 'Request'}</span>
+              </Link>
             </div>
+          </div>
+        )}
+
+        {/* If query entered but no suggestions */}
+        {query.trim().length >= 2 && suggestions.length === 0 && (
+          <div className="p-4 rounded-2xl border border-ragab-brand-200 bg-[#edf7f5] text-center space-y-2 font-arabic">
+            <p className="font-bold text-body-sm text-ragab-ink-900">
+              {isRTL ? `لم نجد نتائج مطابقة لـ "${query}"` : `No matches found for "${query}"`}
+            </p>
+            <p className="text-caption text-ragab-ink-600">
+              {isRTL ? 'يمكنك طلب توفيره وسيقوم فريق الصيدلية بالبحث عنه وتأمينه لك.' : 'You can request it and our pharmacy team will source it for you.'}
+            </p>
+            <Link
+              href={`/request-product?name=${encodeURIComponent(query.trim())}`}
+              onClick={onClose}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 mt-1 rounded-xl bg-ragab-brand-700 hover:bg-ragab-brand-800 text-white font-bold text-caption transition-colors"
+            >
+              <span>{isRTL ? 'طلب توفير هذا المنتج الآن' : 'Request this product now'}</span>
+            </Link>
           </div>
         )}
 

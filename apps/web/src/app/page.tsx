@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Clock, Truck, Banknote, MessageCircle, BadgeCheck, WifiOff, ArrowLeft, ArrowRight, Cross, FileText } from 'lucide-react';
+import { Clock, Truck, Banknote, MessageCircle, BadgeCheck, WifiOff, ArrowLeft, ArrowRight, Cross, FileText, PackageSearch } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { ProductStrip } from '../components/product/ProductStrip';
@@ -191,31 +191,58 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== Smart Prescription Callout Banner ===== */}
+      {/* ===== Smart Prescription & Product Request Callout Banners ===== */}
       <section className="container-page pt-4 md:pt-6">
-        <div className="rounded-2xl border border-ragab-brand-200 bg-[#edf7f5] p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-ragab-brand-700 text-white flex items-center justify-center shrink-0 shadow-xs">
-              <FileText className="w-6 h-6" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-2xl border border-ragab-brand-200 bg-[#edf7f5] p-5 sm:p-6 shadow-sm flex flex-col justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-ragab-brand-700 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-body sm:text-h3 text-ragab-ink-900">
+                  {isRTL ? 'عندك روشتة أو صورة دواء؟' : 'Have a Prescription or Medicine Photo?'}
+                </h3>
+                <p className="text-caption sm:text-body-sm text-ragab-ink-600 mt-0.5 leading-relaxed">
+                  {isRTL
+                    ? 'صورها وارفعها مباشرة، ودكتور الصيدلية هيراجعها ويحددلك كل العلاج ويضيفه لسلتك فوراً!'
+                    : 'Upload it now, and our pharmacist will review it, select all items, and add them to your cart.'}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-extrabold text-body sm:text-h3 text-ragab-ink-900">
-                {isRTL ? 'عندك روشتة أو صورة دواء؟' : 'Have a Prescription or Medicine Photo?'}
-              </h3>
-              <p className="text-caption sm:text-body-sm text-ragab-ink-600 mt-0.5">
-                {isRTL
-                  ? 'صورها وارفعها مباشرة، ودكتور الصيدلية هيراجعها ويحددلك كل العلاج ويضيفه لسلتك فوراً!'
-                  : 'Upload it now, and our pharmacist will review it, select all items, and add them to your cart.'}
-              </p>
-            </div>
+            <Link
+              href="/prescription"
+              className="inline-flex items-center justify-center gap-2 min-h-10 px-5 rounded-lg bg-ragab-brand-700 hover:bg-ragab-brand-800 text-white font-bold text-body-sm shadow-sm transition-colors whitespace-nowrap self-start"
+            >
+              <span>{isRTL ? 'رفع الروشتة الآن' : 'Upload Prescription'}</span>
+              <DirectionArrow className="w-4 h-4" />
+            </Link>
           </div>
-          <Link
-            href="/prescription"
-            className="inline-flex items-center justify-center gap-2 min-h-11 px-5 rounded-lg bg-ragab-brand-700 hover:bg-ragab-brand-800 text-white font-bold text-body-sm shadow-sm transition-colors whitespace-nowrap shrink-0"
-          >
-            <span>{isRTL ? 'رفع الروشتة الآن' : 'Upload Prescription'}</span>
-            <DirectionArrow className="w-4 h-4" />
-          </Link>
+
+          <div className="rounded-2xl border border-ragab-brand-200 bg-[#edf7f5] p-5 sm:p-6 shadow-sm flex flex-col justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-ragab-brand-100 text-ragab-brand-700 border border-ragab-brand-200 flex items-center justify-center shrink-0 shadow-xs">
+                <PackageSearch className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-body sm:text-h3 text-ragab-ink-900">
+                  {isRTL ? 'بتدور على دواء أو منتج غير متوفر؟' : 'Looking for an Unavailable Product?'}
+                </h3>
+                <p className="text-caption sm:text-body-sm text-ragab-ink-600 mt-0.5 leading-relaxed">
+                  {isRTL
+                    ? 'اكتب اسمه أو ارفع صورته، ومسؤولو الصيدلية هيوفروهولك ويتواصلوا معاك فور توفره!'
+                    : 'Provide the name or image, and pharmacy staff will procure it and contact you once ready!'}
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/request-product"
+              className="inline-flex items-center justify-center gap-2 min-h-10 px-5 rounded-lg border border-ragab-brand-300 bg-white hover:bg-ragab-brand-50 text-ragab-brand-800 font-bold text-body-sm shadow-sm transition-colors whitespace-nowrap self-start"
+            >
+              <span>{isRTL ? 'طلب توفير دواء الآن' : 'Request Product Now'}</span>
+              <DirectionArrow className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
       </section>
 

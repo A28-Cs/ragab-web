@@ -515,7 +515,7 @@ export type ProductRequestStatus = 'pending' | 'fulfilled' | 'cancelled';
 
 export interface ProductRequest {
   id: string;
-  productId: string;
+  productId?: string;
   variantId?: string;
   variantName?: string;
   productNameAr: string;
@@ -525,6 +525,8 @@ export interface ProductRequest {
   customerPhone: string;
   userId?: string;
   notes?: string;
+  imageUrl?: string;
+  isCustom?: boolean;
   status: ProductRequestStatus;
   createdAt: string;
   updatedAt: string;
