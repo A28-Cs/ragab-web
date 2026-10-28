@@ -8,7 +8,7 @@
 import { and, desc, eq, inArray, lt, sql, type SQL } from 'drizzle-orm';
 import type { DbExecutor } from '../../db/client';
 import { db } from '../../db/client';
-import { orders, orderItems, orderStatusHistory, payments, paymentIntents, shipments, users } from '../../db/schema';
+import { orders, orderItems, orderStatusHistory, payments, paymentIntents, shipments, shipmentEvents, users } from '../../db/schema';
 import { AuthenticationError, AuthorizationError, BusinessRuleError, NotFoundError } from '../../lib/errors';
 import { buildPage, decodeCursor, type Page } from '../../lib/pagination';
 import { prefixedId } from '../../lib/ids';
@@ -23,7 +23,8 @@ import { releaseReservationsForOrder, commitReservationsForOrder, reserveStock }
 import { getSettings } from '../settings/service';
 import { initPayment, type InitPaymentResult } from '../payments/service';
 import { toOrderDto } from './mapper';
-import type { AdminOrderDetail, Order, OrderStatus } from '../../types';
+import type { AdminOrderDetail, Order, OrderStatus, DeliveryJobStatus } from '../../types';
+import { getOrderEvents } from './events';
 
 async function loadOrderWithItems(orderId: string, exec: DbExecutor = db()): Promise<Order | null> {
   const [order] = await exec.select().from(orders).where(eq(orders.id, orderId)).limit(1);
@@ -143,17 +144,59 @@ export async function getOrderDetailForStaff(ctx: RequestContext, idOrNumber: st
     }
   }
 
+  const [shipment] = await db().select().from(shipments).where(eq(shipments.orderId, order.id)).orderBy(desc(shipments.createdAt)).limit(1);
+
+  const deliveryJobStatus: DeliveryJobStatus =
+    shipment?.status === 'delivered'
+      ? 'delivered'
+      : shipment?.status === 'out_for_delivery'
+      ? 'in_transit'
+      : shipment?.status === 'assigned'
+      ? 'assigned'
+      : shipment?.status === 'failed'
+      ? 'failed'
+      : order.status === 'preparing'
+      ? 'awaiting_dispatch'
+      : order.status === 'on_the_way'
+      ? 'in_transit'
+      : 'cancelled';
+
   const items = await db().select().from(orderItems).where(eq(orderItems.orderId, order.id));
-  const dto: AdminOrderDetail = toOrderDto(order, items);
+  const dto: AdminOrderDetail = toOrderDto(order, items, deliveryJobStatus);
 
   if (order.userId) {
     const [customer] = await db().select({ houseImage: users.houseImage }).from(users).where(eq(users.id, order.userId)).limit(1);
     dto.customerHouseImage = customer?.houseImage ?? undefined;
   }
-  const [shipment] = await db().select().from(shipments).where(eq(shipments.orderId, order.id)).orderBy(desc(shipments.createdAt)).limit(1);
   if (shipment && (shipment.driverName || shipment.driverPhone)) {
     dto.courier = { driverName: shipment.driverName ?? '', driverPhone: shipment.driverPhone ?? '', status: shipment.status };
   }
+
+  // Load delivery photo from Firestore if available
+  let deliveryPhotoUrl: string | undefined;
+  try {
+    const { getEngeznyFirestore } = await import('../../integrations/engezny/firebase');
+    const firestore = getEngeznyFirestore();
+    if (firestore) {
+      const docSnap = await firestore.collection('orders').doc(order.id).get();
+      if (docSnap.exists) {
+        deliveryPhotoUrl = docSnap.data()?.deliveryPhotoUrl;
+      }
+    }
+  } catch {
+    // ignore firestore read errors
+  }
+
+  dto.deliveryJob = {
+    deliveryId: shipment?.id,
+    status: deliveryJobStatus,
+    driverName: shipment?.driverName ?? undefined,
+    driverPhone: shipment?.driverPhone ?? undefined,
+    deliveryPhotoUrl,
+    deliveredAt: shipment?.deliveredAt?.toISOString(),
+  };
+
+  dto.events = await getOrderEvents(order.id, order.orderNumber);
   return dto;
 }
 
@@ -206,7 +249,30 @@ export async function updateOrderStatus(ctx: RequestContext, orderId: string, to
   const { row: updated, changed } = await db().transaction(async (tx) => {
     const [order] = await tx.select().from(orders).where(eq(orders.id, orderId)).limit(1);
     if (!order) throw new NotFoundError({ code: 'ORDER_NOT_FOUND', message: { ar: 'الطلب غير موجود.', en: 'Order not found.' } });
-    assertOrderTransition(order.status, to);
+
+    try {
+      assertOrderTransition(order.status, to);
+    } catch (err: any) {
+      await logAudit({
+        actorId: ctx.principal?.userId,
+        actorName: ctx.principal?.user.name ?? 'system',
+        actorRole: 'staff',
+        action: 'status_transition.rejected',
+        resource: 'orders',
+        resourceId: orderId,
+        target: order.orderNumber,
+        result: 'failure',
+        metadata: {
+          from: order.status,
+          to,
+          reasonCode: 'INVALID_STATE_TRANSITION',
+          error: err.message,
+        },
+        requestId: ctx.requestId,
+      });
+      throw err;
+    }
+
     if (order.status === to) return { row: order, changed: false };
 
     await tx.update(orders).set({ status: to, version: sql`${orders.version} + 1` }).where(eq(orders.id, orderId));
@@ -472,14 +538,52 @@ async function requireOwnOrder(ctx: RequestContext, orderId: string): Promise<ty
 async function attachItems(rows: (typeof orders.$inferSelect)[]): Promise<Order[]> {
   if (rows.length === 0) return [];
   const ids = rows.map((r) => r.id);
-  const items = await db().select().from(orderItems).where(inArray(orderItems.orderId, ids));
+  const [items, shipmentRows] = await Promise.all([
+    db().select().from(orderItems).where(inArray(orderItems.orderId, ids)),
+    db().select().from(shipments).where(inArray(shipments.orderId, ids)),
+  ]);
+
   const byOrder = new Map<string, (typeof orderItems.$inferSelect)[]>();
   for (const it of items) {
     const list = byOrder.get(it.orderId) ?? [];
     list.push(it);
     byOrder.set(it.orderId, list);
   }
-  return rows.map((r) => toOrderDto(r, byOrder.get(r.id) ?? []));
+
+  const shipmentByOrder = new Map<string, typeof shipments.$inferSelect>();
+  for (const s of shipmentRows) {
+    if (!shipmentByOrder.has(s.orderId)) {
+      shipmentByOrder.set(s.orderId, s);
+    }
+  }
+
+  return rows.map((r) => {
+    const s = shipmentByOrder.get(r.id);
+    const deliveryStatus: DeliveryJobStatus | undefined =
+      s?.status === 'delivered'
+        ? 'delivered'
+        : s?.status === 'out_for_delivery'
+        ? 'in_transit'
+        : s?.status === 'assigned'
+        ? 'assigned'
+        : s?.status === 'failed'
+        ? 'failed'
+        : r.status === 'preparing'
+        ? 'awaiting_dispatch'
+        : r.status === 'on_the_way'
+        ? 'in_transit'
+        : undefined;
+
+    const dto = toOrderDto(r, byOrder.get(r.id) ?? [], deliveryStatus);
+    if (s && (s.driverName || s.driverPhone)) {
+      (dto as any).courier = {
+        driverName: s.driverName ?? '',
+        driverPhone: s.driverPhone ?? '',
+        status: s.status,
+      };
+    }
+    return dto;
+  });
 }
 
 function requireOrdersView(ctx: RequestContext): void {

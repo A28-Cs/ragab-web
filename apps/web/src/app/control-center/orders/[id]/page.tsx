@@ -16,6 +16,11 @@ import {
   Phone,
   MessageSquare,
   Clock,
+  ShieldAlert,
+  AlertTriangle,
+  UserCheck,
+  Navigation,
+  CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useLanguage } from '../../../../context/LanguageContext';
@@ -46,7 +51,15 @@ import { Input } from '../../../../components/ui/Input';
 import { Textarea } from '../../../../components/ui/Textarea';
 import { ConfirmDialog } from '../../../../components/ui/ConfirmDialog';
 import { EmptyState } from '../../../../components/ui/EmptyState';
-import { ORDER_PIPELINE, ORDER_STATUS_TONE } from '../../../../lib/orderStatus';
+import {
+  ORDER_PIPELINE,
+  ORDER_STATUS_TONE,
+  DETAILED_STATUS_TONE,
+  DETAILED_STATUS_LABELS_AR,
+  DELIVERY_STATUS_TONE,
+  DELIVERY_STATUS_LABELS_AR,
+  REASON_CODE_LABELS_AR,
+} from '../../../../lib/orderStatus';
 import { EngeznyDeliveryPhoto } from '../../../../components/ui/EngeznyDeliveryPhoto';
 
 function OrderAdminDetailInner() {
@@ -244,9 +257,43 @@ function OrderAdminDetailInner() {
             </span>
           )}
         </div>
-        <StatusPill tone={ORDER_STATUS_TONE[order.status]}>{t.account.orderStatus[order.status]}</StatusPill>
+        <div className="flex items-center gap-2 flex-wrap">
+          <StatusPill tone={order.detailedStatus ? DETAILED_STATUS_TONE[order.detailedStatus] : ORDER_STATUS_TONE[order.status]}>
+            {order.detailedStatus && ar ? DETAILED_STATUS_LABELS_AR[order.detailedStatus] : t.account.orderStatus[order.status]}
+          </StatusPill>
+          {order.deliveryStatus && (
+            <StatusPill tone={DELIVERY_STATUS_TONE[order.deliveryStatus]}>
+              {ar ? DELIVERY_STATUS_LABELS_AR[order.deliveryStatus] : order.deliveryStatus}
+            </StatusPill>
+          )}
+          {paymentStatus && <StatusPill tone={PAY_TONE[paymentStatus]}>{paymentStatusLabel(paymentStatus)}</StatusPill>}
+        </div>
       </div>
       <p className="text-body-sm text-ragab-ink-500 -mt-2">{order.createdAt}</p>
+
+      {/* Stuck Order Warning Banner */}
+      {order.stuckInfo?.isStuck && (
+        <div className={`p-4 rounded-xl border flex items-start gap-3 shadow-xs ${
+          order.stuckInfo.alertLevel === 'critical'
+            ? 'bg-red-50 border-red-300 text-red-950'
+            : 'bg-amber-50 border-amber-300 text-amber-950'
+        }`}>
+          <AlertTriangle className={`w-5 h-5 shrink-0 mt-0.5 ${
+            order.stuckInfo.alertLevel === 'critical' ? 'text-red-600' : 'text-amber-600'
+          }`} />
+          <div className="flex-1 space-y-1">
+            <div className="flex items-center gap-2 font-bold text-body-sm">
+              <span>{isRTL ? 'تنبيه مراقبة: هذا الطلب متوقف أطول من الحد المسموح به' : 'Alert: Stuck Order Detected'}</span>
+              <span className="px-2 py-0.5 rounded-full text-[11px] bg-amber-200/80 font-mono text-amber-900">
+                {order.stuckInfo.minutesInCurrentStatus} {isRTL ? 'دقيقة' : 'mins'}
+              </span>
+            </div>
+            <p className="text-caption leading-relaxed font-semibold">
+              {isRTL ? `الإجراء الموصى به: ${order.stuckInfo.recommendedActionAr}` : `Recommended Action: ${order.stuckInfo.recommendedAction}`}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-[1fr_340px] gap-4 items-start">
         <div className="space-y-4">
@@ -431,13 +478,110 @@ function OrderAdminDetailInner() {
           </Card>
         </div>
 
-        {/* Delivery Photo (Ragab → Engezny integrated orders) */}
-        {order.status === 'delivered' && (
-          <Card>
-            <CardHeader title="📸 صورة التوصيل" />
-            <EngeznyDeliveryPhoto orderId={order.id} />
+          {/* Delivery Job & Courier Operations Card */}
+          <Card className="border border-ragab-ink-100">
+            <CardHeader
+              title={ar ? 'مهمة التوصيل وتتبع المندوب (إنجزني)' : 'Delivery Job & Courier Tracking (Engezny)'}
+            />
+            <div className="space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2 p-3 bg-ragab-ink-50/50 rounded-xl">
+                <div>
+                  <span className="text-caption text-ragab-ink-400 block mb-0.5">{ar ? 'حالة التوصيل الحالية' : 'Current Delivery Stage'}</span>
+                  <StatusPill tone={DELIVERY_STATUS_TONE[order.deliveryJob?.status || order.deliveryStatus || 'awaiting_dispatch']}>
+                    {ar ? DELIVERY_STATUS_LABELS_AR[order.deliveryJob?.status || order.deliveryStatus || 'awaiting_dispatch'] : (order.deliveryJob?.status || order.deliveryStatus || 'awaiting_dispatch')}
+                  </StatusPill>
+                </div>
+                {order.courier?.driverName && (
+                  <div className="text-start">
+                    <span className="text-caption text-ragab-ink-400 block mb-0.5">{ar ? 'المندوب المكلف' : 'Assigned Courier'}</span>
+                    <div className="font-bold text-body-sm text-ragab-ink-800 flex items-center gap-2">
+                      <span>🛵 {order.courier.driverName}</span>
+                      {order.courier.driverPhone && (
+                        <a href={`tel:${order.courier.driverPhone}`} className="text-ragab-brand-600 hover:underline text-caption" dir="ltr">
+                          ({order.courier.driverPhone})
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Delivery Photo (Proof of Delivery at door) */}
+              {(order.status === 'delivered' || order.deliveryJob?.deliveryPhotoUrl) && (
+                <div className="pt-2">
+                  <span className="text-caption font-bold text-ragab-ink-700 block mb-2">📸 {ar ? 'صورة إثبات التسليم أمام باب العميل' : 'Door Delivery Photo Proof'}</span>
+                  {order.deliveryJob?.deliveryPhotoUrl ? (
+                    <a href={order.deliveryJob.deliveryPhotoUrl} target="_blank" rel="noreferrer">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={order.deliveryJob.deliveryPhotoUrl}
+                        alt="إثبات التسليم"
+                        className="w-full max-h-56 object-cover rounded-xl border border-ragab-ink-200"
+                      />
+                    </a>
+                  ) : (
+                    <EngeznyDeliveryPhoto orderId={order.id} />
+                  )}
+                </div>
+              )}
+            </div>
           </Card>
-        )}
+
+          {/* Unified Event & Audit Log */}
+          <Card className="border border-ragab-ink-100">
+            <CardHeader
+              title={ar ? 'سجل العمليات والأحداث الفنية (Audit & Event Trail)' : 'Unified Event & Audit Trail'}
+            />
+            <div className="space-y-2">
+              {!order.events || order.events.length === 0 ? (
+                <p className="text-caption text-ragab-ink-400 py-2">{ar ? 'لا توجد أحداث مسجلة بعد لهذا الطلب.' : 'No events logged for this order yet.'}</p>
+              ) : (
+                <div className="divide-y divide-ragab-ink-100 max-h-80 overflow-y-auto pr-1">
+                  {order.events.map((ev, i) => {
+                    const isFailure = ev.outcome === 'failed' || ev.outcome === 'rejected';
+                    const reason = ev.reasonCode ? (REASON_CODE_LABELS_AR[ev.reasonCode] || ev.reasonCode) : null;
+                    return (
+                      <div key={ev.eventId || i} className="py-2.5 first:pt-0 last:pb-0 flex items-start justify-between gap-3 text-body-sm">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`font-mono text-caption font-bold ${isFailure ? 'text-red-700' : 'text-ragab-ink-800'}`}>
+                              {ev.eventType}
+                            </span>
+                            <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                              ev.outcome === 'success'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : ev.outcome === 'rejected'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {ev.outcome === 'success' ? (ar ? 'نجاح' : 'Success') : ev.outcome === 'rejected' ? (ar ? 'انتقال مرفوض' : 'Rejected') : (ar ? 'فشل' : 'Failed')}
+                            </span>
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-ragab-ink-100 text-ragab-ink-600 font-mono">
+                              {ev.sourceApp}
+                            </span>
+                          </div>
+                          <p className="text-caption text-ragab-ink-500">
+                            {ar ? 'المنفذ:' : 'Actor:'} <strong className="text-ragab-ink-700">{ev.actorName || ev.actorType}</strong>
+                            {ev.fromStatus && ev.toStatus && (
+                              <span> ({ev.fromStatus} → {ev.toStatus})</span>
+                            )}
+                          </p>
+                          {reason && (
+                            <p className="text-caption text-red-600 font-semibold">
+                              {ar ? 'سبب التعثر:' : 'Reason:'} {reason}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-caption text-ragab-ink-400 font-mono shrink-0" dir="ltr">
+                          {new Date(ev.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </Card>
 
         {/* Side column */}
         <div className="space-y-4">

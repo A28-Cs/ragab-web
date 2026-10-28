@@ -212,6 +212,107 @@ export interface DeliveryZone {
 }
 
 export type OrderStatus = 'pending' | 'preparing' | 'on_the_way' | 'delivered' | 'cancelled';
+
+export type DetailedOrderStatus =
+  | 'pending_confirmation'
+  | 'confirmed'
+  | 'preparing'
+  | 'ready_for_pickup'
+  | 'out_for_delivery'
+  | 'delivered'
+  | 'rejected'
+  | 'cancelled'
+  | 'delivery_exception';
+
+export type DeliveryJobStatus =
+  | 'awaiting_dispatch'
+  | 'searching_driver'
+  | 'assigned'
+  | 'accepted'
+  | 'heading_to_pickup'
+  | 'arrived_at_pickup'
+  | 'picked_up'
+  | 'in_transit'
+  | 'arrived_at_dropoff'
+  | 'delivered'
+  | 'failed'
+  | 'returning'
+  | 'returned_to_pharmacy'
+  | 'cancelled';
+
+export type UnifiedPaymentStatus =
+  | 'unpaid'
+  | 'pending'
+  | 'paid'
+  | 'failed'
+  | 'refund_pending'
+  | 'partially_refunded'
+  | 'refunded'
+  | 'cancelled';
+
+export type ReasonCode =
+  | 'NO_ELIGIBLE_DRIVERS'
+  | 'DRIVER_REJECTED'
+  | 'DRIVER_TIMEOUT'
+  | 'PHARMACY_NOT_READY'
+  | 'PICKUP_VERIFICATION_FAILED'
+  | 'CUSTOMER_UNAVAILABLE'
+  | 'INVALID_DELIVERY_ADDRESS'
+  | 'CUSTOMER_REFUSED_ORDER'
+  | 'DELIVERY_FAILED'
+  | 'RETURN_REQUIRED'
+  | 'SYNC_FAILED'
+  | 'INVALID_STATE_TRANSITION'
+  | 'DUPLICATE_EVENT'
+  | 'PAYMENT_FAILED'
+  | 'MANUAL_ADMIN_OVERRIDE'
+  | 'OUT_OF_STOCK'
+  | 'PRESCRIPTION_REJECTED';
+
+export interface OrderEventDto {
+  eventId: string;
+  orderId: string;
+  deliveryId?: string;
+  eventType: string;
+  entityType: 'order' | 'delivery' | 'payment';
+  fromStatus?: string | null;
+  toStatus: string;
+  actorType: 'customer' | 'pharmacist' | 'courier' | 'admin' | 'system';
+  actorId?: string;
+  actorName?: string;
+  sourceApp: 'ragab_web' | 'ragab_mobile' | 'engezny_web' | 'engezny_mobile' | 'backend';
+  reasonCode?: ReasonCode | string;
+  outcome: 'success' | 'failed' | 'rejected';
+  errorCode?: string;
+  errorMessage?: string;
+  correlationId?: string;
+  metadata?: Record<string, any>;
+  createdAt: string;
+}
+
+export interface StuckInfo {
+  isStuck: boolean;
+  minutesInCurrentStatus: number;
+  thresholdMinutes: number;
+  alertLevel: 'none' | 'warning' | 'critical';
+  recommendedAction: string;
+  recommendedActionAr: string;
+}
+
+export interface DeliveryJobDetail {
+  deliveryId?: string;
+  status: DeliveryJobStatus;
+  driverName?: string;
+  driverPhone?: string;
+  deliveryPhotoUrl?: string;
+  deliveryCode?: string;
+  assignedAt?: string;
+  pickedUpAt?: string;
+  deliveredAt?: string;
+  failedAt?: string;
+  failureReason?: string;
+  returnConfirmed?: boolean;
+}
 export type PaymentMethod = 'cod' | 'vodafone_cash' | 'instapay';
 export type ApiPaymentStatus =
   | 'pending'
@@ -260,6 +361,14 @@ export interface Order {
   tax?: number;
   couponCode?: string;
   createdAtIso?: string;
+  detailedStatus?: DetailedOrderStatus;
+  deliveryStatus?: DeliveryJobStatus;
+  deliveryJob?: DeliveryJobDetail;
+  stuckInfo?: StuckInfo;
+  events?: OrderEventDto[];
+  reasonCode?: string;
+  correlationId?: string;
+  courier?: OrderCourier;
 }
 
 export interface OrderCourier {
@@ -273,6 +382,9 @@ export interface OrderCourier {
 export interface AdminOrderDetail extends Order {
   courier?: OrderCourier;
   customerHouseImage?: string;
+  deliveryJob?: DeliveryJobDetail;
+  events?: OrderEventDto[];
+  stuckInfo?: StuckInfo;
 }
 
 export interface CartLine {

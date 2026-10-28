@@ -5,6 +5,9 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 export interface EngeznyOrderPayload {
   status: 'pending' | 'accepted' | 'purchased' | 'delivered' | 'cancelled';
+  deliveryStatus?: string;
+  orderStatus?: string;
+  correlationId?: string;
   customerId: string | null;
   workerId?: string | null;
   storeId: string;
@@ -37,8 +40,11 @@ export async function pushOrderToEngezny(
   try {
     const updateData: any = { ...data };
     
-    // Add timestamps based on status if it's a new write
+    // Add timestamps and granular fields based on status if it's a new write
     if (data.status === 'pending') {
+      updateData.deliveryStatus = updateData.deliveryStatus || 'awaiting_dispatch';
+      updateData.orderStatus = updateData.orderStatus || 'preparing';
+      updateData.correlationId = orderId;
       updateData.timestamps = {
         createdAt: FieldValue.serverTimestamp(),
         acceptedAt: null,
@@ -46,8 +52,13 @@ export async function pushOrderToEngezny(
         deliveredAt: null,
       };
     } else if (data.status === 'delivered') {
+      updateData.deliveryStatus = 'delivered';
       updateData['timestamps.deliveredAt'] = FieldValue.serverTimestamp();
-    } else if (data.status === 'accepted' || data.status === 'purchased') {
+    } else if (data.status === 'accepted') {
+      updateData.deliveryStatus = 'accepted';
+      updateData['timestamps.acceptedAt'] = FieldValue.serverTimestamp();
+    } else if (data.status === 'purchased') {
+      updateData.deliveryStatus = 'picked_up';
       updateData['timestamps.acceptedAt'] = FieldValue.serverTimestamp();
     }
 

@@ -24,7 +24,13 @@ import { StatusPill } from '../../../components/ui/StatusPill';
 import { Badge } from '../../../components/ui/Badge';
 import { CursorPager } from '../../../components/ui/CursorPager';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
-import { ORDER_STATUS_TONE } from '../../../lib/orderStatus';
+import {
+  ORDER_STATUS_TONE,
+  DETAILED_STATUS_TONE,
+  DETAILED_STATUS_LABELS_AR,
+  DELIVERY_STATUS_TONE,
+  DELIVERY_STATUS_LABELS_AR,
+} from '../../../lib/orderStatus';
 
 import { useRealtimeOrders } from '../../../lib/useRealtimeOrders';
 
@@ -159,38 +165,115 @@ function OrdersAdminInner() {
       header: t.adminOrders.colOrder,
       hideOnMobile: true,
       cell: (o) => (
-        <div className="flex items-center gap-2">
-          <Link href={`/control-center/orders/${o.id}`} className="font-bold text-ragab-ink-800 hover:text-ragab-brand-700" dir="ltr">
-            {o.orderNumber}
-          </Link>
-          {o.manual && <Badge variant="neutral" size="sm">{t.adminOrders.manualBadge}</Badge>}
-          {o.refunded && <Badge variant="warning" size="sm">{t.adminOrders.refundedBadge}</Badge>}
-          {o.hasPrescriptionItems && (
-            o.prescriptionStatus === 'rejected_visit_required' ? (
-              <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold bg-red-600 text-white shadow-xs">
-                <span>🛑</span>
-                <span>{ar ? 'زيارة الصيدلية' : 'Visit Required'}</span>
-              </span>
-            ) : o.prescriptionStatus === 'approved' ? (
-              <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold bg-emerald-600 text-white shadow-xs">
-                <span>✓</span>
-                <span>{ar ? 'روشتة معتمدة' : 'Rx Approved'}</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold bg-amber-600 text-white shadow-xs">
-                <span className="font-black">Rx</span>
-                <span>{ar ? 'فحص روشتة' : 'Pending Rx'}</span>
-              </span>
-            )
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link href={`/control-center/orders/${o.id}`} className="font-bold text-ragab-ink-800 hover:text-ragab-brand-700" dir="ltr">
+              {o.orderNumber}
+            </Link>
+            {o.manual && <Badge variant="neutral" size="sm">{t.adminOrders.manualBadge}</Badge>}
+            {o.refunded && <Badge variant="warning" size="sm">{t.adminOrders.refundedBadge}</Badge>}
+            {o.hasPrescriptionItems && (
+              o.prescriptionStatus === 'rejected_visit_required' ? (
+                <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold bg-red-600 text-white shadow-xs">
+                  <span>🛑</span>
+                  <span>{ar ? 'زيارة الصيدلية' : 'Visit Required'}</span>
+                </span>
+              ) : o.prescriptionStatus === 'approved' ? (
+                <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold bg-emerald-600 text-white shadow-xs">
+                  <span>✓</span>
+                  <span>{ar ? 'روشتة معتمدة' : 'Rx Approved'}</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold bg-amber-600 text-white shadow-xs">
+                  <span className="font-black">Rx</span>
+                  <span>{ar ? 'فحص روشتة' : 'Pending Rx'}</span>
+                </span>
+              )
+            )}
+          </div>
+          {o.stuckInfo?.isStuck && (
+            <div className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded w-fit">
+              <span>⚠️</span>
+              <span>{ar ? `عالق (${o.stuckInfo.minutesInCurrentStatus} دقيقة)` : `Stuck (${o.stuckInfo.minutesInCurrentStatus}m)`}</span>
+            </div>
           )}
         </div>
       ),
     },
-    { key: 'customer', header: t.adminOrders.colCustomer, cell: (o) => o.deliveryAddress.recipientName },
-    { key: 'date', header: t.adminOrders.colDate, cell: (o) => <span dir="ltr" className="text-ragab-ink-500">{o.createdAt}</span>, hideOnMobile: true },
-    { key: 'items', header: t.adminOrders.colItems, cell: (o) => o.items.length, align: 'center' },
-    { key: 'total', header: t.adminOrders.colTotal, cell: (o) => <span className="font-bold text-ragab-ink-800">{o.total} {t.common.egp}</span> },
-    { key: 'status', header: t.adminOrders.colStatus, cell: (o) => <StatusPill tone={ORDER_STATUS_TONE[o.status]}>{t.account.orderStatus[o.status]}</StatusPill> },
+    {
+      key: 'customer',
+      header: t.adminOrders.colCustomer,
+      cell: (o) => (
+        <div>
+          <div className="font-medium text-ragab-ink-800">{o.deliveryAddress.recipientName}</div>
+          <div dir="ltr" className="text-caption text-ragab-ink-400">{o.deliveryAddress.phone}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: ar ? 'حالة الطلب' : 'Order Status',
+      cell: (o) => {
+        const detStatus = o.detailedStatus;
+        const tone = detStatus ? DETAILED_STATUS_TONE[detStatus] : ORDER_STATUS_TONE[o.status];
+        const label = detStatus && ar ? DETAILED_STATUS_LABELS_AR[detStatus] : t.account.orderStatus[o.status];
+        return <StatusPill tone={tone}>{label}</StatusPill>;
+      },
+    },
+    {
+      key: 'delivery',
+      header: ar ? 'مهمة التوصيل والمندوب' : 'Delivery & Courier',
+      hideOnMobile: true,
+      cell: (o) => {
+        const delStatus = o.deliveryStatus;
+        const courier = (o as any).courier;
+        if (!delStatus && !courier) {
+          return <span className="text-caption text-ragab-ink-400">—</span>;
+        }
+        const delTone = delStatus ? DELIVERY_STATUS_TONE[delStatus] : 'neutral';
+        const delLabel = delStatus && ar ? DELIVERY_STATUS_LABELS_AR[delStatus] : delStatus || 'بانتظار التوزيع';
+        return (
+          <div className="flex flex-col gap-1">
+            <StatusPill tone={delTone}>{delLabel}</StatusPill>
+            {courier?.driverName && (
+              <span className="text-caption text-ragab-ink-600 font-medium">
+                🛵 {courier.driverName}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'payment',
+      header: ar ? 'حالة الدفع' : 'Payment',
+      hideOnMobile: true,
+      cell: (o) => {
+        const payStatus = o.paymentStatus || 'pending';
+        const isPaid = payStatus === 'paid';
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className={`text-caption font-bold ${isPaid ? 'text-emerald-700' : 'text-amber-700'}`}>
+              {isPaid ? (ar ? '✓ مدفوع' : 'Paid') : (ar ? 'قيد الانتظار' : 'Pending')}
+            </span>
+            <span className="text-[11px] text-ragab-ink-400 uppercase">
+              {o.paymentMethod === 'cod' ? (ar ? 'عند الاستلام' : 'COD') : o.paymentMethod}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'total',
+      header: t.adminOrders.colTotal,
+      cell: (o) => <span className="font-bold text-ragab-ink-800">{o.total} {t.common.egp}</span>,
+    },
+    {
+      key: 'date',
+      header: t.adminOrders.colDate,
+      cell: (o) => <span dir="ltr" className="text-caption text-ragab-ink-500">{o.createdAt}</span>,
+      hideOnMobile: true,
+    },
     {
       key: 'actions',
       header: t.admin.actions,

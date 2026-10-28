@@ -16,6 +16,7 @@ import { StatusPill } from '../../../components/ui/StatusPill';
 import { Avatar } from '../../../components/ui/Avatar';
 import { Drawer } from '../../../components/ui/Drawer';
 import { AUDIT_ACTION_KEY } from '../../../lib/audit';
+import { REASON_CODE_LABELS_AR } from '../../../lib/orderStatus';
 
 /** Where a resource id can be opened. Only pages that exist — never a guessed URL. */
 function resourceHref(e: AuditLogEntry): string | null {
@@ -91,7 +92,12 @@ function AuditLogInner() {
     { value: 'failure', label: t.admin.resultFailure },
   ];
 
-  const actionLabel = (e: AuditLogEntry) => (t.admin as Record<string, string>)[AUDIT_ACTION_KEY[e.action]] ?? e.action;
+  const actionLabel = (e: AuditLogEntry) => {
+    if ((e.action as string) === 'status_transition.rejected' || (e.action as string) === 'status_transition_rejected') {
+      return ar ? 'رفض انتقال الحالة (مخالفة لقواعد الـ State Machine)' : 'Rejected State Transition';
+    }
+    return (t.admin as Record<string, string>)[AUDIT_ACTION_KEY[e.action]] ?? e.action;
+  };
   const resourceLabel = (e: AuditLogEntry) => {
     if (e.resource === 'auth') return ar ? 'المصادقة' : 'Auth';
     const r = RESOURCES.find((x) => x.key === e.resource);
@@ -128,7 +134,23 @@ function AuditLogInner() {
         </div>
       ),
     },
-    { key: 'action', header: t.admin.action, cell: (e) => actionLabel(e) },
+    {
+      key: 'action',
+      header: t.admin.action,
+      cell: (e) => (
+        <div className="space-y-1">
+          <p className="font-semibold text-ragab-ink-800">{actionLabel(e)}</p>
+          {e.metadata?.reasonCode && (
+            <span
+              className="inline-flex items-center gap-1 rounded bg-ragab-danger-soft text-ragab-danger text-[11px] font-bold px-1.5 py-0.5"
+              title={REASON_CODE_LABELS_AR[e.metadata.reasonCode] ?? e.metadata.reasonCode}
+            >
+              {e.metadata.reasonCode}
+            </span>
+          )}
+        </div>
+      ),
+    },
     {
       key: 'target',
       header: t.admin.target,
@@ -247,6 +269,22 @@ function AuditLogInner() {
                 )}
               </div>
             </section>
+
+            {/* Reason Code alert if present */}
+            {selected.metadata?.reasonCode && (
+              <div className="rounded-xl border border-red-200 bg-red-50/90 p-3 text-red-950 space-y-1">
+                <p className="text-caption font-bold text-red-900 flex items-center gap-1.5">
+                  <XCircle className="w-4 h-4 text-red-600 shrink-0" />
+                  {ar ? 'رمز سبب العملية:' : 'Operation Reason Code:'}
+                  <span className="font-mono bg-white px-2 py-0.5 rounded border border-red-200 text-red-800 text-xs">
+                    {selected.metadata.reasonCode}
+                  </span>
+                </p>
+                <p className="text-body-sm font-semibold text-red-900">
+                  {REASON_CODE_LABELS_AR[selected.metadata.reasonCode] ?? selected.metadata.reasonCode}
+                </p>
+              </div>
+            )}
 
             {/* What happened */}
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-body-sm">

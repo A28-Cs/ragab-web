@@ -6,7 +6,9 @@
 import { Money } from '../../lib/money';
 import { toLegacyTimestamp } from '../../lib/clock';
 import type { orders, orderItems } from '../../db/schema';
-import type { Address, Order, OrderItem, PaymentMethod, ApiPaymentStatus } from '../../types';
+import type { Address, Order, OrderItem, PaymentMethod, ApiPaymentStatus, DeliveryJobStatus } from '../../types';
+import { wireToDetailedOrderStatus } from './stateMachine';
+import { computeStuckInfo } from './stuck';
 
 type OrderRow = typeof orders.$inferSelect;
 type OrderItemRow = typeof orderItems.$inferSelect;
@@ -27,13 +29,24 @@ function toItemDto(row: OrderItemRow): OrderItem {
   };
 }
 
-export function toOrderDto(order: OrderRow, items: OrderItemRow[]): Order {
+export function toOrderDto(order: OrderRow, items: OrderItemRow[], deliveryStatus?: DeliveryJobStatus): Order {
+  const detailedStatus = wireToDetailedOrderStatus(
+    order.status,
+    order.fulfillmentStatus,
+    deliveryStatus
+  );
+  const stuckInfo = computeStuckInfo(detailedStatus, order.updatedAt || order.placedAt);
+
   return {
     id: order.id,
     orderNumber: order.orderNumber,
     createdAt: toLegacyTimestamp(order.placedAt),
     createdAtIso: order.placedAt.toISOString(),
     status: order.status,
+    detailedStatus,
+    deliveryStatus,
+    stuckInfo,
+    correlationId: order.id,
     items: items.map(toItemDto),
     subtotal: Money.ofMinor(order.subtotalMinor).toMajor(),
     deliveryFee: Money.ofMinor(order.deliveryFeeMinor).toMajor(),

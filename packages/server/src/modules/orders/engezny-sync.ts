@@ -2,8 +2,10 @@ import { getEngeznyFirestore } from '../../integrations/engezny/firebase';
 import { logger } from '../../lib/logger';
 import { db } from '../../db/client';
 import { orders } from '../../db/schema/orders';
-import { eq, sql } from 'drizzle-orm';
+import { shipments, shipmentEvents } from '../../db/schema/shipping';
+import { eq, desc, sql } from 'drizzle-orm';
 import { updateOrderStatus } from './service';
+import { prefixedId } from '../../lib/ids';
 
 const log = logger().child({ component: 'engezny-sync' });
 
@@ -73,14 +75,47 @@ export async function syncOrderWithEngezny(orderIdOrNumber: string): Promise<boo
 
     let updated = false;
 
-    // Engezny 'accepted' = driver claimed the order but is still preparing/picking up.
-    // No status change in Ragab is needed — it should remain 'preparing'.
-    // This prevents the order from vanishing in Engezny immediately after claim.
-    if (engeznyStatus === 'accepted') {
-      log.info({ orderId: order.id }, 'Engezny accepted -> driver claimed, keeping Ragab status as-is (preparing)');
-      // nothing to update
+    // Sync courier details to shipments table if worker is assigned
+    if (docData.workerName || docData.workerId) {
+      let [shipment] = await db()
+        .select()
+        .from(shipments)
+        .where(eq(shipments.orderId, order.id))
+        .orderBy(desc(shipments.createdAt))
+        .limit(1);
 
-    // Engezny 'purchased' = driver finished picking up and is on the way to customer
+      if (!shipment) {
+        await db().insert(shipments).values({
+          id: prefixedId('ship'),
+          orderId: order.id,
+          driverName: docData.workerName || 'مندوب إنجزني',
+          driverPhone: docData.workerPhone || '',
+          status: engeznyStatus === 'delivered' ? 'delivered' : 'assigned',
+        });
+      } else {
+        await db()
+          .update(shipments)
+          .set({
+            driverName: docData.workerName || shipment.driverName,
+            driverPhone: docData.workerPhone || shipment.driverPhone,
+            status:
+              engeznyStatus === 'delivered'
+                ? 'delivered'
+                : engeznyStatus === 'purchased'
+                ? 'out_for_delivery'
+                : 'assigned',
+          })
+          .where(eq(shipments.id, shipment.id));
+      }
+    }
+
+    // Engezny 'accepted' = driver claimed the order but is still preparing/picking up.
+    // Order should remain 'preparing'.
+    if (engeznyStatus === 'accepted') {
+      log.info({ orderId: order.id }, 'Engezny accepted -> driver claimed, keeping Ragab status as preparing');
+      // nothing to update in orders table
+
+    // Engezny 'purchased' = driver finished picking up medicine and is in-transit to customer
     } else if (engeznyStatus === 'purchased') {
       if (order.status === 'preparing') {
         log.info({ orderId: order.id }, 'Engezny purchased -> updating Ragab to on_the_way');
@@ -101,8 +136,21 @@ export async function syncOrderWithEngezny(orderIdOrNumber: string): Promise<boo
         await updateOrderStatus(systemCtx, order.id, 'delivered');
         updated = true;
       }
-    } else if (engeznyStatus === 'cancelled' || engeznyStatus === 'disputed') {
-      log.info({ orderId: order.id }, 'Engezny cancelled -> updating Ragab to cancelled');
+    } else if (engeznyStatus === 'disputed') {
+      log.warn({ orderId: order.id }, 'Engezny disputed -> delivery exception recorded, keeping customer order alive');
+      // Do not cancel the whole customer order; record the delivery exception in shipments
+      let [shipment] = await db().select().from(shipments).where(eq(shipments.orderId, order.id)).limit(1);
+      if (shipment) {
+        await db().update(shipments).set({ status: 'failed' }).where(eq(shipments.id, shipment.id));
+        await db().insert(shipmentEvents).values({
+          id: prefixedId('shevt'),
+          shipmentId: shipment.id,
+          status: 'failed',
+          note: `نزاع في التوصيل: ${docData.disputeReason || 'غير محدد'}`,
+        });
+      }
+    } else if (engeznyStatus === 'cancelled') {
+      log.info({ orderId: order.id }, 'Engezny order cancelled -> updating Ragab to cancelled');
       await updateOrderStatus(systemCtx, order.id, 'cancelled');
       updated = true;
     }

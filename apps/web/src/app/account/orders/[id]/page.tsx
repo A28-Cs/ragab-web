@@ -27,7 +27,13 @@ import { StatusPill } from '../../../../components/ui/StatusPill';
 import { Timeline, TimelineStep } from '../../../../components/ui/Timeline';
 import { ConfirmDialog } from '../../../../components/ui/ConfirmDialog';
 import { EmptyState } from '../../../../components/ui/EmptyState';
-import { ORDER_PIPELINE, ORDER_STATUS_TONE } from '../../../../lib/orderStatus';
+import {
+  ORDER_PIPELINE,
+  ORDER_STATUS_TONE,
+  DETAILED_STATUS_TONE,
+  DETAILED_STATUS_LABELS_AR,
+  CUSTOMER_STATUS_MESSAGES_AR,
+} from '../../../../lib/orderStatus';
 import { LiveMap } from '../../../../components/ui/LiveMap';
 import { EngeznyDeliveryPhoto } from '../../../../components/ui/EngeznyDeliveryPhoto';
 
@@ -63,16 +69,62 @@ export default function OrderDetailPage() {
     const labels = t.account.orderStatus;
     if (o.status === 'cancelled') {
       return [
-        { label: labels.pending, state: 'done' },
-        { label: labels.cancelled, state: 'cancelled' },
+        {
+          label: labels.pending,
+          description: isRTL ? 'تم استلام وتوثيق طلبك' : 'Order received and logged',
+          state: 'done',
+        },
+        {
+          label: labels.cancelled,
+          description: isRTL ? 'تم إلغاء الطلب' : 'Order has been cancelled',
+          state: 'cancelled',
+        },
       ];
     }
     const currentIndex = ORDER_PIPELINE.indexOf(o.status);
-    return ORDER_PIPELINE.map((s, i) => ({
-      label: labels[s],
-      state: i < currentIndex ? 'done' : i === currentIndex ? 'current' : 'upcoming',
-      timestamp: i === currentIndex ? o.estimatedDelivery : undefined,
-    }));
+    const stepDescriptions: Record<string, { ar: string; en: string }> = {
+      pending: {
+        ar: 'تم تسجيل طلبك وبانتظار مراجعة واعتماد الصيدلي',
+        en: 'Order received and pending pharmacist review',
+      },
+      preparing: {
+        ar:
+          o.detailedStatus === 'ready_for_pickup'
+            ? 'تم تجهيز الأدوية وفحصها وبانتظار تحرك مندوب التوصيل'
+            : 'يقوم الصيدلي بتجهيز الأدوية والتحقق من سلامتها وتغليفها',
+        en:
+          o.detailedStatus === 'ready_for_pickup'
+            ? 'Medications ready, waiting for courier pickup'
+            : 'Pharmacist is preparing and packaging medications',
+      },
+      on_the_way: {
+        ar:
+          o.deliveryStatus === 'arrived_at_dropoff'
+            ? 'المندوب وصل إلى عنوان التوصيل'
+            : o.deliveryStatus === 'in_transit'
+            ? 'المندوب في الطريق إليك ومعه الطلب'
+            : 'الطلب في طريقه إليك مع مندوب التوصيل',
+        en:
+          o.deliveryStatus === 'arrived_at_dropoff'
+            ? 'Courier arrived at your location'
+            : 'Courier is on the way to your location',
+      },
+      delivered: {
+        ar: 'تم تسليم الطلب لك بنجاح. بالشفاء العاجل!',
+        en: 'Order successfully delivered. Get well soon!',
+      },
+    };
+
+    return ORDER_PIPELINE.map((s, i) => {
+      const isDone = i < currentIndex || o.status === 'delivered';
+      const isCurrent = i === currentIndex && o.status !== 'delivered';
+      return {
+        label: labels[s],
+        description: isRTL ? stepDescriptions[s]?.ar : stepDescriptions[s]?.en,
+        state: isDone ? 'done' : isCurrent ? 'current' : 'upcoming',
+        timestamp: isCurrent ? o.estimatedDelivery : undefined,
+      };
+    });
   };
 
   const onReorder = async () => {
@@ -153,7 +205,32 @@ export default function OrderDetailPage() {
               <span className="inline-flex items-center gap-1"><Undo2 className="w-3 h-3" />{t.account.refunded}</span>
             </StatusPill>
           )}
-          <StatusPill tone={ORDER_STATUS_TONE[order.status]}>{t.account.orderStatus[order.status]}</StatusPill>
+          <StatusPill tone={order.detailedStatus ? DETAILED_STATUS_TONE[order.detailedStatus] : ORDER_STATUS_TONE[order.status]}>
+            {order.detailedStatus && isRTL
+              ? DETAILED_STATUS_LABELS_AR[order.detailedStatus]
+              : t.account.orderStatus[order.status]}
+          </StatusPill>
+        </div>
+      </div>
+
+      {/* Customer Status Reassurance Banner */}
+      <div className="rounded-2xl border border-ragab-ink-100 bg-white p-4 shadow-xs flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-ragab-brand-50 flex items-center justify-center text-ragab-brand-700 shrink-0">
+          <Truck className="w-5 h-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-body-sm font-bold text-ragab-ink-800">
+            {order.detailedStatus && isRTL
+              ? DETAILED_STATUS_LABELS_AR[order.detailedStatus]
+              : t.account.orderStatus[order.status]}
+          </p>
+          <p className="text-caption text-ragab-ink-500 mt-0.5">
+            {order.detailedStatus && CUSTOMER_STATUS_MESSAGES_AR[order.detailedStatus]
+              ? CUSTOMER_STATUS_MESSAGES_AR[order.detailedStatus]
+              : isRTL
+              ? 'طلبك يمر بمراحل المراجعة والتجهيز والتوصيل خطوة بخطوة'
+              : 'Your order is being processed step by step'}
+          </p>
         </div>
       </div>
 
