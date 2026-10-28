@@ -180,13 +180,13 @@ export default function OrderDetailPage() {
 
     return [
       {
-        label: isRTL ? '1. تم استلام الطلب' : '1. Order Received',
+        label: isRTL ? 'تم استلام الطلب' : 'Order Received',
         description: isRTL ? 'تم تسجيل طلبك بنجاح وبانتظار اعتماد الصيدلي' : 'Order received and logged in system',
         timestamp: o.createdAt,
         state: 'done',
       },
       {
-        label: isRTL ? '2. مراجعة وتجهيز الأدوية' : '2. Preparing Medications',
+        label: isRTL ? 'تجهيز الأدوية بالصيدلية' : 'Preparing Medications',
         description: isRTL
           ? (s2Done ? 'تم تجهيز وتغليف الأدوية والتحقق من سلامتها' : 'الصيدلي يقوم بتحضير وتغليف الأدوية والتحقق من الجرعات')
           : 'Pharmacist is preparing and packaging medications',
@@ -194,41 +194,41 @@ export default function OrderDetailPage() {
         timestamp: s2Current ? '5-15 دقيقة' : undefined,
       },
       {
-        label: isRTL ? '3. إسناد وتكليف المندوب' : '3. Courier Assignment',
+        label: isRTL ? 'إسناد مندوب التوصيل' : 'Courier Assigned',
         description: hasCourier
           ? (isRTL
-              ? `تم تكليف المندوب (${courierName}) وقبل المهمة وهو متجه للصيدلية`
-              : `Assigned to courier (${courierName}), heading to pharmacy`)
+              ? `المندوب المكلف: ${courierName}${o.courier?.driverPhone || o.deliveryJob?.driverPhone ? ` (${o.courier?.driverPhone || o.deliveryJob?.driverPhone})` : ''}`
+              : `Assigned to courier (${courierName})`)
           : (isRTL
               ? 'جاري التنسيق والبحث عن أقرب مندوب توصيل متاح'
               : 'Coordinating and finding an available courier'),
         state: s3Done ? 'done' : s3Current ? 'current' : 'upcoming',
       },
       {
-        label: isRTL ? '4. استلام المندوب للأدوية' : '4. Picked up from Pharmacy',
+        label: isRTL ? 'استلام الأدوية من الصيدلية' : 'Picked up from Pharmacy',
         description: isRTL
           ? (delivery === 'arrived_at_pickup'
               ? `المندوب (${courierName}) وصل لمقر الصيدلية لاستلام وتدقيق العلاج`
               : s4Done
               ? `تم فحص الأدوية واستلمها المندوب (${courierName}) من الصيدلية`
-              : 'بانتظار وصول المندوب لاستلام الأدوية من الصيدلية')
+              : 'بانتظار وصول واستلام المندوب للأدوية')
           : `Medications ready and picked up by courier from pharmacy`,
         state: s4Done ? 'done' : s4Current ? 'current' : 'upcoming',
       },
       {
-        label: isRTL ? '5. في الطريق إليك مع المندوب' : '5. Out for Delivery',
+        label: isRTL ? 'في الطريق إليك مع المندوب' : 'Out for Delivery',
         description: isRTL
           ? (delivery === 'arrived_at_dropoff'
               ? `🛵 المندوب (${courierName}) وصل الآن لعنوانك أمام الباب!`
               : s5Current
               ? `المندوب (${courierName}) في الطريق إلى عنوانك ومعه أدويتك`
-              : 'يتم تسليم الشحنة للعميل فور الوصول للعنوان')
+              : 'يتم التوجه لعنوانك فور استلام الشحنة')
           : `Courier is on the way to your delivery address`,
         state: s5Done ? 'done' : s5Current ? 'current' : 'upcoming',
         timestamp: s5Current ? o.estimatedDelivery : undefined,
       },
       {
-        label: isRTL ? '6. تم التسليم بنجاح' : '6. Delivered Successfully',
+        label: isRTL ? 'تم التسليم بنجاح' : 'Delivered Successfully',
         description: isRTL ? 'تم تسليم الطلب لك بنجاح. بالشفاء العاجل!' : 'Order delivered. Get well soon!',
         state: s6Done ? 'done' : 'upcoming',
       },
@@ -369,59 +369,6 @@ export default function OrderDetailPage() {
 
       <div className="grid lg:grid-cols-[1fr_340px] gap-4 items-start">
         <div className="space-y-4">
-          {/* Assigned Courier Card */}
-          {(order.courier?.driverName || order.deliveryJob?.driverName) && (
-            <div className="rounded-2xl border-2 border-ragab-brand-200 bg-white p-4 shadow-xs space-y-3">
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-ragab-brand-50 text-ragab-brand-700 flex items-center justify-center font-bold text-2xl shrink-0">
-                    🛵
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-caption font-bold text-ragab-brand-700 block">
-                      {isRTL ? 'مندوب التوصيل المكلف' : 'Assigned Courier'}
-                    </span>
-                    <h3 className="text-body font-black text-ragab-ink-900 mt-0.5 truncate">
-                      {order.courier?.driverName || order.deliveryJob?.driverName}
-                    </h3>
-                  </div>
-                </div>
-
-                <div className="text-end">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-bold bg-ragab-brand-50 text-ragab-brand-800 border border-ragab-brand-100">
-                    <span className="w-2 h-2 rounded-full bg-ragab-brand-500 animate-pulse" />
-                    {getCourierStageLabel(order, isRTL)}
-                  </span>
-                </div>
-              </div>
-
-              {(order.courier?.driverPhone || order.deliveryJob?.driverPhone) && (
-                <div className="flex items-center gap-2 pt-3 border-t border-ragab-ink-100 flex-wrap">
-                  <a
-                    href={`tel:${order.courier?.driverPhone || order.deliveryJob?.driverPhone}`}
-                    className="flex-1 min-w-[140px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-ragab-brand-600 hover:bg-ragab-brand-700 text-white font-bold text-body-sm shadow-xs transition"
-                  >
-                    <Phone className="w-4 h-4" />
-                    <span>{isRTL ? 'اتصال بالمندوب' : 'Call Courier'}</span>
-                    <span dir="ltr" className="font-mono text-caption bg-white/20 px-1.5 py-0.5 rounded">
-                      {order.courier?.driverPhone || order.deliveryJob?.driverPhone}
-                    </span>
-                  </a>
-
-                  <a
-                    href={`https://wa.me/20${cleanPhone(order.courier?.driverPhone || order.deliveryJob?.driverPhone)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-body-sm shadow-xs transition"
-                    title={isRTL ? 'محادثة واتساب' : 'WhatsApp'}
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    <span>{isRTL ? 'واتساب' : 'WhatsApp'}</span>
-                  </a>
-                </div>
-              )}
-            </div>
-          )}
           {order.status === 'on_the_way' && (
             <Card>
               <CardHeader title="التتبع المباشر" />
@@ -530,31 +477,57 @@ export default function OrderDetailPage() {
                 <p className="text-body-sm text-ragab-ink-700">{paymentLabel(order.paymentMethod)}</p>
               </div>
             </div>
-            {(order.courier?.driverName || order.deliveryJob?.driverName) && (
-              <div className="flex items-center justify-between gap-2.5 mt-3 pt-3 border-t border-ragab-ink-100">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-ragab-brand-50 text-ragab-brand-700 flex items-center justify-center font-bold text-sm shrink-0">
-                    🛵
+          </Card>
+
+          {/* Courier Card in Side Column */}
+          {(order.courier?.driverName || order.deliveryJob?.driverName) && (
+            <Card>
+              <CardHeader title={isRTL ? 'مندوب التوصيل المكلف' : 'Assigned Courier'} />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-ragab-brand-50 text-ragab-brand-700 flex items-center justify-center font-bold text-base shrink-0">
+                      🛵
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-body-sm font-bold text-ragab-ink-800 truncate">
+                        {order.courier?.driverName || order.deliveryJob?.driverName}
+                      </p>
+                      {(order.courier?.driverPhone || order.deliveryJob?.driverPhone) && (
+                        <p className="text-caption text-ragab-ink-500 font-mono" dir="ltr">
+                          {order.courier?.driverPhone || order.deliveryJob?.driverPhone}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-caption font-bold text-ragab-ink-500">{isRTL ? 'مندوب التوصيل' : 'Courier'}</p>
-                    <p className="text-body-sm font-bold text-ragab-ink-800 truncate">
-                      {order.courier?.driverName || order.deliveryJob?.driverName}
-                    </p>
-                  </div>
+                  <StatusPill tone="info" dot={false}>
+                    {getCourierStageLabel(order, isRTL)}
+                  </StatusPill>
                 </div>
+
                 {(order.courier?.driverPhone || order.deliveryJob?.driverPhone) && (
-                  <a
-                    href={`tel:${order.courier?.driverPhone || order.deliveryJob?.driverPhone}`}
-                    className="p-2 rounded-lg bg-ragab-brand-50 text-ragab-brand-700 hover:bg-ragab-brand-100 shrink-0"
-                    title={isRTL ? 'اتصال بالمندوب' : 'Call Courier'}
-                  >
-                    <Phone className="w-4 h-4" />
-                  </a>
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-ragab-ink-100">
+                    <a
+                      href={`tel:${order.courier?.driverPhone || order.deliveryJob?.driverPhone}`}
+                      className="inline-flex items-center justify-center gap-1.5 h-9 rounded-lg bg-ragab-brand-500 hover:bg-ragab-brand-600 text-ragab-ink-900 font-bold text-caption transition-colors shadow-xs"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>{isRTL ? 'اتصال بالمندوب' : 'Call'}</span>
+                    </a>
+                    <a
+                      href={`https://wa.me/20${cleanPhone(order.courier?.driverPhone || order.deliveryJob?.driverPhone)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-1.5 h-9 rounded-lg border border-ragab-ink-200 hover:bg-ragab-ink-50 text-ragab-ink-700 font-bold text-caption transition-colors shadow-xs"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>{isRTL ? 'واتساب' : 'WhatsApp'}</span>
+                    </a>
+                  </div>
                 )}
               </div>
-            )}
-          </Card>
+            </Card>
+          )}
 
           {/* Actions */}
           <div className="grid grid-cols-2 gap-2.5">

@@ -188,27 +188,27 @@ function OrderAdminDetailInner() {
 
     return [
       {
-        label: ar ? '1. تم استلام الطلب' : '1. Order Received',
+        label: ar ? 'تم استلام الطلب' : 'Order Received',
         description: ar ? 'طلب العميل مسجل بالكامل' : 'Order created',
         timestamp: o.createdAt,
         state: 'done',
       },
       {
-        label: ar ? '2. تجهيز الأدوية بالصيدلية' : '2. Preparing Medications',
+        label: ar ? 'تجهيز الأدوية بالصيدلية' : 'Preparing Medications',
         description: ar
           ? (s2Done ? 'تم تحضير العلاج وتغليفه بالفرع' : 'الصيدلي يقوم بتحضير وتغليف الأدوية وفحصها')
           : 'Pharmacist preparing medications',
         state: s2Done ? 'done' : s2Current ? 'current' : 'upcoming',
       },
       {
-        label: ar ? '3. إسناد وتكليف المندوب' : '3. Courier Assignment',
+        label: ar ? 'إسناد وتكليف المندوب' : 'Courier Assignment',
         description: hasCourier
           ? (ar ? `تم التكليف للمندوب (${courierName}) وهو متجه للصيدلية` : `Assigned to ${courierName}`)
           : (ar ? 'بانتظار إسناد وتوزيع مهمة التوصيل' : 'Awaiting courier dispatch'),
         state: s3Done ? 'done' : s3Current ? 'current' : 'upcoming',
       },
       {
-        label: ar ? '4. استلام المندوب للأدوية' : '4. Picked up from Pharmacy',
+        label: ar ? 'استلام المندوب للأدوية' : 'Picked up from Pharmacy',
         description: ar
           ? (delivery === 'arrived_at_pickup'
               ? `المندوب (${courierName}) وصل لمقر الصيدلية للاستلام`
@@ -219,7 +219,7 @@ function OrderAdminDetailInner() {
         state: s4Done ? 'done' : s4Current ? 'current' : 'upcoming',
       },
       {
-        label: ar ? '5. في الطريق للعميل' : '5. Out for Delivery',
+        label: ar ? 'في الطريق للعميل' : 'Out for Delivery',
         description: ar
           ? (delivery === 'arrived_at_dropoff'
               ? `المندوب (${courierName}) وصل لموقع العميل`
@@ -231,7 +231,7 @@ function OrderAdminDetailInner() {
         timestamp: s5Current ? o.estimatedDelivery : undefined,
       },
       {
-        label: ar ? '6. تم التسليم بنجاح' : '6. Delivered Successfully',
+        label: ar ? 'تم التسليم بنجاح' : 'Delivered Successfully',
         description: ar ? 'تم تسليم الأدوية للعميل بالكامل' : 'Order delivered successfully',
         state: s6Done ? 'done' : 'upcoming',
       },
