@@ -45,7 +45,7 @@ export const Timeline: React.FC<{ steps: TimelineStep[]; className?: string }> =
             >
               {done ? <Check className="w-4 h-4" strokeWidth={3} /> : <span className="w-2 h-2 rounded-full bg-current" />}
             </span>
-            <div className="min-w-0 pt-0.5">
+            <div className="min-w-0 flex-1 pt-0.5">
               <p
                 className={cn(
                   'text-body-sm font-bold',
@@ -54,7 +54,7 @@ export const Timeline: React.FC<{ steps: TimelineStep[]; className?: string }> =
               >
                 {step.label}
               </p>
-              {step.description && <p className="text-caption text-ragab-ink-500">{step.description}</p>}
+              {step.description && <p className="text-caption text-ragab-ink-500 break-words">{step.description}</p>}
               {step.timestamp && <p className="text-caption text-ragab-ink-400 mt-0.5">{step.timestamp}</p>}
             </div>
           </li>

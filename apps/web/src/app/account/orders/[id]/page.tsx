@@ -294,20 +294,20 @@ export default function OrderDetailPage() {
   const canCancel = order.status === 'pending';
 
   return (
-    <div className="space-y-4 pb-8">
+    <div className="space-y-4 pb-8 min-w-0 max-w-full">
       <Link href="/account/orders" className="inline-flex items-center gap-1 text-caption font-semibold text-ragab-ink-500 hover:text-ragab-ink-800">
         <ChevronLeft className="w-4 h-4 ltr:rotate-180" />
         {t.account.myOrders}
       </Link>
 
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-h1 text-ragab-ink-800" dir="ltr">
+      <div className="flex items-center justify-between gap-3 flex-wrap min-w-0">
+        <div className="min-w-0">
+          <h1 className="text-h1 text-ragab-ink-800 truncate" dir="ltr">
             {order.orderNumber}
           </h1>
           <p className="text-body-sm text-ragab-ink-500 mt-0.5">{order.createdAt}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {order.refunded && (
             <StatusPill tone="info" dot={false}>
               <span className="inline-flex items-center gap-1"><Undo2 className="w-3 h-3" />{t.account.refunded}</span>
@@ -322,17 +322,17 @@ export default function OrderDetailPage() {
       </div>
 
       {/* Customer Status Reassurance Banner */}
-      <div className="rounded-2xl border border-ragab-ink-100 bg-white p-4 shadow-xs flex items-center gap-3">
+      <div className="rounded-2xl border border-ragab-ink-100 bg-white p-4 shadow-xs flex items-center gap-3 min-w-0">
         <div className="w-10 h-10 rounded-xl bg-ragab-brand-50 flex items-center justify-center text-ragab-brand-700 shrink-0">
           <Truck className="w-5 h-5" />
         </div>
-        <div className="min-w-0">
-          <p className="text-body-sm font-bold text-ragab-ink-800">
+        <div className="min-w-0 flex-1">
+          <p className="text-body-sm font-bold text-ragab-ink-800 break-words">
             {order.detailedStatus && isRTL
               ? DETAILED_STATUS_LABELS_AR[order.detailedStatus]
               : t.account.orderStatus[order.status]}
           </p>
-          <p className="text-caption text-ragab-ink-500 mt-0.5">
+          <p className="text-caption text-ragab-ink-500 mt-0.5 break-words">
             {order.detailedStatus && CUSTOMER_STATUS_MESSAGES_AR[order.detailedStatus]
               ? CUSTOMER_STATUS_MESSAGES_AR[order.detailedStatus]
               : isRTL
@@ -344,9 +344,9 @@ export default function OrderDetailPage() {
 
       {/* Pharmacist Prescription Visit Notice */}
       {order.prescriptionStatus === 'rejected_visit_required' && (
-        <div className="rounded-2xl border-2 border-red-400 bg-red-50/90 p-5 shadow-sm space-y-2 text-red-950">
+        <div className="rounded-2xl border-2 border-red-400 bg-red-50/90 p-5 shadow-sm space-y-2 text-red-950 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-600 text-white font-black text-sm shadow-xs">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-600 text-white font-black text-sm shadow-xs shrink-0">
               !
             </span>
             <h3 className="text-body font-extrabold text-red-950">
@@ -367,10 +367,10 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-[1fr_340px] gap-4 items-start">
-        <div className="space-y-4">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-4 items-start min-w-0">
+        <div className="space-y-4 min-w-0 w-full">
           {order.status === 'on_the_way' && (
-            <Card>
+            <Card className="min-w-0 overflow-hidden">
               <CardHeader title="التتبع المباشر" />
               <div className="p-4 pt-0">
                 <LiveMap orderId={order.id} />
@@ -379,27 +379,29 @@ export default function OrderDetailPage() {
           )}
 
           {/* Timeline */}
-          <Card>
+          <Card className="min-w-0 overflow-hidden">
             <CardHeader title={t.account.orderTimeline} />
             <Timeline steps={buildTimeline(order)} />
           </Card>
 
           {/* Items */}
-          <Card>
+          <Card className="min-w-0 overflow-hidden">
             <CardHeader title={t.account.orderDetails} />
-            <ul className="divide-y divide-ragab-ink-100">
+            <ul className="divide-y divide-ragab-ink-100 min-w-0">
               {order.items.map((it) => (
-                <li key={it.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                <li key={it.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0 min-w-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={it.image} alt={it.productNameAr} className="w-14 h-14 rounded-lg object-cover border border-ragab-ink-100 shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="text-body-sm font-semibold text-ragab-ink-800 truncate">{it.productNameAr}</p>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <p className="text-body-sm font-semibold text-ragab-ink-800 truncate min-w-0 flex-1" title={it.productNameAr}>
+                        {it.productNameAr}
+                      </p>
                       {it.requiresPrescription && (
-                        <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-600 text-white font-black">Rx</span>
+                        <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-600 text-white font-black shrink-0">Rx</span>
                       )}
                     </div>
-                    <p className="text-caption text-ragab-ink-500">
+                    <p className="text-caption text-ragab-ink-500 mt-0.5">
                       {it.unit} · {it.quantity} × {it.price} {t.common.egp}
                     </p>
                   </div>
@@ -413,7 +415,7 @@ export default function OrderDetailPage() {
 
           {/* Delivery Photo (shown when delivered via Engezny) */}
           {order.status === 'delivered' && (
-            <Card>
+            <Card className="min-w-0 overflow-hidden">
               <CardHeader title="📸 صورة التوصيل" />
               <div className="p-4 pt-0">
                 <EngeznyDeliveryPhoto orderId={order.id} />
@@ -423,9 +425,59 @@ export default function OrderDetailPage() {
         </div>
 
         {/* Side column */}
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0 w-full">
+          {/* Courier Card in Side Column (at top of side column for priority visibility) */}
+          {(order.courier?.driverName || order.deliveryJob?.driverName) && (
+            <Card className="min-w-0 overflow-hidden border-ragab-brand-200 bg-ragab-brand-50/20">
+              <CardHeader title={isRTL ? 'مندوب التوصيل المكلف' : 'Assigned Courier'} />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-ragab-brand-100 text-ragab-brand-800 flex items-center justify-center font-bold text-base shrink-0">
+                      🛵
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-body-sm font-bold text-ragab-ink-800 truncate">
+                        {order.courier?.driverName || order.deliveryJob?.driverName}
+                      </p>
+                      {(order.courier?.driverPhone || order.deliveryJob?.driverPhone) && (
+                        <p className="text-caption text-ragab-ink-500 font-mono" dir="ltr">
+                          {order.courier?.driverPhone || order.deliveryJob?.driverPhone}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <StatusPill tone="info" dot={false} className="max-w-full truncate">
+                    {getCourierStageLabel(order, isRTL)}
+                  </StatusPill>
+                </div>
+
+                {(order.courier?.driverPhone || order.deliveryJob?.driverPhone) && (
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-ragab-ink-100">
+                    <a
+                      href={`tel:${order.courier?.driverPhone || order.deliveryJob?.driverPhone}`}
+                      className="inline-flex items-center justify-center gap-1.5 h-9 rounded-lg bg-ragab-brand-500 hover:bg-ragab-brand-600 text-ragab-ink-900 font-bold text-caption transition-colors shadow-xs"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>{isRTL ? 'اتصال بالمندوب' : 'Call'}</span>
+                    </a>
+                    <a
+                      href={`https://wa.me/20${cleanPhone(order.courier?.driverPhone || order.deliveryJob?.driverPhone)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-1.5 h-9 rounded-lg border border-ragab-ink-200 bg-white hover:bg-ragab-ink-50 text-ragab-ink-700 font-bold text-caption transition-colors shadow-xs"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>{isRTL ? 'واتساب' : 'WhatsApp'}</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
           {/* Summary */}
-          <Card>
+          <Card className="min-w-0 overflow-hidden">
             <CardHeader title={t.account.orderSummary} />
             <dl className="space-y-2 text-body-sm">
               <div className="flex justify-between">
@@ -459,78 +511,28 @@ export default function OrderDetailPage() {
           </Card>
 
           {/* Address & payment */}
-          <Card>
-            <div className="flex items-start gap-2.5">
+          <Card className="min-w-0 overflow-hidden">
+            <div className="flex items-start gap-2.5 min-w-0">
               <MapPin className="w-5 h-5 text-ragab-success shrink-0 mt-0.5" />
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-caption font-bold text-ragab-ink-500">{t.account.deliveryAddress}</p>
-                <p className="text-body-sm text-ragab-ink-700 mt-0.5">{order.deliveryAddress.recipientName}</p>
-                <p className="text-caption text-ragab-ink-500">
+                <p className="text-body-sm text-ragab-ink-700 mt-0.5 font-semibold truncate">{order.deliveryAddress.recipientName}</p>
+                <p className="text-caption text-ragab-ink-500 break-words">
                   {order.deliveryAddress.village} — {order.deliveryAddress.streetAddress}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2.5 mt-3 pt-3 border-t border-ragab-ink-100">
+            <div className="flex items-center gap-2.5 mt-3 pt-3 border-t border-ragab-ink-100 min-w-0">
               <Truck className="w-5 h-5 text-ragab-info shrink-0" />
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-caption font-bold text-ragab-ink-500">{t.account.paymentMethod}</p>
-                <p className="text-body-sm text-ragab-ink-700">{paymentLabel(order.paymentMethod)}</p>
+                <p className="text-body-sm text-ragab-ink-700 truncate">{paymentLabel(order.paymentMethod)}</p>
               </div>
             </div>
           </Card>
 
-          {/* Courier Card in Side Column */}
-          {(order.courier?.driverName || order.deliveryJob?.driverName) && (
-            <Card>
-              <CardHeader title={isRTL ? 'مندوب التوصيل المكلف' : 'Assigned Courier'} />
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-ragab-brand-50 text-ragab-brand-700 flex items-center justify-center font-bold text-base shrink-0">
-                      🛵
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-body-sm font-bold text-ragab-ink-800 truncate">
-                        {order.courier?.driverName || order.deliveryJob?.driverName}
-                      </p>
-                      {(order.courier?.driverPhone || order.deliveryJob?.driverPhone) && (
-                        <p className="text-caption text-ragab-ink-500 font-mono" dir="ltr">
-                          {order.courier?.driverPhone || order.deliveryJob?.driverPhone}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <StatusPill tone="info" dot={false}>
-                    {getCourierStageLabel(order, isRTL)}
-                  </StatusPill>
-                </div>
-
-                {(order.courier?.driverPhone || order.deliveryJob?.driverPhone) && (
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-ragab-ink-100">
-                    <a
-                      href={`tel:${order.courier?.driverPhone || order.deliveryJob?.driverPhone}`}
-                      className="inline-flex items-center justify-center gap-1.5 h-9 rounded-lg bg-ragab-brand-500 hover:bg-ragab-brand-600 text-ragab-ink-900 font-bold text-caption transition-colors shadow-xs"
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      <span>{isRTL ? 'اتصال بالمندوب' : 'Call'}</span>
-                    </a>
-                    <a
-                      href={`https://wa.me/20${cleanPhone(order.courier?.driverPhone || order.deliveryJob?.driverPhone)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-1.5 h-9 rounded-lg border border-ragab-ink-200 hover:bg-ragab-ink-50 text-ragab-ink-700 font-bold text-caption transition-colors shadow-xs"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>{isRTL ? 'واتساب' : 'WhatsApp'}</span>
-                    </a>
-                  </div>
-                )}
-              </div>
-            </Card>
-          )}
-
           {/* Actions */}
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 gap-2.5 min-w-0">
             <Button variant="primary" leftIcon={<RotateCcw className="w-4 h-4" />} onClick={onReorder}>
               {t.account.reorder}
             </Button>

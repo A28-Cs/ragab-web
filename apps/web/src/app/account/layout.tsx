@@ -55,8 +55,8 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
   }
 
   return (
-    <div className="font-arabic">
-      <div className="lg:grid lg:grid-cols-[280px_1fr] lg:gap-6">
+    <div className="font-arabic min-w-0">
+      <div className="lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-6 min-w-0">
         {/* Sidebar / profile */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
           {/* Profile summary */}
