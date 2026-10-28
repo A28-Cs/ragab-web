@@ -44,16 +44,34 @@ export async function syncOrderWithEngezny(orderIdOrNumber: string): Promise<boo
     let docSnap = await firestore.collection('orders').doc(order.id).get();
     let docData = docSnap.exists ? docSnap.data() : null;
 
-    // Fallback: search by ragabOrderId field
+    // Fallback: search by ragabOrderId or mahsoobOrderId field
     if (!docData) {
       const q = await firestore.collection('orders').where('ragabOrderId', '==', order.id).limit(1).get();
       if (!q.empty) {
         docData = q.docs[0].data();
       }
     }
+    if (!docData) {
+      const q2 = await firestore.collection('orders').where('mahsoobOrderId', '==', order.id).limit(1).get();
+      if (!q2.empty) {
+        docData = q2.docs[0].data();
+      }
+    }
 
     if (!docData) {
       return false;
+    }
+
+    // Lookup driver phone from users collection if missing on order document
+    if (docData.workerId && !docData.workerPhone) {
+      try {
+        const workerSnap = await firestore.collection('users').doc(docData.workerId).get();
+        if (workerSnap.exists) {
+          docData.workerPhone = workerSnap.data()?.phone || workerSnap.data()?.phoneNumber || '';
+        }
+      } catch {
+        // ignore user fetch errors
+      }
     }
 
     const engeznyStatus = docData.status as string;

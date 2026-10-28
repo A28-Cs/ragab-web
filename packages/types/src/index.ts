@@ -235,6 +235,7 @@ export interface Order {
   prescriptionUrl?: string;
   prescriptionStatus?: 'pending' | 'approved' | 'rejected_visit_required';
   prescriptionRejectionReason?: string;
+  rejectionReason?: string;
   detailedStatus?: DetailedOrderStatus;
   deliveryStatus?: DeliveryJobStatus;
   deliveryJob?: DeliveryJobDetail;

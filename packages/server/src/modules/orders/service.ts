@@ -113,8 +113,88 @@ export async function getOrder(ctx: RequestContext, idOrNumber: string): Promise
   const isStaffViewer = ctx.principal?.isStaff && can(ctx.principal.permissions, 'orders', 'view');
   if (!isOwner && !isStaffViewer) throw notFound; // 404, not 403 — do not confirm it exists
 
+  const [shipment] = await db()
+    .select()
+    .from(shipments)
+    .where(eq(shipments.orderId, order.id))
+    .orderBy(desc(shipments.createdAt))
+    .limit(1);
+
+  let deliveryJobStatus: DeliveryJobStatus =
+    shipment?.status === 'delivered'
+      ? 'delivered'
+      : shipment?.status === 'out_for_delivery'
+      ? 'in_transit'
+      : shipment?.status === 'assigned'
+      ? 'assigned'
+      : shipment?.status === 'failed'
+      ? 'failed'
+      : order.status === 'preparing'
+      ? 'awaiting_dispatch'
+      : order.status === 'on_the_way'
+      ? 'in_transit'
+      : 'cancelled';
+
+  let deliveryPhotoUrl: string | undefined;
+  let liveWorkerName: string | undefined = shipment?.driverName ?? undefined;
+  let liveWorkerPhone: string | undefined = shipment?.driverPhone ?? undefined;
+
+  try {
+    const { getEngeznyFirestore } = await import('../../integrations/engezny/firebase');
+    const firestore = getEngeznyFirestore();
+    if (firestore) {
+      let docSnap = await firestore.collection('orders').doc(order.id).get();
+      let d = docSnap.exists ? docSnap.data() : null;
+      if (!d) {
+        const q = await firestore.collection('orders').where('ragabOrderId', '==', order.id).limit(1).get();
+        if (!q.empty) d = q.docs[0].data();
+      }
+      if (!d) {
+        const q2 = await firestore.collection('orders').where('mahsoobOrderId', '==', order.id).limit(1).get();
+        if (!q2.empty) d = q2.docs[0].data();
+      }
+      if (d) {
+        if (d.deliveryStatus) {
+          deliveryJobStatus = d.deliveryStatus as DeliveryJobStatus;
+        } else if (d.status === 'accepted') {
+          deliveryJobStatus = 'accepted';
+        } else if (d.status === 'purchased') {
+          deliveryJobStatus = 'in_transit';
+        } else if (d.status === 'delivered') {
+          deliveryJobStatus = 'delivered';
+        }
+        if (d.deliveryPhotoUrl) {
+          deliveryPhotoUrl = d.deliveryPhotoUrl;
+        }
+        if (!liveWorkerName && d.workerName) liveWorkerName = d.workerName;
+        if (!liveWorkerPhone && d.workerPhone) liveWorkerPhone = d.workerPhone;
+      }
+    }
+  } catch {
+    // ignore firestore read errors
+  }
+
   const items = await db().select().from(orderItems).where(eq(orderItems.orderId, order.id));
-  return toOrderDto(order, items);
+  const dto: Order = toOrderDto(order, items, deliveryJobStatus);
+
+  if (liveWorkerName || liveWorkerPhone) {
+    dto.courier = {
+      driverName: liveWorkerName ?? '',
+      driverPhone: liveWorkerPhone ?? '',
+      status: shipment?.status || (deliveryJobStatus as string) || 'assigned',
+    };
+  }
+
+  dto.deliveryJob = {
+    deliveryId: shipment?.id,
+    status: deliveryJobStatus,
+    driverName: liveWorkerName,
+    driverPhone: liveWorkerPhone,
+    deliveryPhotoUrl,
+    deliveredAt: shipment?.deliveredAt?.toISOString(),
+  };
+
+  return dto;
 }
 
 /**
@@ -146,7 +226,7 @@ export async function getOrderDetailForStaff(ctx: RequestContext, idOrNumber: st
 
   const [shipment] = await db().select().from(shipments).where(eq(shipments.orderId, order.id)).orderBy(desc(shipments.createdAt)).limit(1);
 
-  const deliveryJobStatus: DeliveryJobStatus =
+  let deliveryJobStatus: DeliveryJobStatus =
     shipment?.status === 'delivered'
       ? 'delivered'
       : shipment?.status === 'out_for_delivery'
@@ -161,6 +241,45 @@ export async function getOrderDetailForStaff(ctx: RequestContext, idOrNumber: st
       ? 'in_transit'
       : 'cancelled';
 
+  let deliveryPhotoUrl: string | undefined;
+  let liveWorkerName: string | undefined = shipment?.driverName ?? undefined;
+  let liveWorkerPhone: string | undefined = shipment?.driverPhone ?? undefined;
+
+  try {
+    const { getEngeznyFirestore } = await import('../../integrations/engezny/firebase');
+    const firestore = getEngeznyFirestore();
+    if (firestore) {
+      let docSnap = await firestore.collection('orders').doc(order.id).get();
+      let d = docSnap.exists ? docSnap.data() : null;
+      if (!d) {
+        const q = await firestore.collection('orders').where('ragabOrderId', '==', order.id).limit(1).get();
+        if (!q.empty) d = q.docs[0].data();
+      }
+      if (!d) {
+        const q2 = await firestore.collection('orders').where('mahsoobOrderId', '==', order.id).limit(1).get();
+        if (!q2.empty) d = q2.docs[0].data();
+      }
+      if (d) {
+        if (d.deliveryStatus) {
+          deliveryJobStatus = d.deliveryStatus as DeliveryJobStatus;
+        } else if (d.status === 'accepted') {
+          deliveryJobStatus = 'accepted';
+        } else if (d.status === 'purchased') {
+          deliveryJobStatus = 'in_transit';
+        } else if (d.status === 'delivered') {
+          deliveryJobStatus = 'delivered';
+        }
+        if (d.deliveryPhotoUrl) {
+          deliveryPhotoUrl = d.deliveryPhotoUrl;
+        }
+        if (!liveWorkerName && d.workerName) liveWorkerName = d.workerName;
+        if (!liveWorkerPhone && d.workerPhone) liveWorkerPhone = d.workerPhone;
+      }
+    }
+  } catch {
+    // ignore firestore read errors
+  }
+
   const items = await db().select().from(orderItems).where(eq(orderItems.orderId, order.id));
   const dto: AdminOrderDetail = toOrderDto(order, items, deliveryJobStatus);
 
@@ -168,30 +287,19 @@ export async function getOrderDetailForStaff(ctx: RequestContext, idOrNumber: st
     const [customer] = await db().select({ houseImage: users.houseImage }).from(users).where(eq(users.id, order.userId)).limit(1);
     dto.customerHouseImage = customer?.houseImage ?? undefined;
   }
-  if (shipment && (shipment.driverName || shipment.driverPhone)) {
-    dto.courier = { driverName: shipment.driverName ?? '', driverPhone: shipment.driverPhone ?? '', status: shipment.status };
-  }
-
-  // Load delivery photo from Firestore if available
-  let deliveryPhotoUrl: string | undefined;
-  try {
-    const { getEngeznyFirestore } = await import('../../integrations/engezny/firebase');
-    const firestore = getEngeznyFirestore();
-    if (firestore) {
-      const docSnap = await firestore.collection('orders').doc(order.id).get();
-      if (docSnap.exists) {
-        deliveryPhotoUrl = docSnap.data()?.deliveryPhotoUrl;
-      }
-    }
-  } catch {
-    // ignore firestore read errors
+  if (liveWorkerName || liveWorkerPhone) {
+    dto.courier = {
+      driverName: liveWorkerName ?? '',
+      driverPhone: liveWorkerPhone ?? '',
+      status: shipment?.status || (deliveryJobStatus as string) || 'assigned',
+    };
   }
 
   dto.deliveryJob = {
     deliveryId: shipment?.id,
     status: deliveryJobStatus,
-    driverName: shipment?.driverName ?? undefined,
-    driverPhone: shipment?.driverPhone ?? undefined,
+    driverName: liveWorkerName,
+    driverPhone: liveWorkerPhone,
     deliveryPhotoUrl,
     deliveredAt: shipment?.deliveredAt?.toISOString(),
   };

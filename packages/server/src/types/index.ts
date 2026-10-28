@@ -354,6 +354,7 @@ export interface Order {
   prescriptionUrl?: string;
   prescriptionStatus?: 'pending' | 'approved' | 'rejected_visit_required';
   prescriptionRejectionReason?: string;
+  rejectionReason?: string;
   manual?: boolean;
   refunded?: boolean;
   /** Additive fields — richer lifecycle, safe to ignore. */

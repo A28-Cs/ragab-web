@@ -13,6 +13,8 @@ import {
   Headset,
   Loader2,
   Undo2,
+  Phone,
+  MessageCircle,
 } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
 import { useCart } from '../../../../context/CartContext';
@@ -65,66 +67,172 @@ export default function OrderDetailPage() {
     };
   }, [id]);
 
+  function cleanPhone(phone?: string): string {
+    if (!phone) return '';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.startsWith('20')) return digits.slice(2);
+    if (digits.startsWith('0')) return digits.slice(1);
+    return digits;
+  }
+
+  function getCourierStageLabel(o: Order, rtl: boolean): string {
+    const delivery = o.deliveryStatus || o.deliveryJob?.status;
+    if (delivery === 'accepted' || delivery === 'heading_to_pickup') {
+      return rtl ? 'المندوب قبل المهمة وفي طريقه للصيدلية' : 'Courier heading to pharmacy';
+    }
+    if (delivery === 'arrived_at_pickup') {
+      return rtl ? 'المندوب وصل للصيدلية لاستلام أدويتك' : 'Courier arrived at pharmacy';
+    }
+    if (delivery === 'picked_up' || delivery === 'in_transit' || o.status === 'on_the_way') {
+      return rtl ? 'المندوب استلم أدويتك وهو في الطريق إليك' : 'Courier picked up medication and in transit';
+    }
+    if (delivery === 'arrived_at_dropoff') {
+      return rtl ? 'المندوب وصل الآن أمام موقعك' : 'Courier arrived at your location';
+    }
+    if (delivery === 'delivered' || o.status === 'delivered') {
+      return rtl ? 'تم التسليم بنجاح' : 'Delivered successfully';
+    }
+    if (delivery === 'returning') {
+      return rtl ? 'جاري إرجاع الشحنة للصيدلية' : 'Returning to pharmacy';
+    }
+    if (delivery === 'failed' || o.detailedStatus === 'delivery_exception') {
+      return rtl ? 'يوجد تعثر جاري حله مع المندوب' : 'Delivery issue being resolved';
+    }
+    return rtl ? 'تم تكليف المندوب بالطلب' : 'Courier assigned';
+  }
+
   const buildTimeline = (o: Order): TimelineStep[] => {
-    const labels = t.account.orderStatus;
+    // 1. Cancelled Order
     if (o.status === 'cancelled') {
       return [
         {
-          label: labels.pending,
-          description: isRTL ? 'تم استلام وتوثيق طلبك' : 'Order received and logged',
+          label: isRTL ? 'تم استلام الطلب' : 'Order Received',
+          description: isRTL ? 'تم تسجيل وتوثيق طلبك في النظام' : 'Order received and logged',
+          timestamp: o.createdAt,
           state: 'done',
         },
         {
-          label: labels.cancelled,
-          description: isRTL ? 'تم إلغاء الطلب' : 'Order has been cancelled',
+          label: isRTL ? 'تم إلغاء الطلب' : 'Order Cancelled',
+          description: isRTL
+            ? (o.rejectionReason || 'تم إلغاء الطلب بناءً على رغبتك أو انتهاء المهلة')
+            : (o.rejectionReason || 'Order was cancelled'),
           state: 'cancelled',
         },
       ];
     }
-    const currentIndex = ORDER_PIPELINE.indexOf(o.status);
-    const stepDescriptions: Record<string, { ar: string; en: string }> = {
-      pending: {
-        ar: 'تم تسجيل طلبك وبانتظار مراجعة واعتماد الصيدلي',
-        en: 'Order received and pending pharmacist review',
-      },
-      preparing: {
-        ar:
-          o.detailedStatus === 'ready_for_pickup'
-            ? 'تم تجهيز الأدوية وفحصها وبانتظار تحرك مندوب التوصيل'
-            : 'يقوم الصيدلي بتجهيز الأدوية والتحقق من سلامتها وتغليفها',
-        en:
-          o.detailedStatus === 'ready_for_pickup'
-            ? 'Medications ready, waiting for courier pickup'
-            : 'Pharmacist is preparing and packaging medications',
-      },
-      on_the_way: {
-        ar:
-          o.deliveryStatus === 'arrived_at_dropoff'
-            ? 'المندوب وصل إلى عنوان التوصيل'
-            : o.deliveryStatus === 'in_transit'
-            ? 'المندوب في الطريق إليك ومعه الطلب'
-            : 'الطلب في طريقه إليك مع مندوب التوصيل',
-        en:
-          o.deliveryStatus === 'arrived_at_dropoff'
-            ? 'Courier arrived at your location'
-            : 'Courier is on the way to your location',
-      },
-      delivered: {
-        ar: 'تم تسليم الطلب لك بنجاح. بالشفاء العاجل!',
-        en: 'Order successfully delivered. Get well soon!',
-      },
-    };
 
-    return ORDER_PIPELINE.map((s, i) => {
-      const isDone = i < currentIndex || o.status === 'delivered';
-      const isCurrent = i === currentIndex && o.status !== 'delivered';
-      return {
-        label: labels[s],
-        description: isRTL ? stepDescriptions[s]?.ar : stepDescriptions[s]?.en,
-        state: isDone ? 'done' : isCurrent ? 'current' : 'upcoming',
-        timestamp: isCurrent ? o.estimatedDelivery : undefined,
-      };
-    });
+    // 2. Rejected Order (e.g. prescription invalid or medication out of stock)
+    if (o.detailedStatus === 'rejected') {
+      return [
+        {
+          label: isRTL ? 'تم استلام الطلب' : 'Order Received',
+          description: isRTL ? 'تم تسجيل وتوثيق طلبك في النظام' : 'Order received and logged',
+          timestamp: o.createdAt,
+          state: 'done',
+        },
+        {
+          label: isRTL ? 'تعذر قبول الطلب من الصيدلية' : 'Order Rejected by Pharmacy',
+          description: isRTL
+            ? (o.rejectionReason || o.prescriptionRejectionReason || 'تعذر استكمال الطلب من قِبل الصيدلي')
+            : 'Could not fulfill the order per pharmacist review',
+          state: 'cancelled',
+        },
+      ];
+    }
+
+    const detailed = o.detailedStatus || (o.status as any);
+    const delivery = o.deliveryStatus || o.deliveryJob?.status;
+    const hasCourier = Boolean(o.courier?.driverName || o.deliveryJob?.driverName);
+    const courierName = o.courier?.driverName || o.deliveryJob?.driverName || (isRTL ? 'المندوب' : 'Courier');
+
+    // Milestones status calculation
+    const s6Done = o.status === 'delivered' || delivery === 'delivered';
+    const s5Done = s6Done;
+    const s5Current = !s6Done && (
+      o.status === 'on_the_way' ||
+      detailed === 'out_for_delivery' ||
+      delivery === 'in_transit' ||
+      delivery === 'arrived_at_dropoff' ||
+      detailed === 'delivery_exception'
+    );
+
+    const s4Done = s5Done || s5Current;
+    const s4Current = !s4Done && (
+      detailed === 'ready_for_pickup' ||
+      delivery === 'picked_up' ||
+      delivery === 'arrived_at_pickup'
+    );
+
+    const s3Done = s4Done || s4Current;
+    const s3Current = !s3Done && (
+      hasCourier ||
+      delivery === 'assigned' ||
+      delivery === 'accepted' ||
+      delivery === 'heading_to_pickup'
+    );
+
+    const s2Done = s3Done || s3Current || detailed === 'ready_for_pickup';
+    const s2Current = !s2Done && (
+      detailed === 'confirmed' ||
+      detailed === 'preparing' ||
+      o.status === 'preparing'
+    );
+
+    return [
+      {
+        label: isRTL ? '1. تم استلام الطلب' : '1. Order Received',
+        description: isRTL ? 'تم تسجيل طلبك بنجاح وبانتظار اعتماد الصيدلي' : 'Order received and logged in system',
+        timestamp: o.createdAt,
+        state: 'done',
+      },
+      {
+        label: isRTL ? '2. مراجعة وتجهيز الأدوية' : '2. Preparing Medications',
+        description: isRTL
+          ? (s2Done ? 'تم تجهيز وتغليف الأدوية والتحقق من سلامتها' : 'الصيدلي يقوم بتحضير وتغليف الأدوية والتحقق من الجرعات')
+          : 'Pharmacist is preparing and packaging medications',
+        state: s2Done ? 'done' : s2Current ? 'current' : 'upcoming',
+        timestamp: s2Current ? '5-15 دقيقة' : undefined,
+      },
+      {
+        label: isRTL ? '3. إسناد وتكليف المندوب' : '3. Courier Assignment',
+        description: hasCourier
+          ? (isRTL
+              ? `تم تكليف المندوب (${courierName}) وقبل المهمة وهو متجه للصيدلية`
+              : `Assigned to courier (${courierName}), heading to pharmacy`)
+          : (isRTL
+              ? 'جاري التنسيق والبحث عن أقرب مندوب توصيل متاح'
+              : 'Coordinating and finding an available courier'),
+        state: s3Done ? 'done' : s3Current ? 'current' : 'upcoming',
+      },
+      {
+        label: isRTL ? '4. استلام المندوب للأدوية' : '4. Picked up from Pharmacy',
+        description: isRTL
+          ? (delivery === 'arrived_at_pickup'
+              ? `المندوب (${courierName}) وصل لمقر الصيدلية لاستلام وتدقيق العلاج`
+              : s4Done
+              ? `تم فحص الأدوية واستلمها المندوب (${courierName}) من الصيدلية`
+              : 'بانتظار وصول المندوب لاستلام الأدوية من الصيدلية')
+          : `Medications ready and picked up by courier from pharmacy`,
+        state: s4Done ? 'done' : s4Current ? 'current' : 'upcoming',
+      },
+      {
+        label: isRTL ? '5. في الطريق إليك مع المندوب' : '5. Out for Delivery',
+        description: isRTL
+          ? (delivery === 'arrived_at_dropoff'
+              ? `🛵 المندوب (${courierName}) وصل الآن لعنوانك أمام الباب!`
+              : s5Current
+              ? `المندوب (${courierName}) في الطريق إلى عنوانك ومعه أدويتك`
+              : 'يتم تسليم الشحنة للعميل فور الوصول للعنوان')
+          : `Courier is on the way to your delivery address`,
+        state: s5Done ? 'done' : s5Current ? 'current' : 'upcoming',
+        timestamp: s5Current ? o.estimatedDelivery : undefined,
+      },
+      {
+        label: isRTL ? '6. تم التسليم بنجاح' : '6. Delivered Successfully',
+        description: isRTL ? 'تم تسليم الطلب لك بنجاح. بالشفاء العاجل!' : 'Order delivered. Get well soon!',
+        state: s6Done ? 'done' : 'upcoming',
+      },
+    ];
   };
 
   const onReorder = async () => {
@@ -261,6 +369,59 @@ export default function OrderDetailPage() {
 
       <div className="grid lg:grid-cols-[1fr_340px] gap-4 items-start">
         <div className="space-y-4">
+          {/* Assigned Courier Card */}
+          {(order.courier?.driverName || order.deliveryJob?.driverName) && (
+            <div className="rounded-2xl border-2 border-ragab-brand-200 bg-white p-4 shadow-xs space-y-3">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-ragab-brand-50 text-ragab-brand-700 flex items-center justify-center font-bold text-2xl shrink-0">
+                    🛵
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-caption font-bold text-ragab-brand-700 block">
+                      {isRTL ? 'مندوب التوصيل المكلف' : 'Assigned Courier'}
+                    </span>
+                    <h3 className="text-body font-black text-ragab-ink-900 mt-0.5 truncate">
+                      {order.courier?.driverName || order.deliveryJob?.driverName}
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="text-end">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-bold bg-ragab-brand-50 text-ragab-brand-800 border border-ragab-brand-100">
+                    <span className="w-2 h-2 rounded-full bg-ragab-brand-500 animate-pulse" />
+                    {getCourierStageLabel(order, isRTL)}
+                  </span>
+                </div>
+              </div>
+
+              {(order.courier?.driverPhone || order.deliveryJob?.driverPhone) && (
+                <div className="flex items-center gap-2 pt-3 border-t border-ragab-ink-100 flex-wrap">
+                  <a
+                    href={`tel:${order.courier?.driverPhone || order.deliveryJob?.driverPhone}`}
+                    className="flex-1 min-w-[140px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-ragab-brand-600 hover:bg-ragab-brand-700 text-white font-bold text-body-sm shadow-xs transition"
+                  >
+                    <Phone className="w-4 h-4" />
+                    <span>{isRTL ? 'اتصال بالمندوب' : 'Call Courier'}</span>
+                    <span dir="ltr" className="font-mono text-caption bg-white/20 px-1.5 py-0.5 rounded">
+                      {order.courier?.driverPhone || order.deliveryJob?.driverPhone}
+                    </span>
+                  </a>
+
+                  <a
+                    href={`https://wa.me/20${cleanPhone(order.courier?.driverPhone || order.deliveryJob?.driverPhone)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-body-sm shadow-xs transition"
+                    title={isRTL ? 'محادثة واتساب' : 'WhatsApp'}
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>{isRTL ? 'واتساب' : 'WhatsApp'}</span>
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
           {order.status === 'on_the_way' && (
             <Card>
               <CardHeader title="التتبع المباشر" />
@@ -369,6 +530,30 @@ export default function OrderDetailPage() {
                 <p className="text-body-sm text-ragab-ink-700">{paymentLabel(order.paymentMethod)}</p>
               </div>
             </div>
+            {(order.courier?.driverName || order.deliveryJob?.driverName) && (
+              <div className="flex items-center justify-between gap-2.5 mt-3 pt-3 border-t border-ragab-ink-100">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-ragab-brand-50 text-ragab-brand-700 flex items-center justify-center font-bold text-sm shrink-0">
+                    🛵
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-caption font-bold text-ragab-ink-500">{isRTL ? 'مندوب التوصيل' : 'Courier'}</p>
+                    <p className="text-body-sm font-bold text-ragab-ink-800 truncate">
+                      {order.courier?.driverName || order.deliveryJob?.driverName}
+                    </p>
+                  </div>
+                </div>
+                {(order.courier?.driverPhone || order.deliveryJob?.driverPhone) && (
+                  <a
+                    href={`tel:${order.courier?.driverPhone || order.deliveryJob?.driverPhone}`}
+                    className="p-2 rounded-lg bg-ragab-brand-50 text-ragab-brand-700 hover:bg-ragab-brand-100 shrink-0"
+                    title={isRTL ? 'اتصال بالمندوب' : 'Call Courier'}
+                  >
+                    <Phone className="w-4 h-4" />
+                  </a>
+                )}
+              </div>
+            )}
           </Card>
 
           {/* Actions */}

@@ -118,18 +118,124 @@ function OrderAdminDetailInner() {
   };
 
   const buildTimeline = (o: Order): TimelineStep[] => {
-    const labels = t.account.orderStatus;
     if (o.status === 'cancelled') {
       return [
-        { label: labels.pending, state: 'done' },
-        { label: labels.cancelled, state: 'cancelled' },
+        {
+          label: ar ? 'تم استلام الطلب' : 'Order Received',
+          description: ar ? 'تم تسجيل وتوثيق طلب العميل' : 'Order received',
+          timestamp: o.createdAt,
+          state: 'done',
+        },
+        {
+          label: ar ? 'تم إلغاء الطلب' : 'Order Cancelled',
+          description: ar ? (o.rejectionReason || 'تم إلغاء الطلب') : 'Order cancelled',
+          state: 'cancelled',
+        },
       ];
     }
-    const idx = ORDER_PIPELINE.indexOf(o.status);
-    return ORDER_PIPELINE.map((s, i) => ({
-      label: labels[s],
-      state: i < idx ? 'done' : i === idx ? 'current' : 'upcoming',
-    }));
+
+    if (o.detailedStatus === 'rejected') {
+      return [
+        {
+          label: ar ? 'تم استلام الطلب' : 'Order Received',
+          timestamp: o.createdAt,
+          state: 'done',
+        },
+        {
+          label: ar ? 'تم رفض الطلب' : 'Order Rejected',
+          description: ar ? (o.rejectionReason || o.prescriptionRejectionReason || 'رفض من قِبل الصيدلي') : 'Rejected by pharmacy',
+          state: 'cancelled',
+        },
+      ];
+    }
+
+    const detailed = o.detailedStatus || (o.status as any);
+    const delivery = o.deliveryStatus || o.deliveryJob?.status;
+    const hasCourier = Boolean(o.courier?.driverName || o.deliveryJob?.driverName);
+    const courierName = o.courier?.driverName || o.deliveryJob?.driverName || (ar ? 'المندوب' : 'Courier');
+
+    const s6Done = o.status === 'delivered' || delivery === 'delivered';
+    const s5Done = s6Done;
+    const s5Current = !s6Done && (
+      o.status === 'on_the_way' ||
+      detailed === 'out_for_delivery' ||
+      delivery === 'in_transit' ||
+      delivery === 'arrived_at_dropoff' ||
+      detailed === 'delivery_exception'
+    );
+
+    const s4Done = s5Done || s5Current;
+    const s4Current = !s4Done && (
+      detailed === 'ready_for_pickup' ||
+      delivery === 'picked_up' ||
+      delivery === 'arrived_at_pickup'
+    );
+
+    const s3Done = s4Done || s4Current;
+    const s3Current = !s3Done && (
+      hasCourier ||
+      delivery === 'assigned' ||
+      delivery === 'accepted' ||
+      delivery === 'heading_to_pickup'
+    );
+
+    const s2Done = s3Done || s3Current || detailed === 'ready_for_pickup';
+    const s2Current = !s2Done && (
+      detailed === 'confirmed' ||
+      detailed === 'preparing' ||
+      o.status === 'preparing'
+    );
+
+    return [
+      {
+        label: ar ? '1. تم استلام الطلب' : '1. Order Received',
+        description: ar ? 'طلب العميل مسجل بالكامل' : 'Order created',
+        timestamp: o.createdAt,
+        state: 'done',
+      },
+      {
+        label: ar ? '2. تجهيز الأدوية بالصيدلية' : '2. Preparing Medications',
+        description: ar
+          ? (s2Done ? 'تم تحضير العلاج وتغليفه بالفرع' : 'الصيدلي يقوم بتحضير وتغليف الأدوية وفحصها')
+          : 'Pharmacist preparing medications',
+        state: s2Done ? 'done' : s2Current ? 'current' : 'upcoming',
+      },
+      {
+        label: ar ? '3. إسناد وتكليف المندوب' : '3. Courier Assignment',
+        description: hasCourier
+          ? (ar ? `تم التكليف للمندوب (${courierName}) وهو متجه للصيدلية` : `Assigned to ${courierName}`)
+          : (ar ? 'بانتظار إسناد وتوزيع مهمة التوصيل' : 'Awaiting courier dispatch'),
+        state: s3Done ? 'done' : s3Current ? 'current' : 'upcoming',
+      },
+      {
+        label: ar ? '4. استلام المندوب للأدوية' : '4. Picked up from Pharmacy',
+        description: ar
+          ? (delivery === 'arrived_at_pickup'
+              ? `المندوب (${courierName}) وصل لمقر الصيدلية للاستلام`
+              : s4Done
+              ? `استلم المندوب (${courierName}) الشحنة من الصيدلية`
+              : 'بانتظار وصول واستلام المندوب')
+          : 'Medications picked up by courier',
+        state: s4Done ? 'done' : s4Current ? 'current' : 'upcoming',
+      },
+      {
+        label: ar ? '5. في الطريق للعميل' : '5. Out for Delivery',
+        description: ar
+          ? (delivery === 'arrived_at_dropoff'
+              ? `المندوب (${courierName}) وصل لموقع العميل`
+              : s5Current
+              ? `المندوب (${courierName}) في الطريق إلى عنوان العميل`
+              : 'في الطريق للتسليم')
+          : 'Courier is in transit to customer',
+        state: s5Done ? 'done' : s5Current ? 'current' : 'upcoming',
+        timestamp: s5Current ? o.estimatedDelivery : undefined,
+      },
+      {
+        label: ar ? '6. تم التسليم بنجاح' : '6. Delivered Successfully',
+        description: ar ? 'تم تسليم الأدوية للعميل بالكامل' : 'Order delivered successfully',
+        state: s6Done ? 'done' : 'upcoming',
+      },
+    ];
   };
 
   const onUpdateStatus = (nextStatus: OrderStatus) => {
@@ -491,14 +597,19 @@ function OrderAdminDetailInner() {
                     {ar ? DELIVERY_STATUS_LABELS_AR[order.deliveryJob?.status || order.deliveryStatus || 'awaiting_dispatch'] : (order.deliveryJob?.status || order.deliveryStatus || 'awaiting_dispatch')}
                   </StatusPill>
                 </div>
-                {order.courier?.driverName && (
+                {(order.courier?.driverName || order.deliveryJob?.driverName) && (
                   <div className="text-start">
                     <span className="text-caption text-ragab-ink-400 block mb-0.5">{ar ? 'المندوب المكلف' : 'Assigned Courier'}</span>
-                    <div className="font-bold text-body-sm text-ragab-ink-800 flex items-center gap-2">
-                      <span>🛵 {order.courier.driverName}</span>
-                      {order.courier.driverPhone && (
-                        <a href={`tel:${order.courier.driverPhone}`} className="text-ragab-brand-600 hover:underline text-caption" dir="ltr">
-                          ({order.courier.driverPhone})
+                    <div className="font-bold text-body-sm text-ragab-ink-800 flex items-center gap-2 flex-wrap">
+                      <span>🛵 {order.courier?.driverName || order.deliveryJob?.driverName}</span>
+                      {(order.courier?.driverPhone || order.deliveryJob?.driverPhone) && (
+                        <a
+                          href={`tel:${order.courier?.driverPhone || order.deliveryJob?.driverPhone}`}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-ragab-brand-50 text-ragab-brand-700 hover:bg-ragab-brand-100 text-caption font-bold"
+                          dir="ltr"
+                        >
+                          <Phone className="w-3 h-3" />
+                          {order.courier?.driverPhone || order.deliveryJob?.driverPhone}
                         </a>
                       )}
                     </div>

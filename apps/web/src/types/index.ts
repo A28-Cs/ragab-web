@@ -344,6 +344,7 @@ export interface Order {
   prescriptionUrl?: string;
   prescriptionStatus?: 'pending' | 'approved' | 'rejected_visit_required';
   prescriptionRejectionReason?: string;
+  rejectionReason?: string;
   /** Admin-set: order was created manually by staff (phone/walk-in) */
   manual?: boolean;
   /** Admin-set: a refund was issued against this order */
