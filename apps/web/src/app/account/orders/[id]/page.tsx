@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../../../lib/firebase';
 import {
   ChevronLeft,
   RotateCcw,
@@ -51,13 +53,88 @@ export default function OrderDetailPage() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
+  const lastNotifiedStateRef = useRef<{ status?: string; deliveryStatus?: string; courier?: string }>({});
+
+  const refreshSilently = useCallback(async (targetId: string) => {
+    try {
+      const data = await getOrderById(targetId);
+      if (!data) return;
+      setOrder((prev) => {
+        if (!prev) return data;
+        const newCourier = data.courier?.driverName || data.deliveryJob?.driverName;
+        const newStatus = data.status;
+        const newDeliveryStatus = data.deliveryStatus || data.deliveryJob?.status;
+
+        // One-time milestone toast notifications
+        if (newCourier && !lastNotifiedStateRef.current.courier) {
+          lastNotifiedStateRef.current.courier = newCourier;
+          showToast(
+            isRTL
+              ? `تم إسناد الطلب للمندوب: ${newCourier}`
+              : `Assigned to courier: ${newCourier}`,
+            'info'
+          );
+        }
+
+        if (
+          (newStatus === 'on_the_way' || newDeliveryStatus === 'in_transit') &&
+          lastNotifiedStateRef.current.status !== 'on_the_way'
+        ) {
+          lastNotifiedStateRef.current.status = 'on_the_way';
+          showToast(
+            isRTL
+              ? 'المندوب استلم أدويتك وهو في الطريق إليك 🛵'
+              : 'Courier picked up medication and is on the way',
+            'info'
+          );
+        }
+
+        if (
+          newDeliveryStatus === 'arrived_at_dropoff' &&
+          lastNotifiedStateRef.current.deliveryStatus !== 'arrived_at_dropoff'
+        ) {
+          lastNotifiedStateRef.current.deliveryStatus = 'arrived_at_dropoff';
+          showToast(
+            isRTL ? 'المندوب وصل الآن أمام موقعك! 📍' : 'Courier arrived at your location',
+            'info'
+          );
+        }
+
+        if (
+          (newStatus === 'delivered' || newDeliveryStatus === 'delivered') &&
+          lastNotifiedStateRef.current.status !== 'delivered'
+        ) {
+          lastNotifiedStateRef.current.status = 'delivered';
+          showToast(
+            isRTL ? 'تم تسليم طلبك بنجاح! بالشفاء العاجل 💊' : 'Order delivered successfully! Get well soon',
+            'success'
+          );
+        }
+
+        return data;
+      });
+    } catch {
+      // ignore silent refresh errors
+    }
+  }, [isRTL, showToast]);
+
+  // Initial load
   useEffect(() => {
     let alive = true;
     (async () => {
       setLoading(true);
       try {
         const data = await getOrderById(id);
-        if (alive) setOrder(data);
+        if (alive) {
+          setOrder(data);
+          if (data) {
+            lastNotifiedStateRef.current = {
+              status: data.status,
+              deliveryStatus: data.deliveryStatus || data.deliveryJob?.status,
+              courier: data.courier?.driverName || data.deliveryJob?.driverName,
+            };
+          }
+        }
       } finally {
         if (alive) setLoading(false);
       }
@@ -66,6 +143,106 @@ export default function OrderDetailPage() {
       alive = false;
     };
   }, [id]);
+
+  // Real-time Firestore sync (< 100ms updates without page refresh)
+  useEffect(() => {
+    const targetId = order?.id || id;
+    if (!targetId || !db) return;
+
+    let unsub: (() => void) | undefined;
+    try {
+      const orderRef = doc(db, 'orders', targetId);
+      unsub = onSnapshot(
+        orderRef,
+        (snap) => {
+          if (!snap.exists()) return;
+          const data = snap.data();
+
+          setOrder((prev) => {
+            if (!prev) return prev;
+            let changed = false;
+            const next = { ...prev };
+
+            const rawStatus = data.status;
+            const deliveryStatus = data.deliveryStatus || (rawStatus === 'purchased' ? 'in_transit' : rawStatus);
+
+            if (deliveryStatus && next.deliveryStatus !== deliveryStatus) {
+              next.deliveryStatus = deliveryStatus;
+              changed = true;
+            }
+
+            if (rawStatus === 'purchased' && next.status === 'preparing') {
+              next.status = 'on_the_way';
+              next.detailedStatus = 'out_for_delivery';
+              changed = true;
+            } else if (rawStatus === 'delivered' && next.status !== 'delivered') {
+              next.status = 'delivered';
+              next.detailedStatus = 'delivered';
+              changed = true;
+            }
+
+            const driverName = data.workerName || next.courier?.driverName || next.deliveryJob?.driverName;
+            const driverPhone = data.workerPhone || next.courier?.driverPhone || next.deliveryJob?.driverPhone;
+
+            if (data.workerName || data.workerPhone) {
+              if (next.courier?.driverName !== driverName || next.courier?.driverPhone !== driverPhone) {
+                next.courier = {
+                  driverName: driverName || '',
+                  driverPhone: driverPhone || '',
+                  status: (deliveryStatus as string) || 'assigned',
+                };
+                changed = true;
+              }
+              if (next.deliveryJob) {
+                next.deliveryJob = {
+                  ...next.deliveryJob,
+                  driverName,
+                  driverPhone,
+                  status: deliveryStatus || next.deliveryJob.status,
+                };
+                changed = true;
+              }
+            }
+
+            if (data.deliveryPhotoUrl && next.deliveryJob?.deliveryPhotoUrl !== data.deliveryPhotoUrl) {
+              next.deliveryJob = {
+                ...(next.deliveryJob || { status: 'delivered' }),
+                deliveryPhotoUrl: data.deliveryPhotoUrl,
+              };
+              changed = true;
+            }
+
+            return changed ? next : prev;
+          });
+
+          // Reconcile Postgres & complete order DTO silently in background
+          refreshSilently(targetId);
+        },
+        (error) => {
+          console.warn('Real-time order tracking listener error:', error);
+        }
+      );
+    } catch (e) {
+      console.warn('Failed to subscribe to order changes:', e);
+    }
+
+    return () => {
+      if (unsub) unsub();
+    };
+  }, [order?.id, id, refreshSilently]);
+
+  // Polling fallback every 4s while order is active (never requires manual refresh)
+  useEffect(() => {
+    if (!order || order.status === 'delivered' || order.status === 'cancelled') {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      refreshSilently(order.id);
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [order?.id, order?.status, refreshSilently]);
 
   function cleanPhone(phone?: string): string {
     if (!phone) return '';

@@ -96,7 +96,7 @@ export async function getOrder(ctx: RequestContext, idOrNumber: string): Promise
   const notFound = new NotFoundError({ code: 'ORDER_NOT_FOUND', message: { ar: 'الطلب غير موجود.', en: 'Order not found.' } });
   if (!order) throw notFound;
 
-  if (order.status === 'preparing' || order.status === 'on_the_way') {
+  if (order.status !== 'delivered' && order.status !== 'cancelled') {
     try {
       const { syncOrderWithEngezny } = await import('./engezny-sync');
       const changed = await syncOrderWithEngezny(order.id);
@@ -168,6 +168,18 @@ export async function getOrder(ctx: RequestContext, idOrNumber: string): Promise
         }
         if (!liveWorkerName && d.workerName) liveWorkerName = d.workerName;
         if (!liveWorkerPhone && d.workerPhone) liveWorkerPhone = d.workerPhone;
+        if ((!liveWorkerName || !liveWorkerPhone) && d.workerId) {
+          try {
+            const wSnap = await firestore.collection('users').doc(d.workerId).get();
+            if (wSnap.exists) {
+              const u = wSnap.data();
+              if (!liveWorkerName) liveWorkerName = u?.name || u?.displayName || undefined;
+              if (!liveWorkerPhone) liveWorkerPhone = u?.phone || u?.phoneNumber || undefined;
+            }
+          } catch {
+            // ignore user lookup error
+          }
+        }
       }
     }
   } catch {
@@ -211,7 +223,7 @@ export async function getOrderDetailForStaff(ctx: RequestContext, idOrNumber: st
     .limit(1);
   if (!order) throw new NotFoundError({ code: 'ORDER_NOT_FOUND', message: { ar: 'الطلب غير موجود.', en: 'Order not found.' } });
 
-  if (order.status === 'preparing' || order.status === 'on_the_way') {
+  if (order.status !== 'delivered' && order.status !== 'cancelled') {
     try {
       const { syncOrderWithEngezny } = await import('./engezny-sync');
       const changed = await syncOrderWithEngezny(order.id);
@@ -274,6 +286,18 @@ export async function getOrderDetailForStaff(ctx: RequestContext, idOrNumber: st
         }
         if (!liveWorkerName && d.workerName) liveWorkerName = d.workerName;
         if (!liveWorkerPhone && d.workerPhone) liveWorkerPhone = d.workerPhone;
+        if ((!liveWorkerName || !liveWorkerPhone) && d.workerId) {
+          try {
+            const wSnap = await firestore.collection('users').doc(d.workerId).get();
+            if (wSnap.exists) {
+              const u = wSnap.data();
+              if (!liveWorkerName) liveWorkerName = u?.name || u?.displayName || undefined;
+              if (!liveWorkerPhone) liveWorkerPhone = u?.phone || u?.phoneNumber || undefined;
+            }
+          } catch {
+            // ignore user lookup error
+          }
+        }
       }
     }
   } catch {
