@@ -17,6 +17,7 @@ import {
   Undo2,
   Phone,
   MessageCircle,
+  Star,
 } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
 import { useCart } from '../../../../context/CartContext';
@@ -27,6 +28,7 @@ import { ApiError } from '../../../../lib/apiClient';
 import { Order } from '../../../../types';
 import { Card, CardHeader } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
+import { Modal } from '../../../../components/ui/Modal';
 import { StatusPill } from '../../../../components/ui/StatusPill';
 import { Timeline, TimelineStep } from '../../../../components/ui/Timeline';
 import { ConfirmDialog } from '../../../../components/ui/ConfirmDialog';
@@ -52,6 +54,31 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+
+  // Reviews state
+  const [reviewsMap, setReviewsMap] = useState<Record<string, { rating: number; title?: string | null; body?: string | null }>>({});
+  const [reviewingItem, setReviewingItem] = useState<{ productId: string; productName: string } | null>(null);
+  const [ratingScore, setRatingScore] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  const loadOrderReviews = useCallback(async (orderId: string) => {
+    try {
+      const res = await fetch(`/api/v1/orders/${orderId}/reviews`);
+      if (res.ok) {
+        const data = await res.json();
+        const map: Record<string, { rating: number; title?: string | null; body?: string | null }> = {};
+        if (Array.isArray(data)) {
+          for (const r of data) {
+            map[r.productId] = { rating: r.rating, title: r.title, body: r.body };
+          }
+        }
+        setReviewsMap(map);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const lastNotifiedStateRef = useRef<{ status?: string; deliveryStatus?: string; courier?: string }>({});
 
@@ -143,6 +170,44 @@ export default function OrderDetailPage() {
       alive = false;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (order?.id && order.status === 'delivered') {
+      loadOrderReviews(order.id);
+    }
+  }, [order?.id, order?.status, loadOrderReviews]);
+
+  const handleSubmitReview = async () => {
+    if (!reviewingItem || !order) return;
+    setSubmittingReview(true);
+    try {
+      const res = await fetch('/api/v1/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: reviewingItem.productId,
+          orderId: order.id,
+          rating: ratingScore,
+          comment: reviewComment.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error?.message || 'تعذر حفظ التقييم');
+      }
+      setReviewsMap((prev) => ({
+        ...prev,
+        [reviewingItem.productId]: { rating: ratingScore, body: reviewComment.trim() },
+      }));
+      showToast(isRTL ? 'شكراً لك! تم حفظ تقييمك بنجاح.' : 'Thank you! Your review was saved.', 'success');
+      setReviewingItem(null);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'فشل حفظ التقييم';
+      showToast(msg, 'error');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   // Real-time Firestore sync (< 100ms updates without page refresh)
   useEffect(() => {
@@ -581,6 +646,43 @@ export default function OrderDetailPage() {
                     <p className="text-caption text-ragab-ink-500 mt-0.5">
                       {it.unit} · {it.quantity} × {it.price} {t.common.egp}
                     </p>
+                    {order.status === 'delivered' && it.productId && (
+                      <div className="mt-2 flex items-center gap-2">
+                        {reviewsMap[it.productId] ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReviewingItem({
+                                productId: it.productId!,
+                                productName: it.productNameAr,
+                              });
+                              setRatingScore(reviewsMap[it.productId!].rating);
+                              setReviewComment(reviewsMap[it.productId!].body || '');
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-colors"
+                          >
+                            <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                            <span>تم تقييمك: {reviewsMap[it.productId].rating} / 5 (تعديل)</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReviewingItem({
+                                productId: it.productId!,
+                                productName: it.productNameAr,
+                              });
+                              setRatingScore(5);
+                              setReviewComment('');
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                          >
+                            <Star className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>تقييم المنتج ⭐</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <p className="text-body-sm font-bold text-ragab-ink-800 shrink-0">
                     {it.total} {t.common.egp}
@@ -748,6 +850,87 @@ export default function OrderDetailPage() {
         destructive
         isLoading={cancelling}
       />
+
+      {/* Product Rating Modal */}
+      {reviewingItem && (
+        <Modal
+          isOpen={Boolean(reviewingItem)}
+          onClose={() => setReviewingItem(null)}
+          title={isRTL ? `تقييم: ${reviewingItem.productName}` : `Rate: ${reviewingItem.productName}`}
+          maxWidth="md"
+        >
+          <div className="space-y-5 font-arabic p-1">
+            <p className="text-body-sm text-ragab-ink-600">
+              {isRTL
+                ? 'رأيك يهمنا ويساعد الآخرين على اختيار المنتج الأفضل. شاركنا تجربتك بكل أمانة.'
+                : 'Your feedback helps other customers make informed choices.'}
+            </p>
+
+            {/* Stars selection */}
+            <div className="space-y-2">
+              <label className="block text-body-sm font-bold text-ragab-charcoal">
+                {isRTL ? 'التقييم بالنجوم' : 'Rating'}
+              </label>
+              <div className="flex items-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRatingScore(star)}
+                    className="p-1.5 rounded-lg hover:bg-amber-50 focus-ring transition-transform hover:scale-110"
+                    aria-label={`${star} stars`}
+                  >
+                    <Star
+                      className={`w-8 h-8 transition-colors ${
+                        star <= ratingScore
+                          ? 'fill-amber-400 text-amber-400'
+                          : 'text-gray-300'
+                      }`}
+                    />
+                  </button>
+                ))}
+                <span className="ms-2 font-bold text-sm text-ragab-charcoal">
+                  {ratingScore} {isRTL ? 'من 5 نجوم' : 'of 5 stars'}
+                </span>
+              </div>
+            </div>
+
+            {/* Review comment */}
+            <div className="space-y-2">
+              <label className="block text-body-sm font-bold text-ragab-charcoal">
+                {isRTL ? 'تعليقك أو ملاحظاتك (اختياري)' : 'Comment or feedback (optional)'}
+              </label>
+              <textarea
+                rows={3}
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder={isRTL ? 'كيف كانت جودة المنتج والتغليف؟' : 'How was the product quality and packaging?'}
+                className="w-full p-3 bg-gray-50 border border-gray-300 rounded-xl text-body-sm focus:border-ragab-brand-500 focus:outline-none"
+              />
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-ragab-ink-100">
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => setReviewingItem(null)}
+                disabled={submittingReview}
+              >
+                {isRTL ? 'إلغاء' : 'Cancel'}
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleSubmitReview}
+                disabled={submittingReview}
+              >
+                {submittingReview ? (isRTL ? 'جاري الحفظ...' : 'Saving...') : (isRTL ? 'تأكيد التقييم' : 'Submit Review')}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

@@ -21,6 +21,7 @@ import {
   ShieldAlert,
   Grid2X2,
   FileText,
+  Headphones,
 } from 'lucide-react';
 import { cn } from '@ragab/utils';
 import { RagabLogo } from '../ui/RagabLogo';
@@ -153,6 +154,7 @@ export const Header: React.FC = () => {
         { label: t.navigation.orders, icon: <OrdersIcon className="w-4 h-4" />, href: '/account/orders' },
         { label: isRTL ? 'العناوين' : 'Addresses', icon: <MapPin className="w-4 h-4" />, href: '/account/addresses' },
         { label: t.account.security, icon: <ShieldCheck className="w-4 h-4" />, href: '/account/security' },
+        { label: isRTL ? 'الدعم والمساعدة' : 'Help & Support', icon: <Headphones className="w-4 h-4" />, href: '/contact' },
         { label: t.account.settings, icon: <Settings className="w-4 h-4" />, href: '/account/settings' },
         ...(hasAnyAdminAccess
           ? [{ label: t.admin.controlCenter, icon: <ShieldAlert className="w-4 h-4" />, href: '/control-center', separatorBefore: true }]
@@ -446,7 +448,7 @@ export const Header: React.FC = () => {
             </div>
             {isLoggedIn ? <>
               <div className="grid grid-cols-2 gap-2 text-body-sm">
-                {[{ href: '/account', label: t.navigation.account }, { href: '/account/orders', label: t.navigation.orders }, { href: '/account/addresses', label: isRTL ? 'العناوين' : 'Addresses' }, { href: '/account/settings', label: t.account.settings }].map(item => <Link key={item.href} href={item.href} onClick={() => setIsMenuOpen(false)} className="p-2 hover:bg-white rounded-lg focus-ring">{item.label}</Link>)}
+                {[{ href: '/account', label: t.navigation.account }, { href: '/account/orders', label: t.navigation.orders }, { href: '/account/addresses', label: isRTL ? 'العناوين' : 'Addresses' }, { href: '/account/security', label: t.account.security }, { href: '/contact', label: isRTL ? 'الدعم والمساعدة' : 'Help & Support' }, { href: '/account/settings', label: t.account.settings }].map(item => <Link key={item.href} href={item.href} onClick={() => setIsMenuOpen(false)} className="p-2 hover:bg-white rounded-lg focus-ring">{item.label}</Link>)}
               </div>
               <button onClick={handleLogout} className="mt-3 pt-3 border-t border-ragab-brand-200 w-full flex items-center gap-2 text-ragab-danger text-body-sm font-bold focus-ring"><LogOut className="w-4 h-4" />{t.navigation.logout}</button>
             </> : <>
@@ -462,6 +464,7 @@ export const Header: React.FC = () => {
             { href: '/categories?sort=popular', label: t.navigation.bestSellers },
             { href: '/favorites', label: t.navigation.favorites },
             ...(hasAnyAdminAccess ? [{ href: '/control-center', label: t.admin.controlCenter }] : []),
+            { href: '/contact', label: isRTL ? 'الدعم والمساعدة' : 'Help & Support' },
             { href: '/about', label: t.navigation.about },
           ].map((item) => (
             <Link
