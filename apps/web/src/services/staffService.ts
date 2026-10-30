@@ -6,14 +6,20 @@
 import { PermissionKey, StaffStatus, StaffUser } from '../types';
 import { api } from '../lib/apiClient';
 
-export const getStaff = async (): Promise<StaffUser[]> => api.get<StaffUser[]>('/admin/staff');
+export const getStaff = async (filter?: string, search?: string): Promise<StaffUser[]> => {
+  const params = new URLSearchParams();
+  if (filter) params.set('filter', filter);
+  if (search) params.set('search', search);
+  const q = params.toString();
+  return api.get<StaffUser[]>(`/admin/staff${q ? `?${q}` : ''}`);
+};
 
 export const getStaffMember = async (id: string): Promise<StaffUser | null> => {
   const all = await getStaff();
   return all.find((s) => s.id === id) ?? null;
 };
 
-export const changeStaffRole = async (id: string, roleId: string, _perms?: Set<PermissionKey>): Promise<void> => {
+export const changeStaffRole = async (id: string, roleId: string | null, _perms?: Set<PermissionKey>): Promise<void> => {
   await api.patch(`/admin/staff/${encodeURIComponent(id)}`, { roleId });
 };
 

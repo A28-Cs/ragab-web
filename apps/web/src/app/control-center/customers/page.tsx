@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search, MoreVertical, Eye, Ban, CheckCircle2, Loader2, Phone, MapPin, ShoppingBag, Undo2 } from 'lucide-react';
+import { Search, MoreVertical, Eye, Ban, CheckCircle2, Loader2, Phone, MapPin, ShoppingBag, Undo2, UserCog } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useToast } from '../../../components/ui/Toast';
@@ -98,6 +98,22 @@ function CustomersInner() {
           trigger={<span className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-ragab-ink-500 hover:bg-ragab-ink-100"><MoreVertical className="w-4 h-4" /></span>}
           items={[
             { label: t.admin.view, icon: <Eye className="w-4 h-4" />, onClick: () => openDetail(c) },
+            {
+              label: t.common.call ?? (language === 'ar' ? 'اتصال هاتفياً' : 'Call customer'),
+              icon: <Phone className="w-4 h-4" />,
+              href: `tel:${c.phone}`,
+            },
+            {
+              label: language === 'ar' ? 'مراسلة واتساب' : 'WhatsApp',
+              icon: <Phone className="w-4 h-4 text-ragab-success" />,
+              href: `https://wa.me/2${c.phone.replace(/^0/, '')}`,
+            },
+            {
+              label: language === 'ar' ? 'ترقية لموظف / تعيين دور' : 'Promote to staff',
+              icon: <UserCog className="w-4 h-4" />,
+              href: `/control-center/users/${c.id}`,
+              disabled: !hasPermission('users', 'edit'),
+            },
             {
               label: c.status === 'active' ? t.adminCustomers.block : t.adminCustomers.unblock,
               icon: c.status === 'active' ? <Ban className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />,

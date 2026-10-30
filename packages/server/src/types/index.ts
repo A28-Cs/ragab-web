@@ -455,6 +455,7 @@ export interface StaffUser {
   roleId: string;
   directPermissions: import('../security/permissions').PermissionKey[];
   status: StaffStatus;
+  isStaff?: boolean;
   lastLoginAt?: string;
   createdAt: string;
 }

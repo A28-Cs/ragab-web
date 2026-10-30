@@ -4,7 +4,7 @@
  * can (least privilege). Role assignment revokes the target's other sessions so the new
  * (or reduced) permissions take effect immediately.
  */
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, ilike, or } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../db/client';
 import { users, roles } from '../../db/schema';
@@ -27,7 +27,8 @@ export const staffCreateSchema = z.object({
 
 export const staffUpdateSchema = z.object({
   name: z.string().trim().min(2).max(120).optional(),
-  roleId: z.string().min(1).max(64).optional(),
+  roleId: z.string().max(64).nullable().optional(),
+  isStaff: z.boolean().optional(),
   status: z.enum(['active', 'suspended', 'disabled']).optional(),
 }).strict();
 
@@ -36,6 +37,7 @@ function toDto(row: typeof users.$inferSelect): StaffUser {
     id: row.id, name: row.name, email: row.email ?? '', phone: row.phone,
     avatar: row.avatar ?? undefined, roleId: row.roleId ?? '', directPermissions: [],
     status: (row.status === 'pending_verification' ? 'active' : row.status) as StaffUser['status'],
+    isStaff: row.isStaff,
     lastLoginAt: row.lastLoginAt ? toLegacyTimestamp(row.lastLoginAt) : undefined,
     createdAt: toLegacyTimestamp(row.createdAt),
   };
@@ -46,8 +48,23 @@ async function assertRoleExists(roleId: string): Promise<void> {
   if (!role) throw new BusinessRuleError({ code: 'ROLE_NOT_FOUND', message: { ar: 'الدور غير موجود.', en: 'Role not found.' } });
 }
 
-export async function listStaff(): Promise<StaffUser[]> {
-  const rows = await db().select().from(users).where(eq(users.isStaff, true)).orderBy(desc(users.createdAt));
+export async function listStaff(opts?: { filter?: string; search?: string }): Promise<StaffUser[]> {
+  const conds: any[] = [];
+  if (opts?.filter === 'staff') {
+    conds.push(eq(users.isStaff, true));
+  } else if (opts?.filter === 'customers') {
+    conds.push(eq(users.isStaff, false));
+  }
+  if (opts?.search && opts.search.trim().length > 0) {
+    const s = `%${opts.search.trim()}%`;
+    conds.push(or(ilike(users.name, s), ilike(users.phone, s), ilike(users.email, s))!);
+  }
+
+  const base = db().select().from(users);
+  const rows = conds.length > 0
+    ? await base.where(and(...conds)).orderBy(desc(users.createdAt))
+    : await base.orderBy(desc(users.createdAt));
+
   return rows.map(toDto);
 }
 
@@ -67,17 +84,47 @@ export async function createStaff(ctx: RequestContext, input: z.infer<typeof sta
 }
 
 export async function updateStaff(ctx: RequestContext, id: string, input: z.infer<typeof staffUpdateSchema>): Promise<StaffUser> {
-  const [existing] = await db().select().from(users).where(and(eq(users.id, id), eq(users.isStaff, true))).limit(1);
-  if (!existing) throw new NotFoundError({ code: 'STAFF_NOT_FOUND', message: { ar: 'الموظف غير موجود.', en: 'Staff member not found.' } });
-  if (input.roleId) await assertRoleExists(input.roleId);
+  const [existing] = await db().select().from(users).where(eq(users.id, id)).limit(1);
+  if (!existing) throw new NotFoundError({ code: 'USER_NOT_FOUND', message: { ar: 'المستخدم غير موجود.', en: 'User not found.' } });
+  
+  let roleId = existing.roleId;
+  let isStaff = existing.isStaff;
+
+  if (input.roleId !== undefined) {
+    if (input.roleId === null || input.roleId === '' || input.roleId === 'customer') {
+      roleId = null;
+      isStaff = false;
+    } else {
+      await assertRoleExists(input.roleId);
+      roleId = input.roleId;
+      isStaff = true;
+    }
+  }
+
+  if (input.isStaff !== undefined) {
+    isStaff = input.isStaff;
+    if (!isStaff) roleId = null;
+  }
+
   await db().update(users).set({
     name: input.name ?? existing.name,
-    roleId: input.roleId ?? existing.roleId,
+    roleId,
+    isStaff,
     status: input.status ?? existing.status,
   }).where(eq(users.id, id));
+
   // A permission-affecting change forces re-auth on the target's other sessions.
-  if (input.roleId || input.status) await revokeAllSessions(id);
-  await logAudit({ actorId: ctx.principal?.userId, actorName: ctx.principal?.user.name ?? 'system', actorRole: 'staff', action: 'user_updated', resource: 'users', resourceId: id, metadata: { roleId: input.roleId ?? '', status: input.status ?? '' }, requestId: ctx.requestId });
+  await revokeAllSessions(id);
+  await logAudit({
+    actorId: ctx.principal?.userId,
+    actorName: ctx.principal?.user.name ?? 'system',
+    actorRole: 'staff',
+    action: 'user_updated',
+    resource: 'users',
+    resourceId: id,
+    metadata: { roleId: roleId ?? '', isStaff: String(isStaff), status: input.status ?? '' },
+    requestId: ctx.requestId,
+  });
   const [row] = await db().select().from(users).where(eq(users.id, id)).limit(1);
   return toDto(row!);
 }

@@ -26,24 +26,26 @@ export default function UsersPage() {
   const [staff, setStaff] = useState<StaffUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<'all' | 'staff' | 'customers'>('all');
   const [removeTarget, setRemoveTarget] = useState<StaffUser | null>(null);
   const [removing, setRemoving] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
-      setStaff(await getStaff());
+      setStaff(await getStaff(filter));
     } finally {
       setLoading(false);
     }
   };
   useEffect(() => {
     load();
-  }, []);
+  }, [filter]);
 
-  const roleName = (roleId: string) => {
-    const r = DEFAULT_ROLES.find((x) => x.id === roleId);
-    return r ? (ar ? r.nameAr : r.nameEn) : roleId;
+  const roleName = (u: StaffUser) => {
+    if (!u.isStaff || !u.roleId) return ar ? 'عميل متسوق' : 'Customer';
+    const r = DEFAULT_ROLES.find((x) => x.id === u.roleId);
+    return r ? (ar ? r.nameAr : r.nameEn) : u.roleId;
   };
 
   const statusLabel = (s: StaffStatus) => (s === 'active' ? t.admin.active : s === 'suspended' ? t.admin.suspend : t.admin.disabled);
@@ -97,7 +99,7 @@ export default function UsersPage() {
     },
     { key: 'email', header: t.settings.email, cell: (u) => <span dir="ltr" className="text-ragab-ink-600">{u.email}</span>, hideOnMobile: true },
     { key: 'phone', header: t.settings.phone, cell: (u) => <span dir="ltr" className="text-ragab-ink-600">{u.phone}</span>, hideOnMobile: true },
-    { key: 'role', header: t.admin.role, cell: (u) => roleName(u.roleId) },
+    { key: 'role', header: t.admin.role, cell: (u) => roleName(u) },
     { key: 'status', header: t.admin.status, cell: (u) => <StatusPill tone={STATUS_TONE[u.status]}>{statusLabel(u.status)}</StatusPill> },
     { key: 'last', header: t.admin.lastLogin, cell: (u) => <span dir="ltr" className="text-ragab-ink-500">{u.lastLoginAt ?? t.admin.never}</span>, hideOnMobile: true },
     {
@@ -139,6 +141,39 @@ export default function UsersPage() {
       <div>
         <h2 className="text-h2 text-ragab-ink-800">{t.admin.usersTitle}</h2>
         <p className="text-body-sm text-ragab-ink-500 mt-0.5">{t.admin.usersSubtitle}</p>
+      </div>
+
+      <div className="flex items-center gap-2 border-b border-ragab-ink-200 pb-2">
+        <button
+          onClick={() => setFilter('all')}
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
+            filter === 'all'
+              ? 'bg-ragab-brand-600 text-white shadow-sm'
+              : 'text-ragab-ink-600 hover:bg-ragab-ink-100'
+          }`}
+        >
+          {ar ? 'الكل (جميع الحسابات)' : 'All accounts'}
+        </button>
+        <button
+          onClick={() => setFilter('staff')}
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
+            filter === 'staff'
+              ? 'bg-ragab-brand-600 text-white shadow-sm'
+              : 'text-ragab-ink-600 hover:bg-ragab-ink-100'
+          }`}
+        >
+          {ar ? 'فريق العمل (الموظفون)' : 'Staff & Team'}
+        </button>
+        <button
+          onClick={() => setFilter('customers')}
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
+            filter === 'customers'
+              ? 'bg-ragab-brand-600 text-white shadow-sm'
+              : 'text-ragab-ink-600 hover:bg-ragab-ink-100'
+          }`}
+        >
+          {ar ? 'العملاء' : 'Customers'}
+        </button>
       </div>
 
       <div className="max-w-sm">

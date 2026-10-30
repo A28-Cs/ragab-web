@@ -489,6 +489,7 @@ export interface StaffUser {
   /** permissions granted directly on top of the role */
   directPermissions: PermissionKey[];
   status: StaffStatus;
+  isStaff?: boolean;
   lastLoginAt?: string;
   createdAt: string;
 }
