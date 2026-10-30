@@ -17,6 +17,7 @@ import {
   Pencil,
   X,
   Loader2,
+  Share2,
 } from 'lucide-react';
 import { cn } from '@ragab/utils';
 import { useLanguage } from '../../../context/LanguageContext';
@@ -233,6 +234,30 @@ export default function ProductDetailPage() {
       addToCart(product, quantity, selected?.id);
     }
     showToast(t.common.addedToCart, 'success');
+  };
+
+  const handleShare = async () => {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    const shareTitle = product ? (isRTL ? product.nameAr : product.nameEn) : 'صيدلية رجب';
+    const shareData = {
+      title: shareTitle,
+      text: `${shareTitle} - صيدلية رجب`,
+      url,
+    };
+    if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err: any) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast(isRTL ? 'تم نسخ رابط المنتج بنجاح!' : 'Product link copied to clipboard!', 'success');
+    } catch {
+      showToast(isRTL ? 'فشل نسخ الرابط' : 'Failed to copy link', 'error');
+    }
   };
 
   const handleDeleteProduct = async () => {
@@ -745,13 +770,22 @@ export default function ProductDetailPage() {
                 aria-label={favorited ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}
                 aria-pressed={favorited}
                 className={cn(
-                                    'w-14 h-14 flex items-center justify-center rounded-2xl border transition-colors focus-ring',
+                  'w-14 h-14 flex items-center justify-center rounded-2xl border transition-colors focus-ring',
                   favorited
                     ? 'bg-ragab-danger-soft text-ragab-danger border-red-200'
                     : 'bg-white text-ragab-ink-500 border-ragab-ink-200 hover:bg-ragab-ink-50'
                 )}
               >
                 <Heart className={cn('w-5 h-5', favorited && 'fill-current')} />
+              </button>
+
+              <button
+                onClick={handleShare}
+                aria-label={isRTL ? 'مشاركة المنتج' : 'Share product'}
+                title={isRTL ? 'مشاركة المنتج' : 'Share product'}
+                className="w-14 h-14 flex items-center justify-center rounded-2xl border border-ragab-ink-200 bg-white text-ragab-ink-500 hover:text-ragab-brand-600 hover:border-ragab-brand-300 hover:bg-ragab-brand-50/50 transition-colors focus-ring"
+              >
+                <Share2 className="w-5 h-5" />
               </button>
             </div>
           ) : (
@@ -778,6 +812,15 @@ export default function ProductDetailPage() {
                 )}
               >
                 <Heart className={cn('w-5 h-5', favorited && 'fill-current')} />
+              </button>
+
+              <button
+                onClick={handleShare}
+                aria-label={isRTL ? 'مشاركة المنتج' : 'Share product'}
+                title={isRTL ? 'مشاركة المنتج' : 'Share product'}
+                className="w-14 h-14 flex items-center justify-center rounded-2xl border border-ragab-ink-200 bg-white text-ragab-ink-500 hover:text-ragab-brand-600 hover:border-ragab-brand-300 hover:bg-ragab-brand-50/50 transition-colors focus-ring"
+              >
+                <Share2 className="w-5 h-5" />
               </button>
             </div>
           )}
@@ -847,22 +890,31 @@ export default function ProductDetailPage() {
         style={{ bottom: 'calc(var(--bottom-nav-h) + env(safe-area-inset-bottom))' }}
       >
         <Price price={view.price} oldPrice={view.oldPrice} size="md" />
-        {view.inStock ? (
-          <Button variant="primary" size="md" onClick={handleAdd} className="flex-1 max-w-[220px]">
-            <ShoppingBag className="w-4 h-4" />
-            <span>{t.common.addToCart}</span>
-          </Button>
-        ) : (
-          <Button
-            variant="primary"
-            size="md"
-            onClick={() => setRequestModalOpen(true)}
-            className="flex-1 max-w-[220px] bg-ragab-brand-500 hover:bg-ragab-brand-600 text-white"
+        <div className="flex items-center gap-2 flex-1 max-w-[260px] justify-end">
+          <button
+            onClick={handleShare}
+            aria-label={isRTL ? 'مشاركة المنتج' : 'Share product'}
+            className="w-10 h-10 flex items-center justify-center rounded-xl border border-ragab-ink-200 bg-white text-ragab-ink-600 hover:text-ragab-brand-600 shrink-0"
           >
-            <BellRing className="w-4 h-4" />
-            <span>{isRTL ? 'طلب توفير' : 'Request Item'}</span>
-          </Button>
-        )}
+            <Share2 className="w-4 h-4" />
+          </button>
+          {view.inStock ? (
+            <Button variant="primary" size="md" onClick={handleAdd} className="flex-1">
+              <ShoppingBag className="w-4 h-4" />
+              <span>{t.common.addToCart}</span>
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => setRequestModalOpen(true)}
+              className="flex-1 bg-ragab-brand-500 hover:bg-ragab-brand-600 text-white"
+            >
+              <BellRing className="w-4 h-4" />
+              <span>{isRTL ? 'طلب توفير' : 'Request Item'}</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Delete confirmation modal for Manager/Owner */}

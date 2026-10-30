@@ -582,61 +582,6 @@ function OrderAdminDetailInner() {
               ))}
             </ul>
           </Card>
-        </div>
-
-          {/* Delivery Job & Courier Operations Card */}
-          <Card className="border border-ragab-ink-100">
-            <CardHeader
-              title={ar ? 'مهمة التوصيل وتتبع المندوب (إنجزني)' : 'Delivery Job & Courier Tracking (Engezny)'}
-            />
-            <div className="space-y-3">
-              <div className="flex items-center justify-between flex-wrap gap-2 p-3 bg-ragab-ink-50/50 rounded-xl">
-                <div>
-                  <span className="text-caption text-ragab-ink-400 block mb-0.5">{ar ? 'حالة التوصيل الحالية' : 'Current Delivery Stage'}</span>
-                  <StatusPill tone={DELIVERY_STATUS_TONE[order.deliveryJob?.status || order.deliveryStatus || 'awaiting_dispatch']}>
-                    {ar ? DELIVERY_STATUS_LABELS_AR[order.deliveryJob?.status || order.deliveryStatus || 'awaiting_dispatch'] : (order.deliveryJob?.status || order.deliveryStatus || 'awaiting_dispatch')}
-                  </StatusPill>
-                </div>
-                {(order.courier?.driverName || order.deliveryJob?.driverName) && (
-                  <div className="text-start">
-                    <span className="text-caption text-ragab-ink-400 block mb-0.5">{ar ? 'المندوب المكلف' : 'Assigned Courier'}</span>
-                    <div className="font-bold text-body-sm text-ragab-ink-800 flex items-center gap-2 flex-wrap">
-                      <span>🛵 {order.courier?.driverName || order.deliveryJob?.driverName}</span>
-                      {(order.courier?.driverPhone || order.deliveryJob?.driverPhone) && (
-                        <a
-                          href={`tel:${order.courier?.driverPhone || order.deliveryJob?.driverPhone}`}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-ragab-brand-50 text-ragab-brand-700 hover:bg-ragab-brand-100 text-caption font-bold"
-                          dir="ltr"
-                        >
-                          <Phone className="w-3 h-3" />
-                          {order.courier?.driverPhone || order.deliveryJob?.driverPhone}
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Delivery Photo (Proof of Delivery at door) */}
-              {(order.status === 'delivered' || order.deliveryJob?.deliveryPhotoUrl) && (
-                <div className="pt-2">
-                  <span className="text-caption font-bold text-ragab-ink-700 block mb-2">📸 {ar ? 'صورة إثبات التسليم أمام باب العميل' : 'Door Delivery Photo Proof'}</span>
-                  {order.deliveryJob?.deliveryPhotoUrl ? (
-                    <a href={order.deliveryJob.deliveryPhotoUrl} target="_blank" rel="noreferrer">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={order.deliveryJob.deliveryPhotoUrl}
-                        alt="إثبات التسليم"
-                        className="w-full max-h-56 object-cover rounded-xl border border-ragab-ink-200"
-                      />
-                    </a>
-                  ) : (
-                    <EngeznyDeliveryPhoto orderId={order.id} />
-                  )}
-                </div>
-              )}
-            </div>
-          </Card>
 
           {/* Unified Event & Audit Log */}
           <Card className="border border-ragab-ink-100">
@@ -693,6 +638,7 @@ function OrderAdminDetailInner() {
               )}
             </div>
           </Card>
+        </div>
 
         {/* Side column */}
         <div className="space-y-4">
@@ -778,6 +724,60 @@ function OrderAdminDetailInner() {
                   {paymentStatus && <StatusPill tone={PAY_TONE[paymentStatus]}>{paymentStatusLabel(paymentStatus)}</StatusPill>}
                 </div>
               </div>
+            </div>
+          </Card>
+
+          {/* Delivery Job & Courier Operations Card */}
+          <Card className="border border-ragab-ink-100">
+            <CardHeader
+              title={ar ? 'مهمة التوصيل وتتبع المندوب (إنجزني)' : 'Delivery Job & Courier Tracking (Engezny)'}
+            />
+            <div className="space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2 p-3 bg-ragab-ink-50/50 rounded-xl">
+                <div>
+                  <span className="text-caption text-ragab-ink-400 block mb-0.5">{ar ? 'حالة التوصيل الحالية' : 'Current Delivery Stage'}</span>
+                  <StatusPill tone={DELIVERY_STATUS_TONE[order.deliveryJob?.status || order.deliveryStatus || 'awaiting_dispatch']}>
+                    {ar ? DELIVERY_STATUS_LABELS_AR[order.deliveryJob?.status || order.deliveryStatus || 'awaiting_dispatch'] : (order.deliveryJob?.status || order.deliveryStatus || 'awaiting_dispatch')}
+                  </StatusPill>
+                </div>
+                {(order.courier?.driverName || order.deliveryJob?.driverName) && (
+                  <div className="text-start">
+                    <span className="text-caption text-ragab-ink-400 block mb-0.5">{ar ? 'المندوب المكلف' : 'Assigned Courier'}</span>
+                    <div className="font-bold text-body-sm text-ragab-ink-800 flex items-center gap-2 flex-wrap">
+                      <span>🛵 {order.courier?.driverName || order.deliveryJob?.driverName}</span>
+                      {(order.courier?.driverPhone || order.deliveryJob?.driverPhone) && (
+                        <a
+                          href={`tel:${order.courier?.driverPhone || order.deliveryJob?.driverPhone}`}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-ragab-brand-50 text-ragab-brand-700 hover:bg-ragab-brand-100 text-caption font-bold"
+                          dir="ltr"
+                        >
+                          <Phone className="w-3 h-3" />
+                          {order.courier?.driverPhone || order.deliveryJob?.driverPhone}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Delivery Photo (Proof of Delivery at door) */}
+              {(order.status === 'delivered' || order.deliveryJob?.deliveryPhotoUrl) && (
+                <div className="pt-2">
+                  <span className="text-caption font-bold text-ragab-ink-700 block mb-2">📸 {ar ? 'صورة إثبات التسليم أمام باب العميل' : 'Door Delivery Photo Proof'}</span>
+                  {order.deliveryJob?.deliveryPhotoUrl ? (
+                    <a href={order.deliveryJob.deliveryPhotoUrl} target="_blank" rel="noreferrer">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={order.deliveryJob.deliveryPhotoUrl}
+                        alt="إثبات التسليم"
+                        className="w-full max-h-56 object-cover rounded-xl border border-ragab-ink-200"
+                      />
+                    </a>
+                  ) : (
+                    <EngeznyDeliveryPhoto orderId={order.id} />
+                  )}
+                </div>
+              )}
             </div>
           </Card>
 

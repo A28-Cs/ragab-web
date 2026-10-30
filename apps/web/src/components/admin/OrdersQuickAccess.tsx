@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useOrderEvents } from '../../context/OrderEventsContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
-import { Drawer } from '../ui/Drawer';
 import { Modal } from '../ui/Modal';
 import { Order } from '../../types';
 import { updateOrderStatus, updatePrescriptionDecision } from '../../services/orderService';
@@ -48,12 +47,14 @@ export function OrdersQuickAccessPopup({ isOpen, onClose }: { isOpen: boolean, o
   const { pendingOrders, removeOrder } = useOrderEvents();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  // If closed or no orders, reset selected order
+  // If closed or no orders, reset selected order; auto-select if exactly 1 order
   React.useEffect(() => {
     if (!isOpen) {
       setSelectedOrder(null);
+    } else if (pendingOrders.length === 1 && !selectedOrder) {
+      setSelectedOrder(pendingOrders[0]);
     }
-  }, [isOpen]);
+  }, [isOpen, pendingOrders, selectedOrder]);
 
   // If the selected order is removed (accepted by someone else), close detail view
   React.useEffect(() => {
@@ -68,21 +69,20 @@ export function OrdersQuickAccessPopup({ isOpen, onClose }: { isOpen: boolean, o
   const handleBack = () => setSelectedOrder(null);
 
   return (
-    <Drawer 
+    <Modal 
       isOpen={isOpen} 
       onClose={onClose} 
-      title={selectedOrder ? `طلب #${selectedOrder.orderNumber}` : "الطلبات الجديدة"} 
-      position="bottom" 
-      size="md"
+      title={selectedOrder ? `طلب جديد #${selectedOrder.orderNumber}` : `الطلبات الواردة الجديدة (${pendingOrders.length})`} 
+      maxWidth="lg"
     >
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col min-h-0">
         {selectedOrder ? (
           <OrderQuickDetail order={selectedOrder} onBack={handleBack} onAccepted={() => removeOrder(selectedOrder.id)} />
         ) : (
           <PendingOrdersList orders={pendingOrders} onSelect={setSelectedOrder} />
         )}
       </div>
-    </Drawer>
+    </Modal>
   );
 }
 
@@ -90,14 +90,15 @@ function PendingOrdersList({ orders, onSelect }: { orders: Order[], onSelect: (o
   if (orders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-ragab-ink-400">
-        <ShoppingCart className="w-12 h-12 mb-4 opacity-20" />
-        <p className="text-body font-semibold">لا توجد طلبات جديدة</p>
+        <ShoppingCart className="w-12 h-12 mb-3 opacity-20" />
+        <p className="text-body font-bold text-ragab-ink-600">لا توجد طلبات جديدة حالياً</p>
+        <p className="text-caption text-ragab-ink-400">ستظهر أي طلبات جديدة هنا فور تسجيلها من العملاء</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
       {orders.map(order => {
         const hasPrescription = order.hasPrescriptionItems || Boolean(order.prescriptionUrl);
         return (
@@ -105,10 +106,10 @@ function PendingOrdersList({ orders, onSelect }: { orders: Order[], onSelect: (o
             key={order.id}
             onClick={() => onSelect(order)}
             className={cn(
-              "w-full text-start bg-white border rounded-xl p-4 transition-all flex flex-col gap-2 hover:shadow-sm",
+              "w-full text-start bg-white border rounded-xl p-3.5 transition-all flex flex-col gap-2 hover:shadow-md hover:border-ragab-brand-400 group",
               hasPrescription
-                ? "border-amber-300 bg-amber-50/25 hover:border-amber-400 hover:bg-amber-50/40"
-                : "border-ragab-ink-100 hover:border-ragab-brand-300"
+                ? "border-amber-300 bg-amber-50/20 hover:border-amber-400 hover:bg-amber-50/40"
+                : "border-ragab-ink-150"
             )}
           >
             <div className="flex justify-between items-start gap-2">
@@ -133,26 +134,34 @@ function PendingOrdersList({ orders, onSelect }: { orders: Order[], onSelect: (o
                   )
                 )}
               </div>
-              <span className="text-caption font-semibold text-ragab-brand-600 bg-ragab-brand-50 px-2 py-0.5 rounded-full shrink-0">
+              <span className="text-caption font-semibold text-ragab-brand-700 bg-ragab-brand-50 px-2 py-0.5 rounded-full shrink-0">
                 {order.items?.length || 0} منتجات
               </span>
             </div>
             
-            <div className="flex items-center gap-2 text-ragab-ink-600 text-body-sm">
-              <User className="w-4 h-4 text-ragab-ink-400" />
-              <span>{order.deliveryAddress?.recipientName}</span>
+            <div className="flex items-center justify-between text-body-sm text-ragab-ink-700">
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-ragab-ink-400 shrink-0" />
+                <span className="font-semibold">{order.deliveryAddress?.recipientName}</span>
+              </div>
+              <Price price={order.total} className="font-bold text-ragab-ink-900 text-body" />
             </div>
             
-            <div className="flex items-center justify-between text-caption pt-1 border-t border-ragab-ink-50">
+            <div className="flex items-center justify-between text-caption pt-1.5 border-t border-ragab-ink-100">
               <div className="flex items-center gap-2 text-ragab-ink-400">
                 <Clock className="w-3.5 h-3.5" />
                 <span>{new Date(order.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
-                <span className="mx-1">•</span>
-                <Price price={order.total} className="font-bold text-ragab-ink-700" />
+                {order.deliveryAddress?.village && (
+                  <>
+                    <span className="mx-1">•</span>
+                    <span>{order.deliveryAddress.village}</span>
+                  </>
+                )}
               </div>
-              {hasPrescription && !order.prescriptionUrl && (
-                <span className="text-[10px] font-bold text-red-600">⚠️ لم تُرفع روشتة</span>
-              )}
+              <span className="text-ragab-brand-600 font-bold group-hover:translate-x-[-2px] transition-transform flex items-center gap-1">
+                <span>مراجعة وقبول</span>
+                <span>←</span>
+              </span>
             </div>
           </button>
         );
@@ -256,25 +265,25 @@ function OrderQuickDetail({ order: initialOrder, onBack, onAccepted }: { order: 
 
   // ======= DETAIL SCREEN =======
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-4">
+    <div className="flex flex-col min-h-0">
+      <div className="flex items-center justify-between mb-3 pb-2 border-b border-ragab-ink-100">
         <button 
           onClick={onBack}
-          className="flex items-center gap-2 text-ragab-brand-600 font-semibold hover:underline w-fit touch-target"
+          className="flex items-center gap-1.5 text-body-sm font-bold text-ragab-brand-700 hover:underline w-fit touch-target"
         >
           <ArrowRight className="w-4 h-4" />
-          العودة للقائمة
+          <span>العودة لقائمة الطلبات</span>
         </button>
         <Link
           href={`/control-center/orders/${order.id}`}
-          className="text-caption font-bold text-ragab-ink-500 hover:text-ragab-brand-600 flex items-center gap-1"
+          className="text-caption font-bold text-ragab-ink-500 hover:text-ragab-brand-700 flex items-center gap-1"
         >
-          <span>فتح صفحة الطلب الكاملة</span>
+          <span>صفحة الطلب الكاملة</span>
           <ExternalLink className="w-3.5 h-3.5" />
         </Link>
       </div>
 
-      <div className="space-y-4 flex-1 overflow-y-auto pb-28">
+      <div className="space-y-4 max-h-[58vh] overflow-y-auto pr-1">
         {/* Prescription Highlight Box */}
         {hasPrescription && (
           <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-3.5 space-y-3 shadow-xs">
@@ -479,31 +488,40 @@ function OrderQuickDetail({ order: initialOrder, onBack, onAccepted }: { order: 
         </div>
       </div>
 
-      {/* Sticky CTA */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-ragab-ink-100 z-10 sm:absolute">
+      {/* Modal Action CTA */}
+      <div className="mt-4 pt-3 border-t border-ragab-ink-100">
         <button
           disabled={isAccepting}
           onClick={handleAccept}
           className={cn(
-            "w-full h-14 rounded-xl font-bold text-body flex items-center justify-center transition-all",
+            "w-full h-12 rounded-xl font-bold text-body flex items-center justify-center gap-2 transition-all shadow-sm",
             isAccepting 
               ? "bg-ragab-ink-200 text-ragab-ink-400 cursor-not-allowed" 
               : order.prescriptionStatus === 'rejected_visit_required'
               ? "bg-amber-600 text-white hover:bg-amber-700 shadow-md active:scale-[0.98]"
-              : "bg-ragab-brand-500 text-ragab-ink-900 hover:bg-ragab-brand-400 shadow-md active:scale-[0.98]"
+              : "bg-ragab-brand-600 text-white hover:bg-ragab-brand-700 shadow-md active:scale-[0.98]"
           )}
         >
           {isAccepting ? (
-            <span className="flex items-center gap-2">
+            <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              جاري قبول الطلب...
-            </span>
+              <span>جاري قبول الطلب...</span>
+            </>
           ) : order.prescriptionStatus === 'rejected_visit_required' ? (
-            "بدء التحضير (استلام شخصي بالصيدلية)"
+            <>
+              <CheckCircle2 className="w-5 h-5" />
+              <span>بدء التحضير (استلام شخصي بالصيدلية)</span>
+            </>
           ) : hasPrescription && order.prescriptionStatus === 'pending' ? (
-            "اعتماد الروشتة وبدء التحضير"
+            <>
+              <CheckCircle2 className="w-5 h-5" />
+              <span>اعتماد الروشتة وبدء التحضير</span>
+            </>
           ) : (
-            "قبول وبدء التحضير"
+            <>
+              <CheckCircle2 className="w-5 h-5" />
+              <span>قبول وبدء التحضير فوراً</span>
+            </>
           )}
         </button>
       </div>

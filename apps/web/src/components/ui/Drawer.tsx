@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '@ragab/utils';
 import { useLanguage } from '../../context/LanguageContext';
@@ -26,7 +27,12 @@ export const Drawer: React.FC<DrawerProps> = ({
   size = 'md',
 }) => {
   const { isRTL } = useLanguage();
+  const [mounted, setMounted] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   // Callers almost always pass an inline `onClose` (a new function every render). If the
   // focus-trap effect depended on it, every keystroke in a form inside the drawer would
   // re-run the effect and yank focus to the first focusable element (the close button).
@@ -93,7 +99,7 @@ export const Drawer: React.FC<DrawerProps> = ({
     // Deliberately NOT depending on onClose — see onCloseRef above.
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const sizes = {
     sm: 'max-w-xs',
@@ -110,7 +116,7 @@ export const Drawer: React.FC<DrawerProps> = ({
       'bottom-0 left-0 right-0 max-h-[85vh] rounded-t-2xl animate-in slide-in-from-bottom duration-300',
   };
 
-  return (
+  const drawerElement = (
     <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true" data-modal-open="true" aria-label={title}>
       {/* Overlay */}
       <div
@@ -145,4 +151,6 @@ export const Drawer: React.FC<DrawerProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(drawerElement, document.body) : null;
 };
