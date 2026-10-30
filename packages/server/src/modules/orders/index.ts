@@ -4,3 +4,4 @@ export { toOrderDto } from './mapper';
 export { assertOrderTransition, canTransitionOrder, isOrderTerminal } from './stateMachine';
 export { handleEngeznyWebhook } from './engezny-webhook';
 export { syncOrderWithEngezny } from './engezny-sync';
+export * from './courier-rating';

@@ -62,6 +62,37 @@ export default function OrderDetailPage() {
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
 
+  // Courier Rating state
+  const [courierRating, setCourierRating] = useState<{
+    rating: number;
+    comment?: string | null;
+    createdAt?: string;
+  } | null>(null);
+  const [courierRatingScore, setCourierRatingScore] = useState(5);
+  const [courierComment, setCourierComment] = useState('');
+  const [isEditingCourierRating, setIsEditingCourierRating] = useState(false);
+  const [submittingCourierRating, setSubmittingCourierRating] = useState(false);
+
+  const loadCourierRating = useCallback(async (orderId: string) => {
+    try {
+      const res = await fetch(`/api/v1/orders/${orderId}/courier-rating`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.rating) {
+          setCourierRating({
+            rating: data.rating,
+            comment: data.comment,
+            createdAt: data.createdAt,
+          });
+          setCourierRatingScore(data.rating);
+          setCourierComment(data.comment || '');
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const loadOrderReviews = useCallback(async (orderId: string) => {
     try {
       const res = await fetch(`/api/v1/orders/${orderId}/reviews`);
@@ -174,21 +205,30 @@ export default function OrderDetailPage() {
   useEffect(() => {
     if (order?.id && order.status === 'delivered') {
       loadOrderReviews(order.id);
+      loadCourierRating(order.id);
+      if (order.courierRating) {
+        setCourierRating(order.courierRating);
+        setCourierRatingScore(order.courierRating.rating);
+        setCourierComment(order.courierRating.comment || '');
+      }
     }
-  }, [order?.id, order?.status, loadOrderReviews]);
+  }, [order?.id, order?.status, order?.courierRating, loadOrderReviews, loadCourierRating]);
 
   const handleSubmitReview = async () => {
     if (!reviewingItem || !order) return;
     setSubmittingReview(true);
+    const pid = reviewingItem.productId;
+    const score = ratingScore;
+    const cmt = reviewComment.trim();
     try {
       const res = await fetch('/api/v1/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          productId: reviewingItem.productId,
+          productId: pid,
           orderId: order.id,
-          rating: ratingScore,
-          comment: reviewComment.trim() || undefined,
+          rating: score,
+          comment: cmt || undefined,
         }),
       });
       if (!res.ok) {
@@ -197,15 +237,49 @@ export default function OrderDetailPage() {
       }
       setReviewsMap((prev) => ({
         ...prev,
-        [reviewingItem.productId]: { rating: ratingScore, body: reviewComment.trim() },
+        [pid]: { rating: score, title: null, body: cmt },
       }));
       showToast(isRTL ? 'شكراً لك! تم حفظ تقييمك بنجاح.' : 'Thank you! Your review was saved.', 'success');
       setReviewingItem(null);
+      void loadOrderReviews(order.id);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'فشل حفظ التقييم';
       showToast(msg, 'error');
     } finally {
       setSubmittingReview(false);
+    }
+  };
+
+  const handleSubmitCourierRating = async () => {
+    if (!order) return;
+    setSubmittingCourierRating(true);
+    const score = courierRatingScore;
+    const cmt = courierComment.trim();
+    try {
+      const res = await fetch(`/api/v1/orders/${order.id}/courier-rating`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rating: score,
+          comment: cmt || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message || 'تعذر إرسال تقييم المندوب');
+      }
+      setCourierRating({
+        rating: score,
+        comment: cmt,
+        createdAt: new Date().toISOString(),
+      });
+      setIsEditingCourierRating(false);
+      showToast(isRTL ? 'شكراً لك! تم حفظ تقييم مندوب التوصيل ومزامنته مع إنجزني بنجاح.' : 'Thank you! Courier rating saved.', 'success');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'فشل إرسال تقييم المندوب';
+      showToast(msg, 'error');
+    } finally {
+      setSubmittingCourierRating(false);
     }
   };
 
@@ -693,11 +767,14 @@ export default function OrderDetailPage() {
           </Card>
 
           {/* Delivery Photo (shown when delivered via Engezny) */}
-          {order.status === 'delivered' && (
+          {(order.status === 'delivered' || order.deliveryPhotoUrl || order.deliveryJob?.deliveryPhotoUrl) && (
             <Card className="min-w-0 overflow-hidden">
-              <CardHeader title="📸 صورة التوصيل" />
+              <CardHeader title="📸 صورة إثبات التوصيل" />
               <div className="p-4 pt-0">
-                <EngeznyDeliveryPhoto orderId={order.id} />
+                <EngeznyDeliveryPhoto
+                  orderId={order.id}
+                  initialUrl={order.deliveryPhotoUrl || order.deliveryJob?.deliveryPhotoUrl}
+                />
               </div>
             </Card>
           )}
@@ -749,6 +826,103 @@ export default function OrderDetailPage() {
                       <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
                       <span>{isRTL ? 'واتساب' : 'WhatsApp'}</span>
                     </a>
+                  </div>
+                )}
+
+                {/* Courier Rating Section */}
+                {order.status === 'delivered' && (
+                  <div className="pt-3 border-t border-ragab-ink-100 space-y-2">
+                    <p className="text-caption font-bold text-ragab-ink-700">
+                      {isRTL ? '🛵 تقييم تجربة التوصيل والمندوب:' : '🛵 Courier Rating:'}
+                    </p>
+
+                    {courierRating && !isEditingCourierRating ? (
+                      <div className="bg-white rounded-xl p-3 border border-amber-200 space-y-1.5 shadow-xs">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`w-4 h-4 ${
+                                  star <= courierRating.rating
+                                    ? 'fill-amber-400 text-amber-400'
+                                    : 'text-gray-300'
+                                }`}
+                              />
+                            ))}
+                            <span className="ms-1 font-bold text-caption text-ragab-ink-800">
+                              {courierRating.rating} / 5
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setIsEditingCourierRating(true)}
+                            className="text-xs text-brand-600 hover:underline font-bold"
+                          >
+                            {isRTL ? 'تعديل' : 'Edit'}
+                          </button>
+                        </div>
+                        {courierRating.comment && (
+                          <p className="text-caption text-ragab-ink-600 bg-ragab-ink-50 p-2 rounded-lg italic">
+                            "{courierRating.comment}"
+                          </p>
+                        )}
+                        <p className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                          ✓ {isRTL ? 'تم تسجيل تقييمك ومزامنته مع إنجزني' : 'Synced with Engezny'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="bg-white rounded-xl p-3 border border-ragab-ink-200 space-y-2.5 shadow-xs">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              onClick={() => setCourierRatingScore(star)}
+                              className="p-1 hover:scale-110 transition-transform"
+                            >
+                              <Star
+                                className={`w-6 h-6 ${
+                                  star <= courierRatingScore
+                                    ? 'fill-amber-400 text-amber-400'
+                                    : 'text-gray-300'
+                                }`}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                        <textarea
+                          rows={2}
+                          value={courierComment}
+                          onChange={(e) => setCourierComment(e.target.value)}
+                          placeholder={isRTL ? 'رأيك في التوصيل وسرعة المندوب (اختياري)...' : 'Courier feedback (optional)...'}
+                          className="w-full text-caption p-2 bg-ragab-ink-50 rounded-lg border border-ragab-ink-200 focus:outline-none focus:border-ragab-brand-500"
+                        />
+                        <div className="flex items-center gap-2">
+                          {isEditingCourierRating && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setIsEditingCourierRating(false)}
+                              className="text-xs"
+                            >
+                              {isRTL ? 'إلغاء' : 'Cancel'}
+                            </Button>
+                          )}
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={handleSubmitCourierRating}
+                            disabled={submittingCourierRating}
+                            className="flex-1 text-xs"
+                          >
+                            {submittingCourierRating
+                              ? (isRTL ? 'جاري الحفظ...' : 'Saving...')
+                              : (isRTL ? 'إرسال تقييم المندوب' : 'Submit Rating')}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

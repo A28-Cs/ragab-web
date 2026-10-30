@@ -35,3 +35,22 @@ export const reviewMedia = pgTable('review_media', {
   url: text('url').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const courierRatings = pgTable(
+  'courier_ratings',
+  {
+    id: primaryId(),
+    orderId: text('order_id').notNull(),
+    userId: text('user_id').notNull(),
+    driverName: text('driver_name'),
+    driverPhone: text('driver_phone'),
+    workerId: text('worker_id'),
+    rating: integer('rating').notNull(),
+    comment: text('comment'),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex('courier_ratings_order_uidx').on(t.orderId),
+    index('courier_ratings_user_idx').on(t.userId),
+  ],
+);

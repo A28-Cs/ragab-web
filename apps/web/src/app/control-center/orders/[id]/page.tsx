@@ -761,21 +761,29 @@ function OrderAdminDetailInner() {
               </div>
 
               {/* Delivery Photo (Proof of Delivery at door) */}
-              {(order.status === 'delivered' || order.deliveryJob?.deliveryPhotoUrl) && (
-                <div className="pt-2">
-                  <span className="text-caption font-bold text-ragab-ink-700 block mb-2">📸 {ar ? 'صورة إثبات التسليم أمام باب العميل' : 'Door Delivery Photo Proof'}</span>
-                  {order.deliveryJob?.deliveryPhotoUrl ? (
-                    <a href={order.deliveryJob.deliveryPhotoUrl} target="_blank" rel="noreferrer">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={order.deliveryJob.deliveryPhotoUrl}
-                        alt="إثبات التسليم"
-                        className="w-full max-h-56 object-cover rounded-xl border border-ragab-ink-200"
-                      />
-                    </a>
-                  ) : (
-                    <EngeznyDeliveryPhoto orderId={order.id} />
-                  )}
+              {(order.status === 'delivered' || order.deliveryPhotoUrl || order.deliveryJob?.deliveryPhotoUrl) && (
+                <div className="pt-2 border-t border-ragab-ink-100">
+                  <EngeznyDeliveryPhoto
+                    orderId={order.id}
+                    initialUrl={order.deliveryPhotoUrl || order.deliveryJob?.deliveryPhotoUrl}
+                  />
+                </div>
+              )}
+
+              {/* Courier Rating by Customer */}
+              {order.courierRating && (
+                <div className="pt-2 border-t border-ragab-ink-100">
+                  <span className="text-caption font-bold text-ragab-ink-700 block mb-1">
+                    ⭐ {ar ? 'تقييم العميل للمندوب:' : 'Customer Courier Rating:'}
+                  </span>
+                  <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-2.5 text-caption space-y-1">
+                    <div className="flex items-center gap-1 font-bold text-amber-900">
+                      <span>{order.courierRating.rating} / 5 نجوم</span>
+                    </div>
+                    {order.courierRating.comment && (
+                      <p className="text-ragab-ink-700 italic">"{order.courierRating.comment}"</p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

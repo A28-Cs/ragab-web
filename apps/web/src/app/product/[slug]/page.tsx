@@ -45,6 +45,7 @@ import { ProductGrid } from '../../../components/product/ProductGrid';
 import { ProductGallery } from '../../../components/product/ProductGallery';
 import { SectionHeader } from '../../../components/ui/SectionHeader';
 import { RequestProductModal } from '../../../components/product/RequestProductModal';
+import { ProductReviewsSection } from '../../../components/ui/ProductReviewsSection';
 
 const measureLabels: Record<string, { ar: string; en: string }> = {
   L: { ar: 'لتر', en: 'L' },
@@ -875,6 +876,9 @@ export default function ProductDetailPage() {
           </div>
         )}
       </div>
+
+      {/* ===== Customer Reviews & Comments ===== */}
+      <ProductReviewsSection productId={product.id} productSlug={product.slug} />
 
       {/* ===== Related ===== */}
       {relatedProducts.length > 0 && (

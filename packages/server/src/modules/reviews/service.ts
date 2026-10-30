@@ -1,6 +1,6 @@
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { reviews, products, orders, orderItems } from '../../db/schema';
+import { reviews, products, orders, orderItems, users } from '../../db/schema';
 import { AuthenticationError, ValidationError, NotFoundError } from '../../lib/errors';
 import type { RequestContext } from '../../http/context';
 
@@ -184,4 +184,90 @@ export async function getOrderReviews(ctx: RequestContext, orderId: string): Pro
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt?.toISOString() ?? null,
   }));
+}
+
+export interface PublicProductReviewDto {
+  id: string;
+  rating: number;
+  title?: string | null;
+  body?: string | null;
+  userName: string;
+  isVerifiedPurchase: boolean;
+  createdAt: string;
+}
+
+export interface ProductReviewsSummaryDto {
+  averageRating: number;
+  reviewCount: number;
+  breakdown: Record<number, number>;
+  items: PublicProductReviewDto[];
+}
+
+export async function getProductReviews(slugOrId: string): Promise<ProductReviewsSummaryDto> {
+  const [product] = await db()
+    .select({ id: products.id, rating: products.rating, reviewCount: products.reviewCount })
+    .from(products)
+    .where(or(eq(products.id, slugOrId), eq(products.slug, slugOrId)))
+    .limit(1);
+
+  if (!product) {
+    return {
+      averageRating: 0,
+      reviewCount: 0,
+      breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+      items: [],
+    };
+  }
+
+  const rows = await db()
+    .select({
+      id: reviews.id,
+      rating: reviews.rating,
+      title: reviews.title,
+      body: reviews.body,
+      isVerifiedPurchase: reviews.isVerifiedPurchase,
+      createdAt: reviews.createdAt,
+      userName: users.name,
+    })
+    .from(reviews)
+    .leftJoin(users, eq(users.id, reviews.userId))
+    .where(and(eq(reviews.productId, product.id), eq(reviews.isApproved, true)))
+    .orderBy(desc(reviews.createdAt))
+    .limit(50);
+
+  const breakdown: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  for (const r of rows) {
+    const star = Math.min(5, Math.max(1, r.rating));
+    breakdown[star] = (breakdown[star] || 0) + 1;
+  }
+
+  const items: PublicProductReviewDto[] = rows.map((r) => {
+    let displayName = 'عميل موثق';
+    if (r.userName && r.userName.trim()) {
+      const parts = r.userName.trim().split(/\s+/);
+      if (parts.length === 1) {
+        displayName = parts[0];
+      } else {
+        displayName = `${parts[0]} ${parts[1][0]}.`;
+      }
+    }
+    return {
+      id: r.id,
+      rating: r.rating,
+      title: r.title,
+      body: r.body,
+      userName: displayName,
+      isVerifiedPurchase: r.isVerifiedPurchase,
+      createdAt: r.createdAt.toISOString(),
+    };
+  });
+
+  return {
+    averageRating:
+      product.rating ??
+      (items.length > 0 ? Math.round((items.reduce((s, i) => s + i.rating, 0) / items.length) * 10) / 10 : 0),
+    reviewCount: product.reviewCount ?? items.length,
+    breakdown,
+    items,
+  };
 }

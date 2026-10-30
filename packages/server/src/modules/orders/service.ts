@@ -8,7 +8,7 @@
 import { and, desc, eq, inArray, lt, sql, type SQL } from 'drizzle-orm';
 import type { DbExecutor } from '../../db/client';
 import { db } from '../../db/client';
-import { orders, orderItems, orderStatusHistory, payments, paymentIntents, shipments, shipmentEvents, users } from '../../db/schema';
+import { orders, orderItems, orderStatusHistory, payments, paymentIntents, shipments, shipmentEvents, users, courierRatings } from '../../db/schema';
 import { AuthenticationError, AuthorizationError, BusinessRuleError, NotFoundError } from '../../lib/errors';
 import { buildPage, decodeCursor, type Page } from '../../lib/pagination';
 import { prefixedId } from '../../lib/ids';
@@ -202,8 +202,16 @@ export async function getOrder(ctx: RequestContext, idOrNumber: string): Promise
         } else if (d.status === 'delivered') {
           deliveryJobStatus = 'delivered';
         }
-        if (d.deliveryPhotoUrl) {
-          deliveryPhotoUrl = d.deliveryPhotoUrl;
+        const photoCandidate =
+          d.deliveryPhotoUrl ||
+          (d as any).photoUrl ||
+          (d as any).deliveryPhoto ||
+          (d as any).deliveredPhotoUrl ||
+          (d as any).proofPhotoUrl ||
+          (d as any).proofPhoto ||
+          (d as any).proofOfDeliveryUrl;
+        if (photoCandidate) {
+          deliveryPhotoUrl = photoCandidate;
         }
         if (!liveWorkerName && d.workerName) liveWorkerName = d.workerName;
         if (!liveWorkerPhone && d.workerPhone) liveWorkerPhone = d.workerPhone;
@@ -244,6 +252,26 @@ export async function getOrder(ctx: RequestContext, idOrNumber: string): Promise
     deliveryPhotoUrl,
     deliveredAt: shipment?.deliveredAt?.toISOString(),
   };
+  (dto as any).deliveryPhotoUrl = deliveryPhotoUrl;
+
+  try {
+    const [cRating] = await db()
+      .select()
+      .from(courierRatings)
+      .where(eq(courierRatings.orderId, order.id))
+      .limit(1);
+    if (cRating) {
+      (dto as any).courierRating = {
+        rating: cRating.rating,
+        comment: cRating.comment,
+        driverName: cRating.driverName,
+        driverPhone: cRating.driverPhone,
+        createdAt: cRating.createdAt.toISOString(),
+      };
+    }
+  } catch {
+    // ignore
+  }
 
   return dto;
 }
@@ -320,8 +348,16 @@ export async function getOrderDetailForStaff(ctx: RequestContext, idOrNumber: st
         } else if (d.status === 'delivered') {
           deliveryJobStatus = 'delivered';
         }
-        if (d.deliveryPhotoUrl) {
-          deliveryPhotoUrl = d.deliveryPhotoUrl;
+        const photoCandidate =
+          d.deliveryPhotoUrl ||
+          (d as any).photoUrl ||
+          (d as any).deliveryPhoto ||
+          (d as any).deliveredPhotoUrl ||
+          (d as any).proofPhotoUrl ||
+          (d as any).proofPhoto ||
+          (d as any).proofOfDeliveryUrl;
+        if (photoCandidate) {
+          deliveryPhotoUrl = photoCandidate;
         }
         if (!liveWorkerName && d.workerName) liveWorkerName = d.workerName;
         if (!liveWorkerPhone && d.workerPhone) liveWorkerPhone = d.workerPhone;
@@ -366,6 +402,26 @@ export async function getOrderDetailForStaff(ctx: RequestContext, idOrNumber: st
     deliveryPhotoUrl,
     deliveredAt: shipment?.deliveredAt?.toISOString(),
   };
+  (dto as any).deliveryPhotoUrl = deliveryPhotoUrl;
+
+  try {
+    const [cRating] = await db()
+      .select()
+      .from(courierRatings)
+      .where(eq(courierRatings.orderId, order.id))
+      .limit(1);
+    if (cRating) {
+      (dto as any).courierRating = {
+        rating: cRating.rating,
+        comment: cRating.comment,
+        driverName: cRating.driverName,
+        driverPhone: cRating.driverPhone,
+        createdAt: cRating.createdAt.toISOString(),
+      };
+    }
+  } catch {
+    // ignore
+  }
 
   dto.events = await getOrderEvents(order.id, order.orderNumber);
   return dto;

@@ -370,6 +370,16 @@ export interface Order {
   reasonCode?: string;
   correlationId?: string;
   courier?: OrderCourier;
+  deliveryPhotoUrl?: string;
+  courierRating?: OrderCourierRating;
+}
+
+export interface OrderCourierRating {
+  rating: number;
+  comment?: string | null;
+  driverName?: string | null;
+  driverPhone?: string | null;
+  createdAt: string;
 }
 
 export interface OrderCourier {
