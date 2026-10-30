@@ -42,6 +42,23 @@ export async function getMyOrders(ctx: RequestContext, opts: { limit: number; cu
 
   const rows = await db().select().from(orders).where(and(...conds)).orderBy(desc(orders.id)).limit(opts.limit + 1);
   const page = buildPage(rows, opts.limit, (r) => r.id);
+
+  // Sync active non-terminal orders with Engezny so customer list is always up-to-date
+  const activeItems = page.items.filter((r) => r.status === 'preparing' || r.status === 'on_the_way');
+  if (activeItems.length > 0) {
+    try {
+      const { syncOrderWithEngezny } = await import('./engezny-sync');
+      const changed = await Promise.all(activeItems.map((o) => syncOrderWithEngezny(o.id)));
+      if (changed.some(Boolean)) {
+        const freshRows = await db().select().from(orders).where(and(...conds)).orderBy(desc(orders.id)).limit(opts.limit + 1);
+        const freshPage = buildPage(freshRows, opts.limit, (r) => r.id);
+        page.items = freshPage.items;
+      }
+    } catch {
+      // Best-effort sync
+    }
+  }
+
   const dtos = await attachItems(page.items);
   return { items: dtos, nextCursor: page.nextCursor, hasMore: page.hasMore };
 }
@@ -79,6 +96,28 @@ export async function listAllOrders(
       .where(filters.length ? and(...filters) : undefined),
   ]);
   const page = buildPage(rows, opts.limit, (r) => r.id);
+
+  // Sync active non-terminal orders with Engezny so staff list is always up-to-date
+  const activeItems = page.items.filter((r) => r.status === 'preparing' || r.status === 'on_the_way');
+  if (activeItems.length > 0) {
+    try {
+      const { syncOrderWithEngezny } = await import('./engezny-sync');
+      const changed = await Promise.all(activeItems.map((o) => syncOrderWithEngezny(o.id)));
+      if (changed.some(Boolean)) {
+        const freshRows = await db()
+          .select()
+          .from(orders)
+          .where(conds.length ? and(...conds) : undefined)
+          .orderBy(desc(orders.id))
+          .limit(opts.limit + 1);
+        const freshPage = buildPage(freshRows, opts.limit, (r) => r.id);
+        page.items = freshPage.items;
+      }
+    } catch {
+      // Best-effort sync
+    }
+  }
+
   const dtos = await attachItems(page.items);
   return { items: dtos, nextCursor: page.nextCursor, hasMore: page.hasMore, total: counted[0]?.count ?? 0 };
 }
