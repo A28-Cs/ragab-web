@@ -18,6 +18,7 @@ import {
   MapPin,
   BellRing,
   FileText,
+  Headphones,
 } from 'lucide-react';
 
 export interface AdminNavItem {
@@ -42,6 +43,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { href: '/control-center/prescriptions', labelKey: 'navPrescriptions', icon: FileText, resource: 'orders', group: 'operations' },
   { href: '/control-center/product-requests', labelKey: 'navProductRequests', icon: BellRing, resource: 'inventory', group: 'operations' },
   { href: '/control-center/customers', labelKey: 'navCustomers', icon: UserRound, resource: 'customers', group: 'operations' },
+  { href: '/control-center/support-messages', labelKey: 'navSupportMessages', icon: Headphones, resource: 'customers', group: 'operations' },
   { href: '/control-center/promotions', labelKey: 'navPromotions', icon: Ticket, resource: 'promotions', group: 'operations' },
   { href: '/control-center/payments', labelKey: 'navPayments', icon: CreditCard, resource: 'payments', group: 'operations' },
   { href: '/control-center/reports', labelKey: 'navReports', icon: BarChart3, resource: 'reports', group: 'operations' },

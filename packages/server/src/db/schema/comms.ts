@@ -64,3 +64,26 @@ export const emailEvents = pgTable(
   },
   (t) => [index('email_events_user_idx').on(t.userId)],
 );
+
+export const supportMessages = pgTable(
+  'support_messages',
+  {
+    id: primaryId(),
+    userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
+    name: text('name').notNull(),
+    phone: text('phone').notNull(),
+    email: text('email'),
+    category: text('category').notNull().default('general'),
+    orderNumber: text('order_number'),
+    message: text('message').notNull(),
+    status: text('status').notNull().default('new'), // new | in_progress | resolved | closed
+    adminNotes: text('admin_notes'),
+    resolvedBy: text('resolved_by').references(() => users.id, { onDelete: 'set null' }),
+    ...timestamps,
+  },
+  (t) => [
+    index('support_messages_status_idx').on(t.status),
+    index('support_messages_created_idx').on(t.createdAt),
+    index('support_messages_user_idx').on(t.userId),
+  ],
+);

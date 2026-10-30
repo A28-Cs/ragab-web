@@ -560,6 +560,7 @@ export const en = {
     navPrescriptions: 'Prescriptions',
     navProductRequests: 'Stock Requests',
     navCustomers: 'Customers',
+    navSupportMessages: 'Customer Complaints & Support',
     navPromotions: 'Promotions',
     navPayments: 'Payments',
     navReports: 'Reports',

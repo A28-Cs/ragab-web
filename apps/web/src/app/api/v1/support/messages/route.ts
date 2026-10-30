@@ -1,7 +1,7 @@
 import { defineRoute } from '@ragab/server';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
-import { db, users, notifications } from '@ragab/server/db';
+import { db, users, notifications, supportMessages } from '@ragab/server/db';
 import { logAudit } from '@ragab/server/modules/audit';
 
 export const runtime = 'nodejs';
@@ -45,6 +45,21 @@ export const POST = defineRoute({
 
     if (!userName) userName = 'عميل صيدلية رجب';
 
+    // Save support ticket in DB
+    const [inserted] = await db()
+      .insert(supportMessages)
+      .values({
+        userId,
+        name: userName,
+        phone: userPhone,
+        email: userEmail || null,
+        category: body.category || 'general',
+        orderNumber: body.orderNumber?.trim() || null,
+        message: body.message.trim(),
+        status: 'new',
+      })
+      .returning();
+
     // Record audit entry for customer service & staff tracking
     await logAudit({
       actorId: userId,
@@ -52,8 +67,9 @@ export const POST = defineRoute({
       actorRole,
       action: 'support_message_submitted',
       resource: 'support_messages',
-      resourceId: body.orderNumber || null,
+      resourceId: inserted?.id || body.orderNumber || null,
       metadata: {
+        ticketId: inserted?.id || '',
         phone: userPhone,
         email: userEmail,
         category: body.category || 'general',

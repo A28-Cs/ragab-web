@@ -560,6 +560,7 @@ export const ar = {
     navPrescriptions: 'طلبات الروشتات',
     navProductRequests: 'طلبات التوفير',
     navCustomers: 'العملاء',
+    navSupportMessages: 'رسائل وشكاوى العملاء',
     navPromotions: 'العروض',
     navPayments: 'المدفوعات',
     navReports: 'التقارير',
