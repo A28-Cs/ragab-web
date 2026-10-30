@@ -21,7 +21,7 @@ import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { ORDER_STATUS_TONE } from '../../../lib/orderStatus';
 
 function CustomersInner() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { permissions, hasPermission } = useAuth();
   const { showToast } = useToast();
   const record = useAudit();
@@ -99,7 +99,7 @@ function CustomersInner() {
           items={[
             { label: t.admin.view, icon: <Eye className="w-4 h-4" />, onClick: () => openDetail(c) },
             {
-              label: t.common.call ?? (language === 'ar' ? 'اتصال هاتفياً' : 'Call customer'),
+              label: language === 'ar' ? 'اتصال هاتفياً' : 'Call customer',
               icon: <Phone className="w-4 h-4" />,
               href: `tel:${c.phone}`,
             },
