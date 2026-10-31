@@ -135,45 +135,125 @@ export async function submitCourierRating(
   // Sync rating to Engezny Firestore in background/safely
   if (firestore) {
     try {
-      // 1. Update the order document in Engezny
-      const orderRef = firestore.collection('orders').doc(order.id);
-      const orderDoc = await orderRef.get();
+      // 1. Locate the exact order document in Engezny
+      let orderRef = firestore.collection('orders').doc(order.id);
+      let orderDoc = await orderRef.get();
+      if (!orderDoc.exists) {
+        const q = await firestore.collection('orders').where('ragabOrderId', '==', order.id).limit(1).get();
+        if (!q.empty) {
+          orderDoc = q.docs[0];
+          orderRef = orderDoc.ref;
+        }
+      }
+      if (!orderDoc.exists) {
+        const q2 = await firestore.collection('orders').where('mahsoobOrderId', '==', order.id).limit(1).get();
+        if (!q2.empty) {
+          orderDoc = q2.docs[0];
+          orderRef = orderDoc.ref;
+        }
+      }
+
       if (orderDoc.exists) {
+        // Set the exact customer rating on the Engezny order doc
         await orderRef.set(
           {
+            rating: rating,
             driverRating: rating,
-            driverReview: input.comment?.trim() || '',
-            driverRatedAt: new Date(),
+            workerRating: rating,
+            courierRating: rating,
             customerRating: rating,
+            deliveryRating: rating,
+            review: input.comment?.trim() || '',
+            driverReview: input.comment?.trim() || '',
             customerFeedback: input.comment?.trim() || '',
+            driverFeedback: input.comment?.trim() || '',
+            rated: true,
+            isRated: true,
+            driverRated: true,
+            ratedAt: new Date(),
+            driverRatedAt: new Date(),
           },
           { merge: true }
         );
       }
 
       // 2. Update the driver worker document in Engezny users collection
-      const effectiveWorkerId = workerId || (orderDoc.exists ? orderDoc.data()?.workerId : null);
+      const orderData = orderDoc.exists ? orderDoc.data() : null;
+      const effectiveWorkerId =
+        workerId ||
+        orderData?.workerId ||
+        orderData?.driverId ||
+        orderData?.courierId ||
+        orderData?.assignedWorkerId;
+
       if (effectiveWorkerId) {
         const workerRef = firestore.collection('users').doc(effectiveWorkerId);
         const workerSnap = await workerRef.get();
         if (workerSnap.exists) {
           const w = workerSnap.data() || {};
           const currentCount = Number(w.ratingCount || w.totalRatings || w.ratingsCount || 0);
-          const currentRating = Number(w.rating || 5);
+          const currentRating = Number(w.rating ?? 5);
           const newCount = currentCount + 1;
-          const newRating = Number(((currentRating * currentCount + rating) / newCount).toFixed(2));
+          // Calculate exact real weighted average based on the customer's true rating
+          const newRating =
+            currentCount === 0
+              ? rating
+              : Number(((currentRating * currentCount + rating) / newCount).toFixed(2));
+
           await workerRef.set(
             {
               rating: newRating,
+              workerRating: newRating,
+              driverRating: newRating,
               ratingCount: newCount,
               totalRatings: newCount,
+              ratingsCount: newCount,
+              lastRating: rating,
               lastRatingFromRagab: rating,
               lastRatedAt: new Date(),
             },
             { merge: true }
           );
-          log.info({ workerId: effectiveWorkerId, newRating, newCount }, 'Synced courier rating to Engezny worker profile');
+
+          // Also record in worker's ratings subcollection in Engezny
+          try {
+            await workerRef.collection('ratings').doc(order.id).set(
+              {
+                orderId: order.id,
+                rating: rating,
+                comment: input.comment?.trim() || '',
+                createdAt: new Date(),
+                source: 'ragab_pharmacy',
+                customerName: ctx.principal.user?.name || 'عميل صيدلية رجب',
+              },
+              { merge: true }
+            );
+          } catch {
+            // ignore subcollection write failure
+          }
+
+          log.info(
+            { workerId: effectiveWorkerId, customerRating: rating, newRating, newCount },
+            'Synced exact courier rating to Engezny worker profile without automatic 0.2 increment'
+          );
         }
+      }
+
+      // 3. Record in root ratings collection if Engezny uses global ratings
+      try {
+        await firestore.collection('ratings').doc(`ragab_${order.id}`).set(
+          {
+            orderId: order.id,
+            workerId: effectiveWorkerId || null,
+            rating: rating,
+            comment: input.comment?.trim() || '',
+            createdAt: new Date(),
+            source: 'ragab_pharmacy',
+          },
+          { merge: true }
+        );
+      } catch {
+        // ignore root rating collection write failure
       }
     } catch (err) {
       log.error({ err, orderId: order.id }, 'Failed to sync courier rating to Engezny Firestore');
