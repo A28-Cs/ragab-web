@@ -174,7 +174,7 @@ export default function ControlCenterLayout({ children }: { children: React.Reac
             </div>
           </header>
 
-          <main className="flex-1 p-4 sm:p-6 max-w-[1400px] w-full mx-auto">{children}</main>
+          <main className="flex-1 p-3 sm:p-5 max-w-[1400px] w-full mx-auto min-w-0">{children}</main>
         </div>
 
         {/* Mobile drawer nav */}

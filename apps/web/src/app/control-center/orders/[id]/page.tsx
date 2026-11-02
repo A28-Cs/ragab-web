@@ -345,41 +345,49 @@ function OrderAdminDetailInner() {
   }));
 
   return (
-    <div className="space-y-4">
-      <Link href="/control-center/orders" className="inline-flex items-center gap-1 text-caption font-semibold text-ragab-ink-500 hover:text-ragab-ink-800">
-        <ChevronLeft className="w-4 h-4 ltr:rotate-180" />
-        {t.adminOrders.title}
-      </Link>
-
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
-          <h2 className="text-h2 text-ragab-ink-800" dir="ltr">{order.orderNumber}</h2>
-          {order.manual && <Badge variant="neutral">{t.adminOrders.manualBadge}</Badge>}
-          {order.refunded && <Badge variant="warning">{t.adminOrders.refundedBadge}</Badge>}
-          {order.hasPrescriptionItems && (
-            <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-caption font-bold bg-amber-600 text-white shadow-xs">
-              <span className="font-black">Rx</span>
-              <span>{isRTL ? 'يتطلب روشتة طبية' : 'Prescription Required'}</span>
-            </span>
-          )}
+    <div className="space-y-4 min-w-0">
+      {/* Sleek unified header */}
+      <div className="bg-white rounded-xl border border-ragab-ink-200 p-3.5 sm:p-4 shadow-subtle space-y-2.5">
+        <div className="flex items-center justify-between gap-2 text-caption text-ragab-ink-500">
+          <Link href="/control-center/orders" className="inline-flex items-center gap-1 font-bold text-ragab-brand-700 hover:text-ragab-brand-800 transition-colors">
+            <ChevronLeft className="w-4 h-4 ltr:rotate-180" />
+            {t.adminOrders.title}
+          </Link>
+          <span className="font-mono text-ragab-ink-400 text-[12px]">{order.createdAt}</span>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <StatusPill tone={order.detailedStatus ? DETAILED_STATUS_TONE[order.detailedStatus] : ORDER_STATUS_TONE[order.status]}>
-            {order.detailedStatus && ar ? DETAILED_STATUS_LABELS_AR[order.detailedStatus] : t.account.orderStatus[order.status]}
-          </StatusPill>
-          {order.deliveryStatus && (
-            <StatusPill tone={DELIVERY_STATUS_TONE[order.deliveryStatus]}>
-              {ar ? DELIVERY_STATUS_LABELS_AR[order.deliveryStatus] : order.deliveryStatus}
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-ragab-ink-100">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-xl sm:text-2xl font-black text-ragab-ink-900 font-mono tracking-tight" dir="ltr">
+              {order.orderNumber}
+            </h2>
+            {order.manual && <Badge variant="neutral">{t.adminOrders.manualBadge}</Badge>}
+            {order.refunded && <Badge variant="warning">{t.adminOrders.refundedBadge}</Badge>}
+            {order.hasPrescriptionItems && (
+              <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-caption font-bold bg-amber-600 text-white shadow-xs">
+                <span className="font-black">Rx</span>
+                <span>{isRTL ? 'روشتة طبية' : 'Prescription Required'}</span>
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <StatusPill tone={order.detailedStatus ? DETAILED_STATUS_TONE[order.detailedStatus] : ORDER_STATUS_TONE[order.status]}>
+              {order.detailedStatus && ar ? DETAILED_STATUS_LABELS_AR[order.detailedStatus] : t.account.orderStatus[order.status]}
             </StatusPill>
-          )}
-          {paymentStatus && <StatusPill tone={PAY_TONE[paymentStatus]}>{paymentStatusLabel(paymentStatus)}</StatusPill>}
+            {order.deliveryStatus && (
+              <StatusPill tone={DELIVERY_STATUS_TONE[order.deliveryStatus]}>
+                {ar ? DELIVERY_STATUS_LABELS_AR[order.deliveryStatus] : order.deliveryStatus}
+              </StatusPill>
+            )}
+            {paymentStatus && <StatusPill tone={PAY_TONE[paymentStatus]}>{paymentStatusLabel(paymentStatus)}</StatusPill>}
+          </div>
         </div>
       </div>
-      <p className="text-body-sm text-ragab-ink-500 -mt-2">{order.createdAt}</p>
 
       {/* Stuck Order Warning Banner */}
       {order.stuckInfo?.isStuck && (
-        <div className={`p-4 rounded-xl border flex items-start gap-3 shadow-xs ${
+        <div className={`p-3.5 rounded-xl border flex items-start gap-3 shadow-xs ${
           order.stuckInfo.alertLevel === 'critical'
             ? 'bg-red-50 border-red-300 text-red-950'
             : 'bg-amber-50 border-amber-300 text-amber-950'
@@ -387,8 +395,8 @@ function OrderAdminDetailInner() {
           <AlertTriangle className={`w-5 h-5 shrink-0 mt-0.5 ${
             order.stuckInfo.alertLevel === 'critical' ? 'text-red-600' : 'text-amber-600'
           }`} />
-          <div className="flex-1 space-y-1">
-            <div className="flex items-center gap-2 font-bold text-body-sm">
+          <div className="flex-1 space-y-1 min-w-0">
+            <div className="flex items-center gap-2 font-bold text-body-sm flex-wrap">
               <span>{isRTL ? 'تنبيه مراقبة: هذا الطلب متوقف أطول من الحد المسموح به' : 'Alert: Stuck Order Detected'}</span>
               <span className="px-2 py-0.5 rounded-full text-[11px] bg-amber-200/80 font-mono text-amber-900">
                 {order.stuckInfo.minutesInCurrentStatus} {isRTL ? 'دقيقة' : 'mins'}
@@ -401,39 +409,46 @@ function OrderAdminDetailInner() {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-[1fr_340px] gap-4 items-start">
-        <div className="space-y-4">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] 2xl:grid-cols-[1fr_340px] gap-4 items-start min-w-0">
+        <div className="space-y-4 min-w-0">
           {/* Status management */}
           <Card>
             <CardHeader title={t.adminOrders.changeStatus} />
-            <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-              <div className="flex-1">
-                <FormField label={t.adminOrders.colStatus}>
-                  <Select
-                    options={statusOptions}
-                    value={statusDraft}
-                    onChange={(e) => setStatusDraft(e.target.value as OrderStatus)}
-                    disabled={!canEdit}
-                  />
-                </FormField>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 bg-ragab-ink-50/70 p-3 rounded-xl border border-ragab-ink-100">
+              <div className="flex-1 min-w-[170px]">
+                <Select
+                  options={statusOptions}
+                  value={statusDraft}
+                  onChange={(e) => setStatusDraft(e.target.value as OrderStatus)}
+                  disabled={!canEdit}
+                />
               </div>
-              <Button
-                variant="primary"
-                leftIcon={<Check className="w-4 h-4" />}
-                onClick={() => onUpdateStatus(statusDraft)}
-                isLoading={savingStatus}
-                disabled={!canEdit || statusDraft === order.status}
-              >
-                {t.adminOrders.updateStatus}
-              </Button>
-              {!isTerminal && (
-                <Button variant="secondary" leftIcon={<ArrowLeftRight className="w-4 h-4" />} onClick={advance} disabled={!canEdit || savingStatus}>
-                  {t.adminOrders.advanceStatus}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  leftIcon={<Check className="w-4 h-4" />}
+                  onClick={() => onUpdateStatus(statusDraft)}
+                  isLoading={savingStatus}
+                  disabled={!canEdit || statusDraft === order.status}
+                >
+                  {t.adminOrders.updateStatus}
                 </Button>
-              )}
+                {!isTerminal && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    leftIcon={<ArrowLeftRight className="w-4 h-4" />}
+                    onClick={advance}
+                    disabled={!canEdit || savingStatus}
+                  >
+                    {t.adminOrders.advanceStatus}
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="mt-5">
-              <Timeline steps={buildTimeline(order)} />
+            <div className="mt-4 pt-3 border-t border-ragab-ink-100">
+              <Timeline steps={buildTimeline(order)} compact />
             </div>
           </Card>
 
@@ -641,7 +656,7 @@ function OrderAdminDetailInner() {
         </div>
 
         {/* Side column */}
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
           <Card>
             <CardHeader title={t.account.orderSummary} />
             <dl className="space-y-2 text-body-sm">
