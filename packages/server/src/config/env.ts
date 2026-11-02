@@ -69,6 +69,10 @@ const serverSchema = z.object({
   SMS_GATEWAY_TOKEN: z.string().optional(),
   SMS_SENDER_ID: z.string().default('Ragab'),
 
+  /** Telegram Bot for immediate order alerts (§23/§26). Optional. */
+  TELEGRAM_BOT_TOKEN: z.string().optional(),
+  TELEGRAM_CHAT_ID: z.string().optional(),
+
   RATE_LIMIT_ENABLED: bool.default('true'),
 
   /** Mobile app version gate (§47) served by GET /api/v1/app/config. */

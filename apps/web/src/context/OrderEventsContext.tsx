@@ -90,6 +90,18 @@ export function OrderEventsProvider({ children }: { children: React.ReactNode })
   }, [fetchPending, canManageOrders]);
 
   useEffect(() => {
+    if (!canManageOrders || typeof window === 'undefined') return;
+
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  }, [canManageOrders]);
+
+  useEffect(() => {
     if (!canManageOrders) return;
 
     setIsConnecting(true);
@@ -132,6 +144,24 @@ export function OrderEventsProvider({ children }: { children: React.ReactNode })
                 
                 showToast(`طلب جديد #${fullOrder.orderNumber}`, 'info');
                 playRagabPharmacyOrderAlert();
+
+                // إشعار سطح المكتب / الويندوز في زاوية الشاشة
+                if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                  try {
+                    const formattedTotal = fullOrder.total !== undefined ? `${fullOrder.total.toFixed(2)} ج.م` : '';
+                    const n = new Notification(`طلب جديد #${fullOrder.orderNumber} - صيدلية رجب`, {
+                      body: formattedTotal ? `الإجمالي: ${formattedTotal}\nاضغط لفتح الطلب باللوحة` : `اضغط لفتح الطلب باللوحة`,
+                      icon: '/favicon.ico',
+                      tag: `order-${fullOrder.id}`,
+                    });
+                    n.onclick = () => {
+                      window.focus();
+                      n.close();
+                    };
+                  } catch (e) {
+                    // Ignore desktop notification error
+                  }
+                }
              } else {
                 pendingOrderIdsRef.current.delete(orderId);
              }

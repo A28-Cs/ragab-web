@@ -278,6 +278,23 @@ export async function placeOrder(ctx: RequestContext, input: CheckoutInput): Pro
         order: order
       }
     });
+
+    // Telegram Bot Alert (Non-blocking)
+    const { sendTelegramOrderAlert } = await import('../../lib/telegram');
+    const { publicEnv } = await import('../../config/env');
+    const deliveryAddr = (order.deliveryAddress ?? {}) as Record<string, any>;
+    const addrString = [deliveryAddr.village, deliveryAddr.streetAddress, deliveryAddr.landmark].filter(Boolean).join(' - ');
+
+    sendTelegramOrderAlert({
+      orderNumber: order.orderNumber,
+      customerName: deliveryAddr.recipientName || ctx.principal?.user.name,
+      customerPhone: deliveryAddr.phone || ctx.principal?.user.phone,
+      address: addrString || undefined,
+      itemsCount: order.items?.length ?? 1,
+      totalFormatted: `${typeof order.total === 'number' ? order.total.toFixed(2) : order.total} ج.م`,
+      paymentMethod: order.paymentMethod === 'cod' ? 'دفع عند الاستلام (COD)' : order.paymentMethod,
+      orderUrl: `${publicEnv().NEXT_PUBLIC_APP_URL}/control-center/orders/${order.id}`,
+    }).catch(() => {});
   } catch (err) {
     // Best effort broadcast
   }

@@ -142,6 +142,17 @@ export async function createPrescription(input: CreatePrescriptionInput): Promis
         customerPhone: resolvedPhone,
       },
     });
+
+    // Telegram Bot Alert (Non-blocking)
+    const { sendTelegramPrescriptionAlert } = await import('../../lib/telegram');
+    const { publicEnv } = await import('../../config/env');
+    sendTelegramPrescriptionAlert({
+      prescriptionId: id,
+      customerName: resolvedName,
+      customerPhone: resolvedPhone,
+      notes: input.notes?.trim() || undefined,
+      viewUrl: `${publicEnv().NEXT_PUBLIC_APP_URL}/control-center/prescriptions`,
+    }).catch(() => {});
   } catch (err) {
     logger().warn({ err }, 'Failed to publish prescription.created event');
   }
