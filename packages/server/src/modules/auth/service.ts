@@ -54,6 +54,7 @@ import { publicEnv } from '../../config/env';
 import { toUserDto } from './mapper';
 import { newId } from '../../lib/ids';
 import { logger } from '../../lib/logger';
+import { verifySocialToken } from '../../lib/token-verifier';
 import type { RegisterInput, LoginInput, ResetPasswordInput, ChangePasswordInput, DeleteAccountInput } from './schema';
 import type { User } from '../../types';
 import type { PermissionKey } from '../../security/permissions';
@@ -606,50 +607,7 @@ export async function resendEmailVerification(email: string, ctx: RequestContext
 }
 
 export async function providerLogin(idToken: string, provider: 'google' | 'apple', ctx: RequestContext): Promise<User> {
-  let decodedToken: { email?: string; name?: string; sub?: string } | null = null;
-
-  try {
-    const adminAuth = (await import('../../lib/firebase-admin')).getFirebaseAuth();
-    const token = await adminAuth.verifyIdToken(idToken);
-    decodedToken = {
-      email: token.email,
-      name: token.name,
-      sub: token.sub,
-    };
-  } catch (firebaseErr: any) {
-    logger().warn({ err: firebaseErr?.message || firebaseErr, code: firebaseErr?.code }, 'Firebase verifyIdToken failed');
-    if (provider === 'google') {
-      try {
-        const idTokenRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
-        if (idTokenRes.ok) {
-          const info = (await idTokenRes.json()) as { email?: string; name?: string; sub?: string };
-          if (info.email) {
-            decodedToken = {
-              email: info.email,
-              name: info.name,
-              sub: info.sub,
-            };
-          }
-        } else {
-          const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: { Authorization: `Bearer ${idToken}` },
-          });
-          if (userInfoRes.ok) {
-            const userinfo = (await userInfoRes.json()) as { email?: string; name?: string; sub?: string };
-            if (userinfo.email) {
-              decodedToken = {
-                email: userinfo.email,
-                name: userinfo.name,
-                sub: userinfo.sub,
-              };
-            }
-          }
-        }
-      } catch (fallbackErr) {
-        logger().warn({ err: fallbackErr }, 'Google fallback token verification failed');
-      }
-    }
-  }
+  const decodedToken = await verifySocialToken(idToken, provider);
 
   if (!decodedToken) {
     throw new AuthenticationError({ code: 'INVALID_PROVIDER_TOKEN', message: { ar: 'فشل التحقق من مزود الخدمة.', en: 'Provider verification failed.' } });

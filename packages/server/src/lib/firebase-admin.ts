@@ -15,24 +15,28 @@ function getFirebaseAdminApp() {
   const existing = getApps().find((app) => app.name === APP_NAME);
   if (existing) return existing;
 
-  const serviceAccount = serverEnv().ENGEZNY_FIREBASE_SERVICE_ACCOUNT;
-  if (serviceAccount) {
-    try {
-      const parsedCert = JSON.parse(
-        serviceAccount.startsWith('{')
-          ? serviceAccount
-          : Buffer.from(serviceAccount, 'base64').toString('utf-8')
-      );
-      return initializeApp(
-        {
-          credential: cert(parsedCert),
-          projectId: parsedCert.project_id || 'ragab-pharmacy',
-        },
-        APP_NAME
-      );
-    } catch {
-      // Fall through to projectId initialization
+  try {
+    const serviceAccount = serverEnv().ENGEZNY_FIREBASE_SERVICE_ACCOUNT;
+    if (serviceAccount) {
+      try {
+        const parsedCert = JSON.parse(
+          serviceAccount.startsWith('{')
+            ? serviceAccount
+            : Buffer.from(serviceAccount, 'base64').toString('utf-8')
+        );
+        return initializeApp(
+          {
+            credential: cert(parsedCert),
+            projectId: parsedCert.project_id || 'ragab-pharmacy',
+          },
+          APP_NAME
+        );
+      } catch {
+        // Fall through to projectId initialization
+      }
     }
+  } catch {
+    // serverEnv() may throw if secrets missing, fall through to projectId
   }
 
   // For verifying ID tokens, we often only need the projectId if we don't need
