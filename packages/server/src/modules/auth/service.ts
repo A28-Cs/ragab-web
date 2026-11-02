@@ -605,11 +605,51 @@ export async function resendEmailVerification(email: string, ctx: RequestContext
 }
 
 export async function providerLogin(idToken: string, provider: 'google' | 'apple', ctx: RequestContext): Promise<User> {
-  const adminAuth = (await import('../../lib/firebase-admin')).getFirebaseAuth();
-  let decodedToken;
+  let decodedToken: { email?: string; name?: string; sub?: string } | null = null;
+
   try {
-    decodedToken = await adminAuth.verifyIdToken(idToken);
-  } catch (e) {
+    const adminAuth = (await import('../../lib/firebase-admin')).getFirebaseAuth();
+    const token = await adminAuth.verifyIdToken(idToken);
+    decodedToken = {
+      email: token.email,
+      name: token.name,
+      sub: token.sub,
+    };
+  } catch (firebaseErr) {
+    if (provider === 'google') {
+      try {
+        const idTokenRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+        if (idTokenRes.ok) {
+          const info = (await idTokenRes.json()) as { email?: string; name?: string; sub?: string };
+          if (info.email) {
+            decodedToken = {
+              email: info.email,
+              name: info.name,
+              sub: info.sub,
+            };
+          }
+        } else {
+          const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${idToken}` },
+          });
+          if (userInfoRes.ok) {
+            const userinfo = (await userInfoRes.json()) as { email?: string; name?: string; sub?: string };
+            if (userinfo.email) {
+              decodedToken = {
+                email: userinfo.email,
+                name: userinfo.name,
+                sub: userinfo.sub,
+              };
+            }
+          }
+        }
+      } catch {
+        // Fallback network error
+      }
+    }
+  }
+
+  if (!decodedToken) {
     throw new AuthenticationError({ code: 'INVALID_PROVIDER_TOKEN', message: { ar: 'فشل التحقق من مزود الخدمة.', en: 'Provider verification failed.' } });
   }
 
