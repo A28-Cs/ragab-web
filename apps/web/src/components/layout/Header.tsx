@@ -22,6 +22,19 @@ import {
   Grid2X2,
   FileText,
   Headphones,
+  Home,
+  Pill,
+  Tag,
+  Flame,
+  HelpCircle,
+  Info,
+  Sparkles,
+  Baby,
+  HeartPulse,
+  Package,
+  Scissors,
+  LayoutGrid,
+  LayoutDashboard,
 } from 'lucide-react';
 import { cn } from '@ragab/utils';
 import { RagabLogo } from '../ui/RagabLogo';
@@ -41,6 +54,32 @@ import { featuredCategories, categoryEmoji } from '../../lib/categoryPresentatio
 import { CreateProductModal } from '../product/CreateProductModal';
 import { OrdersQuickAccessPopup } from '../admin/OrdersQuickAccess';
 import { useOrderEvents } from '../../context/OrderEventsContext';
+
+function CategorySvgIcon({ iconName, className = 'w-4 h-4' }: { iconName?: string; className?: string }) {
+  switch (iconName) {
+    case 'pill':
+      return <Pill className={className} />;
+    case 'sparkles':
+    case 'spray-can':
+      return <Sparkles className={className} />;
+    case 'baby':
+      return <Baby className={className} />;
+    case 'heart-pulse':
+    case 'activity':
+      return <HeartPulse className={className} />;
+    case 'heart':
+      return <Heart className={className} />;
+    case 'scissors':
+      return <Scissors className={className} />;
+    case 'package':
+      return <Package className={className} />;
+    case 'shopping-bag':
+    case 'shopping-basket':
+      return <ShoppingBag className={className} />;
+    default:
+      return <LayoutGrid className={className} />;
+  }
+}
 
 const iconBtn =
   'inline-flex items-center justify-center w-11 h-11 rounded-lg text-ragab-ink-800 hover:bg-ragab-ink-50 transition-colors focus-ring';
@@ -437,110 +476,271 @@ export const Header: React.FC = () => {
         size="sm"
         position={isRTL ? 'right' : 'left'}
       >
-        <nav className="font-arabic space-y-1">
-          <section className="mb-5 p-4 rounded-xl bg-ragab-brand-50 border border-ragab-brand-200" aria-label={t.navigation.account}>
-            <div className="flex items-center gap-3 mb-3">
-              {isLoggedIn ? <Avatar name={user?.name ?? ''} src={user?.avatar} size="sm" /> : <User className="w-6 h-6 text-ragab-brand-700" />}
-              <div className="min-w-0">
-                <p className="font-bold truncate">{isLoggedIn ? user?.name : isRTL ? 'مرحباً بك في صيدلية رجب' : 'Welcome to Ragab Pharmacy'}</p>
-                <p className="text-caption text-ragab-ink-600">{isRTL ? 'كل ما تحتاجه لصحتك، في مكان واحد' : 'Your health essentials, in one place'}</p>
+        <nav className="font-arabic space-y-4 pb-8">
+          {/* 1. Account / Login Section */}
+          <section className="p-3.5 rounded-2xl bg-gradient-to-br from-ragab-brand-50 to-teal-50/40 border border-ragab-brand-200/80 shadow-xs" aria-label={t.navigation.account}>
+            <div className="flex items-center gap-3">
+              {isLoggedIn ? (
+                <Avatar name={user?.name ?? ''} src={user?.avatar} size="md" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-ragab-brand-100 flex items-center justify-center text-ragab-brand-700 shrink-0">
+                  <User className="w-5 h-5" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-ragab-ink-900 truncate text-body-sm">
+                  {isLoggedIn ? user?.name : (isRTL ? 'مرحباً بك في صيدلية رجب' : 'Welcome to Ragab Pharmacy')}
+                </p>
+                <p className="text-caption text-ragab-ink-500 truncate">
+                  {isLoggedIn ? (user?.phone || user?.email) : (isRTL ? 'سجل دخولك لمتابعة طلباتك وصحتك' : 'Sign in to manage your health')}
+                </p>
               </div>
             </div>
-            {isLoggedIn ? <>
-              <div className="grid grid-cols-2 gap-2 text-body-sm">
-                {[{ href: '/account', label: t.navigation.account }, { href: '/account/orders', label: t.navigation.orders }, { href: '/account/addresses', label: isRTL ? 'العناوين' : 'Addresses' }, { href: '/account/security', label: t.account.security }, { href: '/contact', label: isRTL ? 'الدعم والمساعدة' : 'Help & Support' }, { href: '/account/settings', label: t.account.settings }].map(item => <Link key={item.href} href={item.href} onClick={() => setIsMenuOpen(false)} className="p-2 hover:bg-white rounded-lg focus-ring">{item.label}</Link>)}
-              </div>
-              <button onClick={handleLogout} className="mt-3 pt-3 border-t border-ragab-brand-200 w-full flex items-center gap-2 text-ragab-danger text-body-sm font-bold focus-ring"><LogOut className="w-4 h-4" />{t.navigation.logout}</button>
-            </> : <>
-              <p className="text-caption text-ragab-ink-600 mb-3">{isRTL ? 'سجل الدخول لمتابعة طلباتك' : 'Sign in to follow your orders'}</p>
-              <Link href="/login" onClick={() => setIsMenuOpen(false)} className="flex items-center justify-center gap-2 min-h-11 rounded-lg bg-ragab-brand-700 text-white font-bold focus-ring"><User className="w-4 h-4" />{t.navigation.login}</Link>
-            </>}
-          </section>
-          {[
-            { href: '/', label: t.navigation.home },
-            { href: '/prescription', label: isRTL ? 'اطلب بروشتة' : 'Order by Prescription' },
-            { href: '/request-product', label: isRTL ? 'طلب توفير دواء أو منتج' : 'Request a Product' },
-            { href: '/offers', label: t.navigation.offers },
-            { href: '/categories?sort=popular', label: t.navigation.bestSellers },
-            { href: '/favorites', label: t.navigation.favorites },
-            ...(hasAnyAdminAccess ? [{ href: '/control-center', label: t.admin.controlCenter }] : []),
-            { href: '/contact', label: isRTL ? 'الدعم والمساعدة' : 'Help & Support' },
-            { href: '/about', label: t.navigation.about },
-          ].map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setIsMenuOpen(false)}
-              className="block py-3 px-3 rounded-xl text-body-sm font-bold text-ragab-ink-800 hover:bg-ragab-cream-soft transition-colors"
-            >
-              {item.label}
-            </Link>
-          ))}
 
-          {canAddProduct && (
-            <button
-              type="button"
-              onClick={() => {
-                setIsMenuOpen(false);
-                setIsAddProductOpen(true);
-              }}
-              className="flex items-center gap-2 py-3 px-3 rounded-xl text-body-sm font-bold text-ragab-ink-900 bg-ragab-brand-50 hover:bg-ragab-brand-100 transition-colors w-full text-start"
-            >
-              <Plus className="w-4 h-4 text-ragab-brand-700" />
-              <span>{isRTL ? 'إضافة منتج' : 'Add product'}</span>
-            </button>
-          )}
-
-          {canManageOrders && (
-            <button
-              type="button"
-              onClick={() => {
-                setIsMenuOpen(false);
-                setIsOrdersOpen(true);
-              }}
-              className="flex items-center gap-2 py-3 px-3 rounded-xl text-body-sm font-bold text-ragab-ink-800 hover:bg-ragab-cream-soft transition-colors w-full text-start"
-            >
-              <div className="relative">
-                <OrdersIcon className="w-4 h-4 text-ragab-ink-600" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-ragab-danger border border-white" />
-                )}
-              </div>
-              <span>الطلبات ({pendingOrders.length})</span>
-            </button>
-          )}
-
-          <div className="pt-3 mt-2 border-t border-ragab-ink-100">
-            <h4 className="text-label text-ragab-ink-500 px-3 mb-1">{t.common.allDepartments}</h4>
-            {topLevel.map((c) => (
-              <Link
-                key={c.id}
-                href={`/category/${c.slug}`}
-                onClick={() => setIsMenuOpen(false)}
-                className="flex items-center gap-2.5 py-2.5 px-3 rounded-xl text-body-sm font-semibold text-ragab-ink-700 hover:bg-ragab-cream-soft transition-colors"
-              >
-                <span
-                  aria-hidden="true"
-                  className="w-8 h-8 rounded-lg bg-ragab-brand-50 flex items-center justify-center text-base leading-none shrink-0"
+            {isLoggedIn ? (
+              <div className="mt-3 pt-3 border-t border-ragab-brand-200/60 grid grid-cols-2 gap-1.5 text-caption font-semibold">
+                <Link
+                  href="/account/orders"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-2 p-2 rounded-lg bg-white/80 hover:bg-white text-ragab-ink-800 transition-colors shadow-2xs"
                 >
-                  {categoryEmoji(c)}
-                </span>
-                {isRTL ? c.nameAr : c.nameEn}
+                  <ShoppingBag className="w-3.5 h-3.5 text-ragab-brand-600 shrink-0" />
+                  <span>{t.navigation.orders}</span>
+                </Link>
+                <Link
+                  href="/account/addresses"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-2 p-2 rounded-lg bg-white/80 hover:bg-white text-ragab-ink-800 transition-colors shadow-2xs"
+                >
+                  <MapPin className="w-3.5 h-3.5 text-ragab-brand-600 shrink-0" />
+                  <span>{isRTL ? 'عناويني' : 'Addresses'}</span>
+                </Link>
+                <Link
+                  href="/account"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-2 p-2 rounded-lg bg-white/80 hover:bg-white text-ragab-ink-800 transition-colors shadow-2xs"
+                >
+                  <User className="w-3.5 h-3.5 text-ragab-brand-600 shrink-0" />
+                  <span>{t.navigation.account}</span>
+                </Link>
+                <Link
+                  href="/account/settings"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-2 p-2 rounded-lg bg-white/80 hover:bg-white text-ragab-ink-800 transition-colors shadow-2xs"
+                >
+                  <Settings className="w-3.5 h-3.5 text-ragab-brand-600 shrink-0" />
+                  <span>{t.account.settings}</span>
+                </Link>
+              </div>
+            ) : (
+              <div className="mt-3">
+                <Link
+                  href="/login"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 h-10 rounded-xl bg-ragab-brand-700 hover:bg-ragab-brand-800 text-white font-bold text-body-sm shadow-sm transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  <span>{t.navigation.login}</span>
+                </Link>
+              </div>
+            )}
+          </section>
+
+          {/* 2. Admin & Staff Controls (إدارة الصيدلية - لوحة الإدارة) */}
+          {hasAnyAdminAccess && (
+            <section className="p-2.5 rounded-2xl bg-ragab-ink-900 text-white shadow-sm space-y-1">
+              <p className="px-2 pt-1 pb-0.5 text-[11px] font-bold uppercase tracking-wider text-ragab-brand-300">
+                {isRTL ? 'إدارة الصيدلية' : 'Staff Management'}
+              </p>
+              
+              <Link
+                href="/control-center"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2 rounded-xl text-body-sm font-bold text-white hover:bg-white/10 transition-colors"
+              >
+                <LayoutDashboard className="w-4 h-4 text-ragab-brand-400 shrink-0" />
+                <span className="flex-1">{t.admin.controlCenter}</span>
               </Link>
-            ))}
+
+              {canManageOrders && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setIsOrdersOpen(true);
+                  }}
+                  className="flex items-center gap-3 px-3 py-2 rounded-xl text-body-sm font-bold text-white hover:bg-white/10 transition-colors w-full text-start"
+                >
+                  <div className="relative shrink-0">
+                    <OrdersIcon className="w-4 h-4 text-ragab-brand-400" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-ragab-danger animate-pulse" />
+                    )}
+                  </div>
+                  <span className="flex-1">{isRTL ? 'الطلبات الواردة' : 'Incoming Orders'}</span>
+                  {pendingOrders.length > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-ragab-brand-500 text-ragab-ink-900">
+                      {pendingOrders.length}
+                    </span>
+                  )}
+                </button>
+              )}
+
+              {canAddProduct && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setIsAddProductOpen(true);
+                  }}
+                  className="flex items-center gap-3 px-3 py-2 rounded-xl text-body-sm font-bold text-white hover:bg-white/10 transition-colors w-full text-start"
+                >
+                  <Plus className="w-4 h-4 text-ragab-brand-400 shrink-0" />
+                  <span className="flex-1">{isRTL ? 'إضافة منتج جديد' : 'Add New Product'}</span>
+                </button>
+              )}
+            </section>
+          )}
+
+          {/* 3. Core Pharmacy Services (الخدمات الصيدلانية الأساسية) */}
+          <div className="space-y-1">
+            <p className="px-3 pt-1 pb-1 text-[11px] font-bold uppercase tracking-wider text-ragab-ink-400">
+              {isRTL ? 'خدمات الصيدلية' : 'Pharmacy Services'}
+            </p>
+
+            <Link
+              href="/"
+              onClick={() => setIsMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-body-sm font-bold text-ragab-ink-800 hover:bg-ragab-ink-50 transition-colors"
+            >
+              <Home className="w-4 h-4 text-ragab-brand-600 shrink-0" />
+              <span>{t.navigation.home}</span>
+            </Link>
+
+            <Link
+              href="/prescription"
+              onClick={() => setIsMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-body-sm font-bold text-ragab-ink-800 hover:bg-amber-50/70 transition-colors"
+            >
+              <FileText className="w-4 h-4 text-amber-600 shrink-0" />
+              <span className="flex-1">{isRTL ? 'اطلب بروشتة' : 'Order by Prescription'}</span>
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800">
+                {isRTL ? 'فوري' : 'Fast'}
+              </span>
+            </Link>
+
+            <Link
+              href="/request-product"
+              onClick={() => setIsMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-body-sm font-bold text-ragab-ink-800 hover:bg-teal-50/70 transition-colors"
+            >
+              <Pill className="w-4 h-4 text-teal-600 shrink-0" />
+              <span className="flex-1">{isRTL ? 'طلب توفير دواء أو منتج' : 'Request a Product'}</span>
+            </Link>
           </div>
 
-          <div className="pt-3 mt-2 border-t border-ragab-ink-100">
+          {/* 4. Shopping & Discovery (التسوق والتوفير) */}
+          <div className="space-y-1 pt-2 border-t border-ragab-ink-100">
+            <p className="px-3 pt-1 pb-1 text-[11px] font-bold uppercase tracking-wider text-ragab-ink-400">
+              {isRTL ? 'التسوق والتوفير' : 'Shopping & Offers'}
+            </p>
+
+            <Link
+              href="/offers"
+              onClick={() => setIsMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-body-sm font-bold text-ragab-ink-800 hover:bg-rose-50/70 transition-colors"
+            >
+              <Tag className="w-4 h-4 text-rose-500 shrink-0" />
+              <span className="flex-1">{t.navigation.offers}</span>
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-700">
+                {isRTL ? 'تخفيضات' : 'Sale'}
+              </span>
+            </Link>
+
+            <Link
+              href="/categories?sort=popular"
+              onClick={() => setIsMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-body-sm font-bold text-ragab-ink-800 hover:bg-orange-50/70 transition-colors"
+            >
+              <Flame className="w-4 h-4 text-orange-500 shrink-0" />
+              <span>{t.navigation.bestSellers}</span>
+            </Link>
+
+            <Link
+              href="/favorites"
+              onClick={() => setIsMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-body-sm font-bold text-ragab-ink-800 hover:bg-pink-50/70 transition-colors"
+            >
+              <Heart className="w-4 h-4 text-rose-500 shrink-0" />
+              <span>{t.navigation.favorites}</span>
+            </Link>
+          </div>
+
+          {/* 5. Departments (أقسام الصيدلية بأيقونات SVG بدون إيموجي) */}
+          <div className="pt-2 border-t border-ragab-ink-100">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-ragab-ink-400 px-3 mb-1">
+              {t.common.allDepartments}
+            </h4>
+            <div className="space-y-0.5">
+              {topLevel.map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/category/${c.slug}`}
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-3 py-2 px-3 rounded-xl text-body-sm font-semibold text-ragab-ink-700 hover:bg-ragab-ink-50 transition-colors"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 border border-teal-100/80"
+                  >
+                    <CategorySvgIcon iconName={c.iconName} className="w-4 h-4" />
+                  </span>
+                  <span>{isRTL ? c.nameAr : c.nameEn}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* 6. Support & Info (المعلومات والمساعدة) */}
+          <div className="pt-2 border-t border-ragab-ink-100 space-y-1">
+            <Link
+              href="/contact"
+              onClick={() => setIsMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-body-sm font-bold text-ragab-ink-700 hover:bg-ragab-ink-50 transition-colors"
+            >
+              <HelpCircle className="w-4 h-4 text-blue-500 shrink-0" />
+              <span>{isRTL ? 'الدعم والمساعدة وتواصل معنا' : 'Help & Support'}</span>
+            </Link>
+
+            <Link
+              href="/about"
+              onClick={() => setIsMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-body-sm font-bold text-ragab-ink-700 hover:bg-ragab-ink-50 transition-colors"
+            >
+              <Info className="w-4 h-4 text-ragab-ink-400 shrink-0" />
+              <span>{t.navigation.about}</span>
+            </Link>
+
             <button
               onClick={() => {
                 toggleLanguage();
                 setIsMenuOpen(false);
               }}
-              className="flex items-center gap-2 py-3 px-3 rounded-xl text-body-sm font-bold text-ragab-ink-800 hover:bg-ragab-cream-soft transition-colors w-full font-english"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-body-sm font-bold text-ragab-ink-700 hover:bg-ragab-ink-50 transition-colors w-full font-english"
             >
-              <Globe className="w-4 h-4 text-ragab-brand-700" />
-              {t.navigation.languageToggle}
+              <Globe className="w-4 h-4 text-ragab-brand-600 shrink-0" />
+              <span>{t.navigation.languageToggle}</span>
             </button>
+
+            {isLoggedIn && (
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-body-sm font-bold text-ragab-danger hover:bg-red-50 transition-colors w-full text-start"
+              >
+                <LogOut className="w-4 h-4 text-ragab-danger shrink-0" />
+                <span>{t.navigation.logout}</span>
+              </button>
+            )}
           </div>
         </nav>
       </Drawer>
