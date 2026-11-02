@@ -54,32 +54,7 @@ import { featuredCategories, categoryEmoji } from '../../lib/categoryPresentatio
 import { CreateProductModal } from '../product/CreateProductModal';
 import { OrdersQuickAccessPopup } from '../admin/OrdersQuickAccess';
 import { useOrderEvents } from '../../context/OrderEventsContext';
-
-function CategorySvgIcon({ iconName, className = 'w-4 h-4' }: { iconName?: string; className?: string }) {
-  switch (iconName) {
-    case 'pill':
-      return <Pill className={className} />;
-    case 'sparkles':
-    case 'spray-can':
-      return <Sparkles className={className} />;
-    case 'baby':
-      return <Baby className={className} />;
-    case 'heart-pulse':
-    case 'activity':
-      return <HeartPulse className={className} />;
-    case 'heart':
-      return <Heart className={className} />;
-    case 'scissors':
-      return <Scissors className={className} />;
-    case 'package':
-      return <Package className={className} />;
-    case 'shopping-bag':
-    case 'shopping-basket':
-      return <ShoppingBag className={className} />;
-    default:
-      return <LayoutGrid className={className} />;
-  }
-}
+import { CategoryIcon } from '../ui/CategoryIcon';
 
 const iconBtn =
   'inline-flex items-center justify-center w-11 h-11 rounded-lg text-ragab-ink-800 hover:bg-ragab-ink-50 transition-colors focus-ring';
@@ -689,12 +664,7 @@ export const Header: React.FC = () => {
                   onClick={() => setIsMenuOpen(false)}
                   className="flex items-center gap-3 py-2 px-3 rounded-xl text-body-sm font-semibold text-ragab-ink-700 hover:bg-ragab-ink-50 transition-colors"
                 >
-                  <span
-                    aria-hidden="true"
-                    className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 border border-teal-100/80"
-                  >
-                    <CategorySvgIcon iconName={c.iconName} className="w-4 h-4" />
-                  </span>
+                  <CategoryIcon category={c} withBadge size="sm" />
                   <span>{isRTL ? c.nameAr : c.nameEn}</span>
                 </Link>
               ))}

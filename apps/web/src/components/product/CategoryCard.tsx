@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { cn } from '@ragab/utils';
 import { Category } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
-import { categoryEmoji } from '../../lib/categoryPresentation';
+import { CategoryIcon } from '../ui/CategoryIcon';
 
 interface CategoryCardProps {
   category: Category;
@@ -20,7 +20,6 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
 }) => {
   const { isRTL } = useLanguage();
   const name = isRTL ? category.nameAr : category.nameEn;
-  const emoji = categoryEmoji(category);
   const countLabel = `${category.itemCount} ${isRTL ? 'منتج' : 'items'}`;
 
   if (variant === 'pill') {
@@ -28,13 +27,11 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
       <Link
         href={`/category/${category.slug}`}
         className={cn(
-          'group inline-flex items-center gap-2 h-11 ps-2 pe-4 rounded-full bg-white border border-ragab-ink-200 hover:border-ragab-brand-400 hover:bg-ragab-cream-soft transition-all duration-200 shadow-subtle flex-shrink-0 focus-ring',
+          'group inline-flex items-center gap-2.5 h-11 ps-1.5 pe-4 rounded-full bg-white border border-ragab-ink-200 hover:border-ragab-brand-400 hover:bg-ragab-cream-soft transition-all duration-200 shadow-subtle flex-shrink-0 focus-ring',
           className
         )}
       >
-        <span className="w-8 h-8 rounded-full bg-ragab-cream flex items-center justify-center text-base leading-none">
-          <span aria-hidden="true">{emoji}</span>
-        </span>
+        <CategoryIcon category={category} withBadge size="sm" />
         <span className="text-body-sm font-bold text-ragab-ink-800 font-arabic whitespace-nowrap">
           {name}
         </span>
@@ -51,9 +48,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
           className
         )}
       >
-        <span className="w-10 h-10 rounded-xl bg-ragab-ink-50 border border-ragab-ink-100 flex items-center justify-center text-xl leading-none shrink-0 group-hover:bg-ragab-cream transition-colors">
-          <span aria-hidden="true">{emoji}</span>
-        </span>
+        <CategoryIcon category={category} withBadge size="md" className="shrink-0" />
         <span className="min-w-0">
           <span className="block text-body-sm font-bold text-ragab-ink-800 font-arabic truncate">
             {name}
@@ -68,17 +63,12 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
     <Link
       href={`/category/${category.slug}`}
       className={cn(
-        'group bg-white rounded-2xl border border-ragab-ink-200 px-3 py-5 flex flex-col items-center text-center hover:border-ragab-brand-400 hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 focus-ring',
+        'group bg-white rounded-2xl border border-ragab-ink-200 p-4 sm:p-5 flex flex-col items-center text-center hover:border-ragab-brand-400 hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200 focus-ring',
         className
       )}
     >
-      <span
-        aria-hidden="true"
-        className="text-[2rem] leading-none mb-3 group-hover:scale-110 transition-transform duration-200"
-      >
-        {emoji}
-      </span>
-      <h3 className="text-body-sm font-bold text-ragab-ink-800 font-arabic leading-snug line-clamp-2">
+      <CategoryIcon category={category} withBadge size="lg" className="mb-3.5 group-hover:scale-110" />
+      <h3 className="text-body-sm font-bold text-ragab-ink-900 font-arabic leading-snug line-clamp-2">
         {name}
       </h3>
       <span className="text-caption text-ragab-ink-500 font-arabic mt-1">{countLabel}</span>

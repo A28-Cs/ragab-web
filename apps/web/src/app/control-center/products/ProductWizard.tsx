@@ -14,7 +14,7 @@ import { Chip } from '../../../components/ui/Chip';
 import { Switch } from '../../../components/ui/Switch';
 import { ImageUpload } from '../../../components/ui/ImageUpload';
 import { ImageGalleryUpload } from '../../../components/ui/ImageGalleryUpload';
-import { categoryEmoji } from '../../../lib/categoryPresentation';
+import { CategoryIcon } from '../../../components/ui/CategoryIcon';
 import {
   buildVariants,
   contentLabel,
@@ -257,9 +257,7 @@ export const ProductWizard: React.FC<ProductWizardProps> = ({
                               'bg-ragab-brand-500 text-ragab-ink-900 border-ragab-brand-600 font-bold shadow-sm'
                           )}
                         >
-                          <span aria-hidden="true" className="text-base">
-                            {categoryEmoji(c)}
-                          </span>
+                          <CategoryIcon category={c} size="sm" />
                           <span>{ar ? c.nameAr : c.nameEn || c.nameAr}</span>
                         </Chip>
                       );
