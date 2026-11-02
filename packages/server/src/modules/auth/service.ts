@@ -53,6 +53,7 @@ import { deleteObjectByUrl } from '../../lib/storage';
 import { publicEnv } from '../../config/env';
 import { toUserDto } from './mapper';
 import { newId } from '../../lib/ids';
+import { logger } from '../../lib/logger';
 import type { RegisterInput, LoginInput, ResetPasswordInput, ChangePasswordInput, DeleteAccountInput } from './schema';
 import type { User } from '../../types';
 import type { PermissionKey } from '../../security/permissions';
@@ -615,7 +616,8 @@ export async function providerLogin(idToken: string, provider: 'google' | 'apple
       name: token.name,
       sub: token.sub,
     };
-  } catch (firebaseErr) {
+  } catch (firebaseErr: any) {
+    logger().warn({ err: firebaseErr?.message || firebaseErr, code: firebaseErr?.code }, 'Firebase verifyIdToken failed');
     if (provider === 'google') {
       try {
         const idTokenRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
@@ -643,8 +645,8 @@ export async function providerLogin(idToken: string, provider: 'google' | 'apple
             }
           }
         }
-      } catch {
-        // Fallback network error
+      } catch (fallbackErr) {
+        logger().warn({ err: fallbackErr }, 'Google fallback token verification failed');
       }
     }
   }
