@@ -17,6 +17,49 @@ interface OrderEventsContextValue {
 
 const OrderEventsContext = createContext<OrderEventsContextValue | null>(null);
 
+// كود تشغيل تنبيه الأوردرات (الجرس الكريستالي الثلاثي (عالي النقاء)) - صيدلية رجب
+export function playRagabPharmacyOrderAlert() {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (AudioCtx) {
+      const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+      const now = ctx.currentTime;
+      const playNote = (freq: number, start: number, dur: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, start);
+        gain.gain.setValueAtTime(0.9, start);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + dur);
+      };
+      [659.25, 830.61, 1318.51].forEach((f, i) => playNote(f, now + i * 0.22, 1.15));
+    }
+
+    // نطق صوتي مضبوط بالتشكيل لاسم صيدلية رجب
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      setTimeout(() => {
+        const msg = new SpeechSynthesisUtterance("أُورْدَر جَدِيد عَلَى صَيْدَلِيَّة رَجَبْ");
+        msg.lang = 'ar-EG';
+        msg.rate = 1.05;
+        msg.pitch = 1;
+        msg.volume = 1.0;
+        window.speechSynthesis.speak(msg);
+      }, 850);
+    }
+  } catch (e) {
+    // Ignore audio errors
+  }
+}
+
 export function OrderEventsProvider({ children }: { children: React.ReactNode }) {
   const { user, hasPermission } = useAuth();
   const { showToast } = useToast();
@@ -88,12 +131,7 @@ export function OrderEventsProvider({ children }: { children: React.ReactNode })
                 });
                 
                 showToast(`طلب جديد #${fullOrder.orderNumber}`, 'info');
-                try {
-                  const audio = new Audio('/sounds/notification.mp3');
-                  audio.play().catch(() => {});
-                } catch(e) {
-                  // Ignore audio errors
-                }
+                playRagabPharmacyOrderAlert();
              } else {
                 pendingOrderIdsRef.current.delete(orderId);
              }
