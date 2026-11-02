@@ -189,7 +189,7 @@ const ProductCardInner: React.FC<ProductCardProps> = ({ product, showCategory = 
           fill
           sizes="(max-width: 640px) 45vw, (max-width: 768px) 30vw, (max-width: 1280px) 22vw, 18vw"
           className={cn(
-            'object-contain p-5 transition-transform duration-300',
+            'object-contain p-2.5 xs:p-3.5 sm:p-5 transition-transform duration-300',
             view.inStock ? 'group-hover:scale-105' : 'opacity-60 grayscale-[30%]'
           )}
         />
@@ -240,8 +240,8 @@ const ProductCardInner: React.FC<ProductCardProps> = ({ product, showCategory = 
       </button>
 
       {/* Body */}
-      <div className="flex-1 flex flex-col p-4 pointer-events-none font-arabic">
-        <h3 className="text-body font-bold text-ragab-ink-800 line-clamp-2 leading-snug min-h-[2.6em]">
+      <div className="flex-1 flex flex-col p-2.5 xs:p-3 sm:p-4 pointer-events-none font-arabic min-w-0">
+        <h3 className="text-caption xs:text-body font-bold text-ragab-ink-800 line-clamp-2 leading-snug min-h-[2.6em]">
           {title}
         </h3>
 
@@ -324,9 +324,9 @@ const ProductCardInner: React.FC<ProductCardProps> = ({ product, showCategory = 
               </div>
             ) : (
               <div className="flex items-center gap-1.5 flex-wrap">
-                <div className="text-price-lg text-ragab-ink-800 tabular-nums">
+                <div className="text-price xs:text-price-lg text-ragab-ink-800 tabular-nums">
                   {effectivePrice.toFixed(2)}{' '}
-                  <span className="text-caption font-bold text-ragab-ink-600">{t.common.egp}</span>
+                  <span className="text-[11px] xs:text-caption font-bold text-ragab-ink-600">{t.common.egp}</span>
                 </div>
                 {/* Yellow button for editing price */}
                 {isManager && (
@@ -398,7 +398,7 @@ const ProductCardInner: React.FC<ProductCardProps> = ({ product, showCategory = 
                 disabled={atMax}
                 aria-label={t.common.addToCart}
                 className={cn(
-                  'h-10 w-full sm:w-auto px-3.5 rounded-xl font-bold text-body-sm inline-flex items-center justify-center gap-1.5 transition-all focus-ring',
+                  'h-9 xs:h-10 w-full sm:w-auto px-2.5 xs:px-3.5 rounded-xl font-bold text-caption xs:text-body-sm inline-flex items-center justify-center gap-1.5 transition-all focus-ring',
                   atMax
                     ? 'bg-ragab-ink-100 text-ragab-ink-500 cursor-not-allowed'
                     : 'bg-ragab-brand-500 hover:bg-ragab-brand-600 text-white shadow-[0_6px_16px_-6px_rgba(20,184,166,0.6)] active:scale-[0.97]'
@@ -416,14 +416,11 @@ const ProductCardInner: React.FC<ProductCardProps> = ({ product, showCategory = 
                   setRequestModalOpen(true);
                 }}
                 title={isRTL ? 'طلب توفير المنتج' : 'Request product'}
-                className="h-10 w-full sm:w-auto px-3.5 rounded-xl bg-ragab-brand-50 hover:bg-ragab-brand-100 text-ragab-brand-800 border border-ragab-brand-300 font-bold text-body-sm inline-flex items-center justify-center gap-1.5 transition-colors focus-ring shadow-sm"
+                className="h-9 xs:h-10 w-full sm:w-auto px-2.5 xs:px-3.5 rounded-xl bg-ragab-brand-50 hover:bg-ragab-brand-100 text-ragab-brand-800 border border-ragab-brand-300 font-bold text-caption xs:text-body-sm inline-flex items-center justify-center gap-1.5 transition-colors focus-ring shadow-sm"
               >
                 <BellRing className="w-4 h-4 text-ragab-brand-600" />
                 <span>{isRTL ? 'طلب' : 'Request'}</span>
               </button>
-
-
-
             )}
           </div>
         </div>

@@ -50,7 +50,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[80] flex items-center justify-center p-2.5 xs:p-4"
       role="dialog"
       aria-modal="true"
       data-modal-open="true"
@@ -63,7 +63,7 @@ export const Modal: React.FC<ModalProps> = ({
 
       {/* Dialog container */}
       <div
-        className={`relative w-full ${maxWidths[maxWidth]} bg-white rounded-xl shadow-popover p-6 z-10 animate-in zoom-in-95 duration-200 border border-gray-100 max-h-[90vh] flex flex-col`}
+        className={`relative w-full ${maxWidths[maxWidth]} bg-white rounded-2xl shadow-popover p-4 xs:p-5 sm:p-6 z-10 animate-in zoom-in-95 duration-200 border border-gray-100 max-h-[92vh] flex flex-col`}
       >
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-4 flex-shrink-0">

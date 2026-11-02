@@ -112,7 +112,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   const dialogContent = (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[80] flex items-center justify-center p-2.5 xs:p-4"
       role="alertdialog"
       aria-modal="true"
       data-modal-open="true"
@@ -121,7 +121,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       <div className="fixed inset-0 bg-black/50 backdrop-blur-[2px] animate-in fade-in duration-200" onClick={onClose} />
       <div
         ref={panelRef}
-        className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-popover p-6 animate-in zoom-in-95 duration-200 font-arabic"
+        className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-popover p-4 xs:p-5 sm:p-6 animate-in zoom-in-95 duration-200 font-arabic"
       >
         <div className="flex items-start gap-3.5">
           <span

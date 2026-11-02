@@ -121,16 +121,16 @@ function RequestProductContent() {
   return (
     <div className="container-page py-6 md:py-10 font-arabic max-w-3xl space-y-6">
       {/* Header Banner */}
-      <div className="rounded-2xl border border-ragab-brand-200 bg-[#edf7f5] p-6 sm:p-8">
+      <div className="rounded-2xl border border-ragab-brand-200 bg-[#edf7f5] p-4 xs:p-6 sm:p-8">
         <div className="space-y-2 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ragab-brand-100 text-ragab-brand-800 text-caption font-bold">
-            <PackageSearch className="w-4 h-4 text-ragab-brand-700" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ragab-brand-100 text-ragab-brand-800 text-[11px] xs:text-caption font-bold">
+            <PackageSearch className="w-4 h-4 text-ragab-brand-700 shrink-0" />
             <span>{isRTL ? 'خدمة توفير الأدوية والمنتجات الطبية' : 'Product Procurement Service'}</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-ragab-ink-900 tracking-tight">
+          <h1 className="text-xl xs:text-2xl sm:text-3xl font-extrabold text-ragab-ink-900 tracking-tight">
             {isRTL ? 'طلب توفير دواء أو منتج طبي غير متوفر' : 'Request an Unavailable Product'}
           </h1>
-          <p className="text-body-sm sm:text-base text-ragab-ink-600 leading-relaxed">
+          <p className="text-caption xs:text-body-sm sm:text-base text-ragab-ink-600 leading-relaxed">
             {isRTL
               ? 'بتدور على دواء أو مستلزم طبي ومش لاقيه في المتجر؟ اكتب اسمه وارفع صورته ودكتور الصيدلية هيوفرهولك ويتواصل معاك فور توفره!'
               : 'Looking for a medicine or medical product not found in our catalog? Provide its name and photo, and our team will source it for you.'}
@@ -171,12 +171,12 @@ function RequestProductContent() {
         </div>
       ) : (
         /* Request Form */
-        <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-ragab-ink-200 shadow-sm p-6 sm:p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-ragab-ink-200 shadow-sm p-4 xs:p-6 sm:p-8 space-y-5 sm:space-y-6">
           <div className="space-y-1">
-            <h2 className="text-h2 font-bold text-ragab-ink-900">
+            <h2 className="text-xl sm:text-h2 font-bold text-ragab-ink-900">
               {isRTL ? 'بيانات المنتج المطلوب' : 'Requested Product Details'}
             </h2>
-            <p className="text-body-sm text-ragab-ink-500">
+            <p className="text-caption xs:text-body-sm text-ragab-ink-500">
               {isRTL
                 ? 'يرجى كتابة اسم المنتج بدقة وإرفاق صورته إن وُجدت لتسهيل البحث عنه وتوفيره.'
                 : 'Please provide the product name and photo to help us identify and procure it quickly.'}
@@ -194,13 +194,13 @@ function RequestProductContent() {
                   : 'E.g., Concor 5mg, Augmentin 1g, Blood Pressure Monitor...'
               }
               required
-              className="text-base"
+              className="text-body-sm sm:text-base"
             />
           </FormField>
 
           {/* Image Upload Area */}
           <div className="space-y-2">
-            <label className="text-label text-ragab-ink-700 font-bold block">
+            <label className="text-caption xs:text-label text-ragab-ink-700 font-bold block">
               {isRTL ? 'صورة المنتج أو العبوة (اختياري / يُفضل إرفاقها)' : 'Product Photo (Optional / Recommended)'}
             </label>
 
@@ -209,7 +209,7 @@ function RequestProductContent() {
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
               className={cn(
-                'border-2 border-dashed rounded-3xl p-6 sm:p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-3',
+                'border-2 border-dashed rounded-2xl xs:rounded-3xl p-4 xs:p-6 sm:p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-3',
                 previewUrl
                   ? 'border-ragab-brand-400 bg-ragab-brand-50/30'
                   : 'border-ragab-brand-300 hover:border-ragab-brand-500 bg-ragab-brand-50/30 hover:bg-ragab-brand-50/60'

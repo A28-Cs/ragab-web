@@ -20,19 +20,40 @@
 }
 
 @layer base {
+  html {
+    overflow-x: hidden;
+    max-width: 100vw;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
     font-family: var(--font-cairo), system-ui, -apple-system, sans-serif;
     background-color: var(--color-bg);
     color: var(--color-ink);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+    touch-action: manipulation;
+  }
+
+  img,
+  svg,
+  video,
+  canvas,
+  audio,
+  iframe,
+  embed,
+  object {
+    max-width: 100%;
   }
 }
 
 @layer components {
   /* Page container — one rhythm across all routes */
   .container-page {
-    @apply mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8;
+    @apply mx-auto w-full max-w-[1400px] px-3 xs:px-4 sm:px-6 lg:px-8;
   }
 
   /* Unified focus treatment for every interactive element */

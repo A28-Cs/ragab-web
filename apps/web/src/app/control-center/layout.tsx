@@ -112,7 +112,7 @@ export default function ControlCenterLayout({ children }: { children: React.Reac
         {/* Main column */}
         <div className="flex-1 min-w-0 flex flex-col">
           {/* Topbar */}
-          <header className="sticky top-0 z-30 bg-ragab-surface/90 backdrop-blur border-b border-ragab-ink-200 h-16 flex items-center gap-3 px-4 sm:px-6">
+          <header className="sticky top-0 z-30 bg-ragab-surface/90 backdrop-blur border-b border-ragab-ink-200 h-14 sm:h-16 flex items-center gap-2 sm:gap-3 px-3 sm:px-6">
             <button
               onClick={() => setDrawerOpen(true)}
               className="lg:hidden touch-target flex items-center justify-center rounded-lg text-ragab-ink-600 hover:bg-ragab-ink-100 focus-ring"
@@ -120,7 +120,7 @@ export default function ControlCenterLayout({ children }: { children: React.Reac
             >
               <Menu className="w-5 h-5" />
             </button>
-            <h1 className="text-h3 text-ragab-ink-800 font-bold truncate">{currentTitle}</h1>
+            <h1 className="text-body sm:text-h3 text-ragab-ink-800 font-bold truncate">{currentTitle}</h1>
 
             <div className="ms-auto flex items-center gap-2">
               <OrdersQuickAccessTrigger>
@@ -174,7 +174,7 @@ export default function ControlCenterLayout({ children }: { children: React.Reac
             </div>
           </header>
 
-          <main className="flex-1 p-3 sm:p-5 max-w-[1400px] w-full mx-auto min-w-0">{children}</main>
+          <main className="flex-1 p-2.5 xs:p-3 sm:p-5 max-w-[1400px] w-full mx-auto min-w-0">{children}</main>
         </div>
 
         {/* Mobile drawer nav */}

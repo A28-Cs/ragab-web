@@ -442,11 +442,11 @@ function OrderAdminDetailInner() {
                   <div className="pt-1 flex items-center gap-2 flex-wrap">
                     <Button
                       variant="primary"
-                      leftIcon={<Check className="w-4 h-4" />}
+                      leftIcon={<Check className="w-4 h-4 shrink-0" />}
                       onClick={() => onUpdateStatus('preparing')}
                       isLoading={savingStatus}
                       disabled={!canEdit}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold w-full sm:w-auto h-auto py-2.5 px-3.5 text-caption sm:text-body-sm text-wrap text-start sm:text-center"
                     >
                       {isRTL ? '✓ قبول وتجهيز الطلب وإرساله لمناديب إنجزني' : 'Accept, Prepare & Send to Engezny'}
                     </Button>

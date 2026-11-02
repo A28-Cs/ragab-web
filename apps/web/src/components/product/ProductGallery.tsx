@@ -43,7 +43,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
           fill
           priority
           sizes="(max-width: 768px) 100vw, 560px"
-          className="object-contain p-8 md:p-12"
+          className="object-contain p-3 xs:p-4 sm:p-8 md:p-12"
         />
         {discountPercentage !== undefined && discountPercentage > 0 && (
           <div className="absolute top-4 start-4">

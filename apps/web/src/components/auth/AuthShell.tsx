@@ -19,38 +19,38 @@ export const AuthShell: React.FC<AuthShellProps> = ({ children, title, subtitle 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-ragab-cream-soft font-arabic">
       {/* Top bar */}
-      <header className="flex items-center justify-between container-page py-4">
+      <header className="flex items-center justify-between container-page py-3 xs:py-4">
         <Link href="/" aria-label={t.common.backToHome}>
           <RagabLogo variant="full" size="sm" />
         </Link>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 xs:gap-1.5">
           <button
             onClick={toggleLanguage}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 h-9 text-caption font-bold text-ragab-ink-600 hover:bg-ragab-ink-100 transition-colors focus-ring"
+            className="inline-flex items-center gap-1 xs:gap-1.5 rounded-lg px-2 xs:px-3 h-9 text-caption font-bold text-ragab-ink-600 hover:bg-ragab-ink-100 transition-colors focus-ring"
           >
             <Globe className="w-4 h-4" />
-            {t.navigation.languageToggle}
+            <span>{t.navigation.languageToggle}</span>
           </button>
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 h-9 text-caption font-semibold text-ragab-ink-500 hover:bg-ragab-ink-100 transition-colors focus-ring"
+            className="inline-flex items-center gap-1 xs:gap-1.5 rounded-lg px-2 xs:px-3 h-9 text-caption font-semibold text-ragab-ink-500 hover:bg-ragab-ink-100 transition-colors focus-ring"
           >
-            {t.common.backToHome}
+            <span className="hidden xs:inline">{t.common.backToHome}</span>
             <ArrowLeft className="w-4 h-4 ltr:rotate-180" />
           </Link>
         </div>
       </header>
 
       {/* Centered content */}
-      <div className="flex-1 flex items-center justify-center px-4 py-8">
+      <div className="flex-1 flex items-center justify-center px-3 xs:px-4 py-6 sm:py-8">
         <div className="w-full max-w-md">
           {(title || subtitle) && (
-            <div className="text-center mb-6">
-              {title && <h1 className="text-h1 text-ragab-ink-800">{title}</h1>}
-              {subtitle && <p className="text-body-sm text-ragab-ink-500 mt-2">{subtitle}</p>}
+            <div className="text-center mb-5 sm:mb-6">
+              {title && <h1 className="text-xl sm:text-h1 font-bold text-ragab-ink-800">{title}</h1>}
+              {subtitle && <p className="text-caption sm:text-body-sm text-ragab-ink-500 mt-1 sm:mt-2">{subtitle}</p>}
             </div>
           )}
-          <div className="bg-ragab-surface rounded-2xl border border-ragab-ink-200 shadow-card p-6 sm:p-7">
+          <div className="bg-ragab-surface rounded-2xl border border-ragab-ink-200 shadow-card p-4 xs:p-6 sm:p-7">
             {children}
           </div>
         </div>

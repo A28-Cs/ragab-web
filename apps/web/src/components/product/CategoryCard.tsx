@@ -63,15 +63,15 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
     <Link
       href={`/category/${category.slug}`}
       className={cn(
-        'group bg-white rounded-2xl border border-ragab-ink-200 p-4 sm:p-5 flex flex-col items-center text-center hover:border-ragab-brand-400 hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200 focus-ring',
+        'group bg-white rounded-2xl border border-ragab-ink-200 p-2.5 xs:p-3 sm:p-5 flex flex-col items-center text-center hover:border-ragab-brand-400 hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200 focus-ring min-w-0',
         className
       )}
     >
-      <CategoryIcon category={category} withBadge size="lg" className="mb-3.5 group-hover:scale-110" />
-      <h3 className="text-body-sm font-bold text-ragab-ink-900 font-arabic leading-snug line-clamp-2">
+      <CategoryIcon category={category} withBadge size="md" className="mb-2 xs:mb-3.5 sm:scale-110 group-hover:scale-110 transition-transform" />
+      <h3 className="text-caption xs:text-body-sm font-bold text-ragab-ink-900 font-arabic leading-snug line-clamp-2">
         {name}
       </h3>
-      <span className="text-caption text-ragab-ink-500 font-arabic mt-1">{countLabel}</span>
+      <span className="text-[11px] xs:text-caption text-ragab-ink-500 font-arabic mt-0.5 xs:mt-1">{countLabel}</span>
     </Link>
   );
 };

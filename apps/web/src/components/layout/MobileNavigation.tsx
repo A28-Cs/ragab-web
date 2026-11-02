@@ -98,7 +98,7 @@ export const MobileNavigation: React.FC = () => {
               </span>
               <span
                 className={cn(
-                  'text-caption font-bold font-arabic tracking-tight',
+                  'text-[10.5px] xs:text-caption font-bold font-arabic tracking-tight truncate max-w-full px-0.5',
                   isActive ? 'text-ragab-ink-900' : 'text-ragab-ink-500'
                 )}
               >

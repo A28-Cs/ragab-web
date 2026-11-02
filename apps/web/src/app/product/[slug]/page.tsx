@@ -890,32 +890,35 @@ export default function ProductDetailPage() {
 
       {/* ===== Mobile sticky CTA — sits above the bottom nav ===== */}
       <div
-        className="mobile-sticky-cta md:hidden fixed inset-x-0 z-30 bg-white border-t border-ragab-ink-200 p-3 shadow-sticky flex items-center justify-between gap-3 transition-all duration-200"
+        className="mobile-sticky-cta md:hidden fixed inset-x-0 z-30 bg-white border-t border-ragab-ink-200 p-2.5 xs:p-3 shadow-sticky flex items-center justify-between gap-2 xs:gap-3 transition-all duration-200"
         style={{ bottom: 'calc(var(--bottom-nav-h) + env(safe-area-inset-bottom))' }}
       >
-        <Price price={view.price} oldPrice={view.oldPrice} size="md" />
-        <div className="flex items-center gap-2 flex-1 max-w-[260px] justify-end">
+        <div className="min-w-0">
+          <Price price={view.price} oldPrice={view.oldPrice} size="sm" className="xs:hidden" />
+          <Price price={view.price} oldPrice={view.oldPrice} size="md" className="hidden xs:flex" />
+        </div>
+        <div className="flex items-center gap-1.5 xs:gap-2 flex-1 max-w-[240px] justify-end shrink-0">
           <button
             onClick={handleShare}
             aria-label={isRTL ? 'مشاركة المنتج' : 'Share product'}
-            className="w-10 h-10 flex items-center justify-center rounded-xl border border-ragab-ink-200 bg-white text-ragab-ink-600 hover:text-ragab-brand-600 shrink-0"
+            className="w-9 h-9 xs:w-10 xs:h-10 flex items-center justify-center rounded-xl border border-ragab-ink-200 bg-white text-ragab-ink-600 hover:text-ragab-brand-600 shrink-0"
           >
             <Share2 className="w-4 h-4" />
           </button>
           {view.inStock ? (
-            <Button variant="primary" size="md" onClick={handleAdd} className="flex-1">
-              <ShoppingBag className="w-4 h-4" />
-              <span>{t.common.addToCart}</span>
+            <Button variant="primary" size="md" onClick={handleAdd} className="flex-1 h-9 xs:h-10 text-caption xs:text-body-sm px-2 xs:px-3">
+              <ShoppingBag className="w-4 h-4 shrink-0" />
+              <span className="truncate">{t.common.addToCart}</span>
             </Button>
           ) : (
             <Button
               variant="primary"
               size="md"
               onClick={() => setRequestModalOpen(true)}
-              className="flex-1 bg-ragab-brand-500 hover:bg-ragab-brand-600 text-white"
+              className="flex-1 h-9 xs:h-10 text-caption xs:text-body-sm px-2 xs:px-3 bg-ragab-brand-500 hover:bg-ragab-brand-600 text-white"
             >
-              <BellRing className="w-4 h-4" />
-              <span>{isRTL ? 'طلب توفير' : 'Request Item'}</span>
+              <BellRing className="w-4 h-4 shrink-0" />
+              <span className="truncate">{isRTL ? 'طلب توفير' : 'Request'}</span>
             </Button>
           )}
         </div>

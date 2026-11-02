@@ -214,7 +214,7 @@ export default function CartPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
         {/* Items */}
-        <div className="lg:col-span-8 bg-white rounded-xl border border-ragab-ink-200 px-4 sm:px-6 shadow-subtle divide-y divide-ragab-ink-100">
+        <div className="lg:col-span-8 bg-white rounded-xl border border-ragab-ink-200 px-3 xs:px-4 sm:px-6 shadow-subtle divide-y divide-ragab-ink-100 min-w-0">
           {cart.map((item) => (
             <CartLineItem key={`${item.product.id}:${item.variantId ?? 'default'}`} item={item} variant="full" />
           ))}
@@ -229,7 +229,7 @@ export default function CartPage() {
         </aside>
 
         {/* Mobile summary — inline card */}
-        <div className="lg:hidden bg-white rounded-xl border border-ragab-ink-200 p-4 shadow-subtle space-y-4">
+        <div className="lg:hidden bg-white rounded-xl border border-ragab-ink-200 p-3.5 sm:p-4 shadow-subtle space-y-4 min-w-0">
           <h2 className="text-h3 text-ragab-ink-800 pb-2 border-b border-ragab-ink-100">
             {t.cart.orderSummary}
           </h2>
@@ -239,17 +239,17 @@ export default function CartPage() {
 
       {/* Mobile fixed total bar */}
       <div
-        className="lg:hidden fixed inset-x-0 z-30 bg-white border-t border-ragab-ink-200 p-3 shadow-sticky flex items-center justify-between gap-3"
+        className="lg:hidden fixed inset-x-0 z-30 bg-white border-t border-ragab-ink-200 p-2.5 xs:p-3 shadow-sticky flex items-center justify-between gap-2.5 xs:gap-3"
         style={{ bottom: 'calc(var(--bottom-nav-h) + env(safe-area-inset-bottom))' }}
       >
-        <div className="font-arabic">
-          <div className="text-caption text-ragab-ink-500">{t.cart.total}</div>
-          <div className="text-price text-ragab-ink-800">
-            {total.toFixed(2)} <span className="text-caption">{t.common.egp}</span>
+        <div className="font-arabic min-w-0">
+          <div className="text-[11px] xs:text-caption text-ragab-ink-500">{t.cart.total}</div>
+          <div className="text-body sm:text-price font-extrabold text-ragab-ink-800 truncate">
+            {total.toFixed(2)} <span className="text-[11px] xs:text-caption">{t.common.egp}</span>
           </div>
         </div>
-        <Link href="/checkout" className="flex-1 max-w-[220px]">
-          <Button variant="primary" size="md" fullWidth disabled={isSyncing}>
+        <Link href="/checkout" className="flex-1 max-w-[200px] shrink-0">
+          <Button variant="primary" size="md" fullWidth disabled={isSyncing} className="h-10 text-caption xs:text-body-sm">
             {t.cart.proceedToCheckout}
           </Button>
         </Link>

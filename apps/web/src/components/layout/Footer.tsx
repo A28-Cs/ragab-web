@@ -28,10 +28,10 @@ export const Footer: React.FC = () => {
 
   return (
     <footer className="bg-ragab-ink-800 text-white border-t-4 border-ragab-brand-500 pb-[calc(var(--bottom-nav-h)+1.5rem)] md:pb-8">
-      <div className="container-page pt-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-10 pb-10">
+      <div className="container-page pt-10 sm:pt-12">
+        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-x-4 xs:gap-x-6 gap-y-8 sm:gap-y-10 pb-8 sm:pb-10">
           {/* Brand */}
-          <div className="col-span-2 md:col-span-1 space-y-4">
+          <div className="col-span-1 xs:col-span-2 md:col-span-1 space-y-4">
             <RagabLogo theme="dark" size="md" />
             <p className="text-body-sm text-ragab-ink-300 leading-relaxed font-arabic max-w-xs">
               {t.footer.aboutText}

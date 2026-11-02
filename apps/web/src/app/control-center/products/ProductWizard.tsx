@@ -186,17 +186,17 @@ export const ProductWizard: React.FC<ProductWizardProps> = ({
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-2 sm:p-4"
+      className="fixed inset-0 z-[80] flex items-center justify-center p-1.5 xs:p-2 sm:p-4"
       role="dialog"
       aria-modal="true"
       data-modal-open="true"
     >
       <div className="fixed inset-0 bg-black/50 backdrop-blur-[2px] animate-in fade-in duration-200" onClick={onClose} />
 
-      <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-popover z-10 flex flex-col max-h-[95vh] sm:max-h-[90vh] animate-in zoom-in-95 duration-200">
-        <div className="flex items-start justify-between gap-3 p-5 pb-4 shrink-0">
-          <div className="text-start">
-            <h2 className="text-h3 font-bold text-ragab-ink-800">{isEdit ? t.adminProducts.editProduct : t.adminProducts.createProduct}</h2>
+      <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-popover z-10 flex flex-col max-h-[96vh] sm:max-h-[90vh] animate-in zoom-in-95 duration-200">
+        <div className="flex items-start justify-between gap-2 xs:gap-3 p-3.5 xs:p-5 pb-3 xs:pb-4 shrink-0">
+          <div className="text-start min-w-0">
+            <h2 className="text-body sm:text-h3 font-bold text-ragab-ink-800 truncate">{isEdit ? t.adminProducts.editProduct : t.adminProducts.createProduct}</h2>
             <p className="text-caption text-ragab-ink-500 mt-0.5">{t.adminProducts.wizardSubtitle}</p>
           </div>
           <button
@@ -209,7 +209,7 @@ export const ProductWizard: React.FC<ProductWizardProps> = ({
           </button>
         </div>
 
-        <div className="px-5 pb-4 shrink-0">
+        <div className="px-3.5 xs:px-5 pb-3 xs:pb-4 shrink-0">
           <p className="text-caption font-semibold text-ragab-ink-500 mb-1.5">{progress}%</p>
           <div className="h-1.5 rounded-full bg-ragab-ink-100 overflow-hidden">
             <div className="h-full bg-ragab-brand-500 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
@@ -218,7 +218,7 @@ export const ProductWizard: React.FC<ProductWizardProps> = ({
         <div className="border-t border-ragab-ink-100" />
 
         <div className="flex-1 flex overflow-hidden">
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-7">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-3.5 xs:p-5 space-y-5 xs:space-y-7">
             <div ref={(el) => { sectionRefs.current.basic = el; }} data-section="basic" className="space-y-3.5">
               <h3 className="flex items-center gap-2 text-h3 text-ragab-ink-800">
                 <Tag className="w-4 h-4 text-ragab-brand-700" />
@@ -533,7 +533,7 @@ export const ProductWizard: React.FC<ProductWizardProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 p-4 border-t border-ragab-ink-100 shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
+        <div className="flex items-center gap-2.5 xs:gap-3 p-3 xs:p-4 border-t border-ragab-ink-100 shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
           <Button variant="primary" className="flex-1" onClick={handleSave} isLoading={saving} leftIcon={<Check className="w-4 h-4" />}>
             {t.common.saveChanges}
           </Button>

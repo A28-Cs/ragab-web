@@ -26,9 +26,9 @@ interface ProductGridProps {
 }
 
 const gridClasses = {
-  wide: 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 3xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-5',
-  narrow: 'grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4',
-  home: 'grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-5',
+  wide: 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 3xl:grid-cols-6 gap-2.5 xs:gap-3 sm:gap-4 lg:gap-5',
+  narrow: 'grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 xs:gap-3 sm:gap-4',
+  home: 'grid grid-cols-2 md:grid-cols-4 gap-2.5 xs:gap-3 sm:gap-4 lg:gap-5',
 };
 
 export const ProductGrid: React.FC<ProductGridProps> = ({

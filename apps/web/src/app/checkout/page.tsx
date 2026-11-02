@@ -305,35 +305,35 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-16 font-arabic">
-      <div className="bg-white rounded-xl p-4 sm:p-6 border border-ragab-ink-200 shadow-subtle space-y-4">
-        <h1 className="text-h1 text-ragab-ink-800">{t.checkout.title}</h1>
-        <ol className="flex items-center gap-1.5 sm:gap-3 pt-2 border-t border-ragab-ink-100 overflow-x-auto">
+      <div className="bg-white rounded-xl p-3.5 xs:p-4 sm:p-6 border border-ragab-ink-200 shadow-subtle space-y-3 sm:space-y-4">
+        <h1 className="text-xl xs:text-h1 font-bold text-ragab-ink-800">{t.checkout.title}</h1>
+        <ol className="flex items-center gap-1 xs:gap-1.5 sm:gap-3 pt-2 border-t border-ragab-ink-100 overflow-x-auto scrollbar-none pb-0.5">
           {steps.map((s, idx) => {
             const isDone = step > s.n;
             const isActive = step === s.n;
             return (
-              <li key={s.n} className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+              <li key={s.n} className="flex items-center gap-1 xs:gap-1.5 sm:gap-3 shrink-0">
                 <span
                   className={cn(
-                    'flex items-center gap-2 py-2 px-2.5 sm:px-3.5 rounded-lg text-caption sm:text-body-sm font-bold transition-colors',
+                    'flex items-center gap-1.5 xs:gap-2 py-1.5 px-2 xs:px-2.5 sm:py-2 sm:px-3.5 rounded-lg text-[11px] xs:text-caption sm:text-body-sm font-bold transition-colors',
                     isActive ? 'bg-ragab-brand-500 text-ragab-ink-800 shadow-subtle' : isDone ? 'text-ragab-success' : 'text-ragab-ink-500'
                   )}
                   aria-current={isActive ? 'step' : undefined}
                 >
-                  <span className={cn('w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-extrabold shrink-0', isActive ? 'bg-white/70' : isDone ? 'bg-ragab-success-soft' : 'bg-ragab-ink-100')}>
-                    {isDone ? <Check className="w-3 h-3" /> : s.n}
+                  <span className={cn('w-4 h-4 xs:w-5 xs:h-5 rounded-full flex items-center justify-center text-[10px] xs:text-[11px] font-extrabold shrink-0', isActive ? 'bg-white/70' : isDone ? 'bg-ragab-success-soft' : 'bg-ragab-ink-100')}>
+                    {isDone ? <Check className="w-2.5 h-2.5 xs:w-3 xs:h-3" /> : s.n}
                   </span>
                   <span className="whitespace-nowrap">{s.label}</span>
                 </span>
-                {idx < steps.length - 1 && <span className="w-4 sm:w-8 h-px bg-ragab-ink-200 shrink-0" />}
+                {idx < steps.length - 1 && <span className="w-2 xs:w-4 sm:w-8 h-px bg-ragab-ink-200 shrink-0" />}
               </li>
             );
           })}
         </ol>
       </div>
 
-      <form onSubmit={handleSubmitOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div className="lg:col-span-8 bg-white rounded-xl border border-ragab-ink-200 p-4 sm:p-6 shadow-subtle space-y-6">
+      <form onSubmit={handleSubmitOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
+        <div className="lg:col-span-8 bg-white rounded-xl border border-ragab-ink-200 p-3.5 xs:p-4 sm:p-6 shadow-subtle space-y-5 sm:space-y-6 min-w-0">
           {/* STEP 1 — delivery address */}
           {step === 1 && (
             <div className="space-y-4 animate-in fade-in duration-200">

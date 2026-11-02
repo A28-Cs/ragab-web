@@ -35,22 +35,22 @@ export const CartLineItem: React.FC<CartLineItemProps> = ({
   const isCompact = variant === 'compact';
 
   return (
-    <div className={cn('flex gap-3 items-center', isCompact ? 'py-3' : 'py-4 gap-4')}>
+    <div className={cn('flex gap-2.5 xs:gap-3 items-center', isCompact ? 'py-3' : 'py-3.5 sm:py-4 gap-3 sm:gap-4')}>
       {/* Image */}
       <Link
         href={`/product/${product.slug}`}
         onClick={onNavigate}
         className={cn(
           'relative rounded-lg bg-ragab-ink-50 flex-shrink-0 border border-ragab-ink-100 overflow-hidden focus-ring',
-          isCompact ? 'w-16 h-16' : 'w-20 h-20'
+          isCompact ? 'w-14 h-14' : 'w-16 h-16 sm:w-20 sm:h-20'
         )}
       >
         <Image
           src={product.image}
           alt={name}
           fill
-          sizes={isCompact ? '64px' : '80px'}
-          className="object-contain p-1.5"
+          sizes={isCompact ? '56px' : '(max-width: 640px) 64px, 80px'}
+          className="object-contain p-1 xs:p-1.5"
         />
       </Link>
 
@@ -64,18 +64,18 @@ export const CartLineItem: React.FC<CartLineItemProps> = ({
           <h4
             className={cn(
               'font-bold text-ragab-ink-800 hover:text-ragab-brand-700 transition-colors',
-              isCompact ? 'text-body-sm truncate' : 'text-body-sm line-clamp-2'
+              isCompact ? 'text-caption xs:text-body-sm truncate' : 'text-caption xs:text-body-sm line-clamp-2'
             )}
           >
             {name}
           </h4>
         </Link>
-        <div className={cn('text-caption mt-0.5', packaging ? 'font-bold text-ragab-brand-700' : 'text-ragab-ink-500')}>{unit}</div>
-        <div className="mt-1 text-body-sm font-extrabold text-ragab-ink-800">
+        <div className={cn('text-[11px] xs:text-caption mt-0.5', packaging ? 'font-bold text-ragab-brand-700' : 'text-ragab-ink-500')}>{unit}</div>
+        <div className="mt-1 text-caption xs:text-body-sm font-extrabold text-ragab-ink-800">
           {(price * quantity).toFixed(2)}{' '}
-          <span className="text-caption font-semibold text-ragab-ink-500">{t.common.egp}</span>
+          <span className="text-[11px] xs:text-caption font-semibold text-ragab-ink-500">{t.common.egp}</span>
           {quantity > 1 && (
-            <span className="text-caption font-medium text-ragab-ink-500 ms-1.5">
+            <span className="text-[10px] xs:text-caption font-medium text-ragab-ink-500 ms-1">
               ({price.toFixed(2)} × {quantity})
             </span>
           )}
@@ -83,14 +83,16 @@ export const CartLineItem: React.FC<CartLineItemProps> = ({
       </div>
 
       {/* Quantity — capped at the unit's real stock */}
-      <QuantitySelector
-        quantity={quantity}
-        onIncrease={() => updateQuantity(product.id, quantity + 1, variantId)}
-        onDecrease={() => updateQuantity(product.id, quantity - 1, variantId)}
-        max={max}
-        allowDelete
-        size={isCompact ? 'sm' : 'md'}
-      />
+      <div className="shrink-0">
+        <QuantitySelector
+          quantity={quantity}
+          onIncrease={() => updateQuantity(product.id, quantity + 1, variantId)}
+          onDecrease={() => updateQuantity(product.id, quantity - 1, variantId)}
+          max={max}
+          allowDelete
+          size="sm"
+        />
+      </div>
     </div>
   );
 };

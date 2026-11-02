@@ -345,11 +345,12 @@ export const Header: React.FC = () => {
             {/* Prescription Order Button */}
             <Link
               href="/prescription"
-              className="inline-flex items-center gap-1.5 h-11 px-3 sm:px-3.5 rounded-lg border border-ragab-brand-300 bg-ragab-brand-50 hover:bg-ragab-brand-100 text-ragab-brand-800 font-bold text-caption sm:text-body-sm font-arabic transition-all focus-ring shadow-subtle shrink-0"
+              aria-label={isRTL ? 'اطلب بروشتة' : 'Order by Prescription'}
+              className="inline-flex items-center justify-center gap-1.5 h-11 px-2.5 xs:px-3 sm:px-3.5 rounded-lg border border-ragab-brand-300 bg-ragab-brand-50 hover:bg-ragab-brand-100 text-ragab-brand-800 font-bold text-caption sm:text-body-sm font-arabic transition-all focus-ring shadow-subtle shrink-0"
               title={isRTL ? 'اطلب بروشتة' : 'Order by Prescription'}
             >
-              <FileText className="w-4 h-4 text-ragab-brand-700" />
-              <span className="whitespace-nowrap">{isRTL ? 'اطلب بروشتة' : 'Prescription'}</span>
+              <FileText className="w-4 h-4 text-ragab-brand-700 shrink-0" />
+              <span className="hidden xs:inline whitespace-nowrap">{isRTL ? 'اطلب بروشتة' : 'Prescription'}</span>
             </Link>
 
             {/* Cart */}
@@ -357,9 +358,9 @@ export const Header: React.FC = () => {
               type="button"
               onClick={toggleCart}
               aria-label={t.navigation.cart}
-              className="relative inline-flex items-center gap-2 h-11 px-3 sm:px-4 rounded-lg bg-ragab-brand-700 hover:bg-ragab-brand-800 text-white font-bold text-body-sm font-arabic transition-colors focus-ring shadow-subtle"
+              className="relative inline-flex items-center justify-center gap-2 h-11 px-2.5 xs:px-3 sm:px-4 rounded-lg bg-ragab-brand-700 hover:bg-ragab-brand-800 text-white font-bold text-body-sm font-arabic transition-colors focus-ring shadow-subtle shrink-0"
             >
-              <ShoppingBag className="w-5 h-5" />
+              <ShoppingBag className="w-5 h-5 shrink-0" />
               <span className="hidden sm:inline">{t.navigation.cart}</span>
               {totalItems > 0 && (
                 <span

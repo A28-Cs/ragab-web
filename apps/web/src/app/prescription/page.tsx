@@ -182,16 +182,16 @@ export default function PrescriptionPage() {
   return (
     <div className="container-page py-6 md:py-10 font-arabic max-w-4xl space-y-8">
       {/* Header Banner */}
-      <div className="rounded-2xl border border-ragab-brand-200 bg-[#edf7f5] p-6 sm:p-8">
+      <div className="rounded-2xl border border-ragab-brand-200 bg-[#edf7f5] p-4 xs:p-6 sm:p-8">
         <div className="space-y-2 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ragab-brand-100 text-ragab-brand-800 text-caption font-bold">
-            <FileText className="w-4 h-4 text-ragab-brand-700" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ragab-brand-100 text-ragab-brand-800 text-[11px] xs:text-caption font-bold">
+            <FileText className="w-4 h-4 text-ragab-brand-700 shrink-0" />
             <span>{isRTL ? 'خدمة الروشتة الذكية · صيدلية رجب' : 'Smart Prescription Service · Ragab Pharmacy'}</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-ragab-ink-900 tracking-tight">
+          <h1 className="text-xl xs:text-2xl sm:text-3xl font-extrabold text-ragab-ink-900 tracking-tight">
             {isRTL ? 'اطلب علاجك برفع صورة الروشتة' : 'Order Medicine with your Prescription'}
           </h1>
-          <p className="text-body-sm sm:text-base text-ragab-ink-600 leading-relaxed">
+          <p className="text-caption xs:text-body-sm sm:text-base text-ragab-ink-600 leading-relaxed">
             {isRTL
               ? 'صور الروشتة أو عبوة الدواء وارفعها، وسيقوم الطبيب الصيدلي بقراءتها وتحديد كل الأدوية المطلوبة وإضافتها إلى سلتك فوراً لتأكيد طلبك وتوصيله لباب بيتك.'
               : 'Snap and upload your prescription. Our pharmacist will review it, identify all required medicines, and add them directly to your cart.'}
@@ -381,12 +381,12 @@ export default function PrescriptionPage() {
               </div>
 
               {/* Call to action */}
-              <div className="flex items-center gap-3 pt-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 pt-2">
                 <Button
                   variant="primary"
                   size="lg"
-                  className="flex-1 text-base bg-ragab-brand-700 hover:bg-ragab-brand-800 text-white shadow-card py-6"
-                  leftIcon={<ShoppingBag className="w-5 h-5" />}
+                  className="flex-1 text-caption xs:text-body-sm sm:text-base bg-ragab-brand-700 hover:bg-ragab-brand-800 text-white shadow-card py-3.5 sm:py-6"
+                  leftIcon={<ShoppingBag className="w-5 h-5 shrink-0" />}
                   onClick={() => setIsCartOpen(true)}
                 >
                   {isRTL ? 'عرض السلة وإتمام الطلب' : 'Open Cart & Checkout'}
@@ -397,6 +397,7 @@ export default function PrescriptionPage() {
                   isLoading={isAddingToCart}
                   onClick={() => handleAddToCart(activePrescription.id)}
                   title={isRTL ? 'إضافة إلى السلة مجدداً' : 'Add to cart again'}
+                  className="py-3 sm:py-6 text-caption xs:text-body-sm sm:text-base"
                 >
                   {isRTL ? 'إعادة الإضافة للسلة' : 'Re-add to Cart'}
                 </Button>
