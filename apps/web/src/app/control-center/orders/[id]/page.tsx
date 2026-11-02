@@ -21,10 +21,14 @@ import {
   UserCheck,
   Navigation,
   CheckCircle2,
+  RotateCw,
+  Settings2,
+  Zap,
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useLanguage } from '../../../../context/LanguageContext';
 import { useToast } from '../../../../components/ui/Toast';
+import { cn } from '@ragab/utils';
 import {
   getOrderById,
   updateOrderStatus,
@@ -77,6 +81,7 @@ function OrderAdminDetailInner() {
   const [loading, setLoading] = useState(true);
   const [statusDraft, setStatusDraft] = useState<OrderStatus>('pending');
   const [savingStatus, setSavingStatus] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
 
   const [editOpen, setEditOpen] = useState(false);
   const [addr, setAddr] = useState<Address | null>(null);
@@ -411,42 +416,164 @@ function OrderAdminDetailInner() {
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] 2xl:grid-cols-[1fr_340px] gap-4 items-start min-w-0">
         <div className="space-y-4 min-w-0">
-          {/* Status management */}
+          {/* Status & Delivery Workflow */}
           <Card>
-            <CardHeader title={t.adminOrders.changeStatus} />
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 bg-ragab-ink-50/70 p-3 rounded-xl border border-ragab-ink-100">
-              <div className="flex-1 min-w-[170px]">
-                <Select
-                  options={statusOptions}
-                  value={statusDraft}
-                  onChange={(e) => setStatusDraft(e.target.value as OrderStatus)}
-                  disabled={!canEdit}
-                />
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  leftIcon={<Check className="w-4 h-4" />}
-                  onClick={() => onUpdateStatus(statusDraft)}
-                  isLoading={savingStatus}
-                  disabled={!canEdit || statusDraft === order.status}
-                >
-                  {t.adminOrders.updateStatus}
-                </Button>
-                {!isTerminal && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    leftIcon={<ArrowLeftRight className="w-4 h-4" />}
-                    onClick={advance}
-                    disabled={!canEdit || savingStatus}
-                  >
-                    {t.adminOrders.advanceStatus}
-                  </Button>
-                )}
-              </div>
+            <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+              <CardHeader title={t.adminOrders.changeStatus} className="mb-0" />
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-teal-50 text-teal-800 border border-teal-200">
+                <Zap className="w-3 h-3 text-teal-600 shrink-0" />
+                <span>{isRTL ? 'توصيل إنجزني التلقائي (افتراضي)' : 'Engezny Auto-Dispatch (Default)'}</span>
+              </span>
             </div>
+
+            {/* Workflow state display */}
+            <div className="space-y-3">
+              {order.status === 'pending' ? (
+                <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-3.5 space-y-2.5">
+                  <div className="flex items-center gap-2 text-amber-950 font-bold text-body-sm">
+                    <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>{isRTL ? 'الطلب قيد الانتظار - بانتظار موافقة وتجهيز الصيدلية' : 'Pending Order - Awaiting pharmacy approval'}</span>
+                  </div>
+                  <p className="text-caption text-amber-900 leading-relaxed font-semibold">
+                    {isRTL
+                      ? 'عند الضغط على "قبول وتجهيز"، سيتم إسناد مهمة التوصيل فوراً إلى مناديب إنجزني، وتتحدث حالة الطلب تلقائياً مع حركة المندوب.'
+                      : 'Accepting this order pushes delivery task to Engezny couriers. Status updates automatically in real-time.'}
+                  </p>
+                  <div className="pt-1 flex items-center gap-2 flex-wrap">
+                    <Button
+                      variant="primary"
+                      leftIcon={<Check className="w-4 h-4" />}
+                      onClick={() => onUpdateStatus('preparing')}
+                      isLoading={savingStatus}
+                      disabled={!canEdit}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                    >
+                      {isRTL ? '✓ قبول وتجهيز الطلب وإرساله لمناديب إنجزني' : 'Accept, Prepare & Send to Engezny'}
+                    </Button>
+                  </div>
+                </div>
+              ) : order.status === 'preparing' ? (
+                <div className="bg-teal-50/80 border border-teal-200 rounded-xl p-3.5 space-y-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 text-teal-950 font-bold text-body-sm">
+                      <span className="w-2.5 h-2.5 rounded-full bg-teal-500 animate-pulse shrink-0" />
+                      <span>{isRTL ? 'التوصيل التلقائي نشط: بانتظار قبول المندوب واستلام العلاج' : 'Auto-Dispatch Active: Waiting for courier pickup'}</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      leftIcon={<RotateCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />}
+                      onClick={load}
+                      disabled={loading}
+                    >
+                      {isRTL ? 'مزامنة مع إنجزني' : 'Sync Engezny'}
+                    </Button>
+                  </div>
+                  <p className="text-caption text-teal-800 font-semibold">
+                    {isRTL
+                      ? 'الطلب معروض الآن على تطبيق مناديب إنجزني. بمجرد قبول المندوب واستلامه الأدوية ينتقل الطلب تلقائياً إلى "في الطريق للعميل".'
+                      : 'Order is live on Engezny courier app. Status moves to in-transit automatically once courier picks it up.'}
+                  </p>
+                </div>
+              ) : order.status === 'on_the_way' ? (
+                <div className="bg-blue-50/80 border border-blue-200 rounded-xl p-3.5 space-y-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 text-blue-950 font-bold text-body-sm">
+                      <Truck className="w-4 h-4 text-blue-600 shrink-0" />
+                      <span>
+                        {isRTL
+                          ? `الطلب في الطريق مع المندوب (${order.courier?.driverName || order.deliveryJob?.driverName || 'إنجزني'})`
+                          : 'Order out for delivery with courier'}
+                      </span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      leftIcon={<RotateCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />}
+                      onClick={load}
+                      disabled={loading}
+                    >
+                      {isRTL ? 'تحديث' : 'Refresh'}
+                    </Button>
+                  </div>
+                  <p className="text-caption text-blue-800 font-semibold">
+                    {isRTL
+                      ? 'سينتقل الطلب تلقائياً إلى "تم التسليم بنجاح" بمجرد تأكيد المندوب وإرفاق صورة التسليم في تطبيق إنجزني.'
+                      : 'Order will automatically complete once courier confirms delivery in Engezny.'}
+                  </p>
+                </div>
+              ) : order.status === 'delivered' ? (
+                <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-3 flex items-center gap-2 text-emerald-950 font-bold text-body-sm">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <span>{isRTL ? 'تم اكتمال وتسليم الطلب للعميل بنجاح ✓' : 'Order delivered successfully ✓'}</span>
+                </div>
+              ) : null}
+
+              {/* Toggle Manual Controls */}
+              {!isTerminal && (
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setManualMode(!manualMode)}
+                    className="inline-flex items-center gap-1.5 text-caption font-bold text-ragab-ink-500 hover:text-ragab-ink-800 transition-colors"
+                  >
+                    <Settings2 className="w-3.5 h-3.5" />
+                    <span>
+                      {manualMode
+                        ? (isRTL ? 'إخفاء خيارات التحكم اليدوي' : 'Hide manual override controls')
+                        : (isRTL ? 'لم يقبل أي مندوب أو ترغب بتوصيل داخلي؟ اضغط هنا للتحكم اليدوي' : 'Courier unavailable? Click for manual delivery override')}
+                    </span>
+                  </button>
+                </div>
+              )}
+
+              {/* Manual Override Controls Box */}
+              {manualMode && !isTerminal && (
+                <div className="bg-ragab-ink-50 p-3 rounded-xl border border-ragab-ink-200 space-y-2 mt-2">
+                  <p className="text-caption font-bold text-ragab-ink-700">
+                    {isRTL ? 'التحكم اليدوي (توصيل صيدلية رجب الداخلي):' : 'Manual Pharmacy Delivery Override:'}
+                  </p>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <div className="flex-1 min-w-[160px]">
+                      <Select
+                        options={statusOptions}
+                        value={statusDraft}
+                        onChange={(e) => setStatusDraft(e.target.value as OrderStatus)}
+                        disabled={!canEdit}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        leftIcon={<Check className="w-4 h-4" />}
+                        onClick={() => onUpdateStatus(statusDraft)}
+                        isLoading={savingStatus}
+                        disabled={!canEdit || statusDraft === order.status}
+                      >
+                        {t.adminOrders.updateStatus}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        leftIcon={<ArrowLeftRight className="w-4 h-4" />}
+                        onClick={advance}
+                        disabled={!canEdit || savingStatus}
+                      >
+                        {t.adminOrders.advanceStatus}
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-ragab-ink-500">
+                    {isRTL
+                      ? 'ملاحظة: استخدام النقل اليدوي يتيح للصيدلية توصيل الطلب بنفسها في حال عدم توفر مناديب إنجزني.'
+                      : 'Note: Manual override allows pharmacy staff to deliver the order directly.'}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Compact timeline */}
             <div className="mt-4 pt-3 border-t border-ragab-ink-100">
               <Timeline steps={buildTimeline(order)} compact />
             </div>
