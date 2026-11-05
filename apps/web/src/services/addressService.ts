@@ -15,6 +15,8 @@ export const saveAddress = async (address: Address): Promise<Address> => {
     streetAddress: address.streetAddress,
     landmark: address.landmark,
     notes: address.notes,
+    googleMapsUrl: address.googleMapsUrl || address.mapUrl,
+    mapUrl: address.mapUrl || address.googleMapsUrl,
     isDefault: address.isDefault,
   };
   if (address.id) return api.put<Address>(`/addresses/${encodeURIComponent(address.id)}`, body);

@@ -40,6 +40,7 @@ export interface CheckoutInput {
   couponCode?: string;
   notes?: string;
   prescriptionUrl?: string;
+  googleMapsUrl?: string;
 }
 
 interface PreparedCheckout {
@@ -196,6 +197,8 @@ export async function placeOrder(ctx: RequestContext, input: CheckoutInput): Pro
     );
 
     // 2. Create the order with server-computed money (client money never used).
+    const customerGoogleMaps = input.googleMapsUrl || prepared.address.googleMapsUrl || prepared.address.mapUrl || (prepared.address.notes?.match(/\[MAP:(https?:\/\/[^\]]+)\]/)?.[1]) || null;
+
     await tx.insert(orders).values({
       id: orderId,
       storeId: DEFAULT_STORE_ID,
@@ -218,6 +221,8 @@ export async function placeOrder(ctx: RequestContext, input: CheckoutInput): Pro
       // Immutable snapshot incl. the zone it was priced with (§28) — the fee stays explainable later.
       deliveryAddress: {
         ...prepared.address,
+        googleMapsUrl: customerGoogleMaps,
+        mapUrl: customerGoogleMaps,
         zoneId: prepared.zone?.id ?? null,
         zoneNameAr: prepared.zone?.nameAr ?? null,
         zoneNameEn: prepared.zone?.nameEn ?? null,

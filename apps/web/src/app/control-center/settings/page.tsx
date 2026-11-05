@@ -87,6 +87,15 @@ function SettingsInner() {
           <FormField label={t.adminSettings.phone}><Input dir="ltr" value={settings.phone} onChange={(e) => set({ phone: e.target.value })} disabled={!canEdit} /></FormField>
           <FormField label={t.adminSettings.whatsapp}><Input dir="ltr" value={settings.whatsapp} onChange={(e) => set({ whatsapp: e.target.value })} disabled={!canEdit} /></FormField>
           <FormField label={t.adminSettings.address} className="sm:col-span-2"><Textarea value={settings.addressAr} onChange={(e) => set({ addressAr: e.target.value })} disabled={!canEdit} /></FormField>
+          <FormField label="رابط موقع الصيدلية على خرائط جوجل (Google Maps)" className="sm:col-span-2">
+            <Input
+              dir="ltr"
+              placeholder="https://maps.app.goo.gl/hW3o4gMrv7jSEk1B9"
+              value={settings.googleMapsUrl ?? 'https://maps.app.goo.gl/hW3o4gMrv7jSEk1B9'}
+              onChange={(e) => set({ googleMapsUrl: e.target.value })}
+              disabled={!canEdit}
+            />
+          </FormField>
           <FormField label={t.adminSettings.workingHours} className="sm:col-span-2"><Input value={settings.workingHours} onChange={(e) => set({ workingHours: e.target.value })} disabled={!canEdit} /></FormField>
         </div>
       </Card>

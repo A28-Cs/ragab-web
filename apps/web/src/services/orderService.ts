@@ -98,6 +98,7 @@ export const createOrder = async (payload: {
   couponCode?: string | null;
   notes?: string;
   prescriptionUrl?: string;
+  googleMapsUrl?: string;
   /** Held by the caller across retries so a dropped connection replays, never double-orders. */
   idempotencyKey: string;
 }): Promise<CheckoutResult> => {
@@ -114,12 +115,21 @@ export const createOrder = async (payload: {
       streetAddress: addr.streetAddress,
       landmark: addr.landmark || undefined,
       notes: addr.notes || undefined,
+      googleMapsUrl: addr.googleMapsUrl || addr.mapUrl || undefined,
+      mapUrl: addr.googleMapsUrl || addr.mapUrl || undefined,
     });
     addressId = created.id;
   }
   return api.post<CheckoutResult>(
     '/checkout',
-    { addressId, paymentMethod: payload.paymentMethod, couponCode: payload.couponCode || undefined, notes: payload.notes || undefined, prescriptionUrl: payload.prescriptionUrl || undefined },
+    {
+      addressId,
+      paymentMethod: payload.paymentMethod,
+      couponCode: payload.couponCode || undefined,
+      notes: payload.notes || undefined,
+      prescriptionUrl: payload.prescriptionUrl || undefined,
+      googleMapsUrl: payload.googleMapsUrl || undefined,
+    },
     { idempotencyKey: payload.idempotencyKey },
   );
 };

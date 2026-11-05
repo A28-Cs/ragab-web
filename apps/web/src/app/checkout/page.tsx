@@ -72,7 +72,7 @@ export default function CheckoutPage() {
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [showNewForm, setShowNewForm] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
-  const [newAddr, setNewAddr] = useState({ recipientName: '', phone: '', village: '', zoneId: '', streetAddress: '', landmark: '' });
+  const [newAddr, setNewAddr] = useState({ recipientName: '', phone: '', village: '', zoneId: '', streetAddress: '', landmark: '', googleMapsUrl: '' });
   const [newErrors, setNewErrors] = useState<NewAddressErrors>({});
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [notes, setNotes] = useState('');
@@ -172,6 +172,8 @@ export default function CheckoutPage() {
         zoneId: newAddr.zoneId,
         streetAddress: newAddr.streetAddress.trim(),
         landmark: newAddr.landmark.trim() || undefined,
+        googleMapsUrl: newAddr.googleMapsUrl.trim() || undefined,
+        mapUrl: newAddr.googleMapsUrl.trim() || undefined,
         isDefault: addresses.length === 0,
       });
       setAddresses((prev) => [saved, ...prev]);
@@ -227,6 +229,7 @@ export default function CheckoutPage() {
         couponCode,
         notes: notes.trim() || undefined,
         prescriptionUrl: prescriptionUrl || undefined,
+        googleMapsUrl: selectedAddress?.googleMapsUrl || selectedAddress?.mapUrl || newAddr.googleMapsUrl.trim() || undefined,
         idempotencyKey: idempotencyKey.current,
       });
       // Hand the payment step to the success page (redirect / transfer instructions).
@@ -413,6 +416,25 @@ export default function CheckoutPage() {
                   <div>
                     <label htmlFor="co-landmark" className="text-label text-ragab-ink-700 block mb-1">{t.checkout.landmark}</label>
                     <input id="co-landmark" type="text" value={newAddr.landmark} onChange={(e) => setNewAddr({ ...newAddr, landmark: e.target.value })} className={inputClasses(false)} />
+                  </div>
+                  <div>
+                    <label htmlFor="co-maps" className="text-label text-ragab-ink-700 block mb-1">
+                      {isRTL ? 'رابط موقعك من خرائط جوجل (Google Maps) — اختياري' : 'Google Maps Link (Optional)'}
+                    </label>
+                    <input
+                      id="co-maps"
+                      type="url"
+                      dir="ltr"
+                      placeholder="https://maps.app.goo.gl/..."
+                      value={newAddr.googleMapsUrl}
+                      onChange={(e) => setNewAddr({ ...newAddr, googleMapsUrl: e.target.value })}
+                      className={inputClasses(false)}
+                    />
+                    <p className="text-caption text-ragab-ink-500 mt-1">
+                      {isRTL
+                        ? 'شارك رابط موقعك من Google Maps لتسهيل وصول المندوب لباب بيتك بالدقة القصوى'
+                        : 'Share your Google Maps pin for precise courier delivery to your doorstep'}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <Button type="button" variant="primary" onClick={saveNewAddress} isLoading={savingAddress} leftIcon={<Check className="w-4 h-4" />}>

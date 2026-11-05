@@ -11,4 +11,5 @@ export const checkoutSchema = z.object({
   couponCode: z.string().trim().max(40).optional(),
   notes: z.string().max(1000).optional(),
   prescriptionUrl: z.string().max(1000).optional(),
+  googleMapsUrl: z.string().max(1000).optional(),
 }).strict();

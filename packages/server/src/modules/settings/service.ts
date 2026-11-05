@@ -9,6 +9,47 @@ import { db } from '../../db/client';
 import { storeSettings, taxSettings } from '../../db/schema';
 import { DEFAULT_STORE_ID } from '../../db/schema/system';
 import { NotFoundError } from '../../lib/errors';
+import { getEngeznyFirestore } from '../../integrations/engezny/firebase';
+import { logger } from '../../lib/logger';
+
+export const DEFAULT_PHARMACY_MAP_URL = 'https://maps.app.goo.gl/hW3o4gMrv7jSEk1B9';
+
+let cachedPharmacyMapUrl: string | null = null;
+
+export async function getPharmacyMapUrl(): Promise<string> {
+  if (cachedPharmacyMapUrl) return cachedPharmacyMapUrl;
+  try {
+    const firestore = getEngeznyFirestore();
+    if (firestore) {
+      const snap = await firestore.collection('system_settings').doc('pharmacy').get();
+      if (snap.exists) {
+        const val = snap.data()?.googleMapsUrl;
+        if (val) {
+          cachedPharmacyMapUrl = val;
+          return val;
+        }
+      }
+    }
+  } catch (err) {
+    logger().warn({ err }, 'Could not fetch pharmacy map url from firestore');
+  }
+  return DEFAULT_PHARMACY_MAP_URL;
+}
+
+export async function setPharmacyMapUrl(url: string): Promise<void> {
+  cachedPharmacyMapUrl = url;
+  try {
+    const firestore = getEngeznyFirestore();
+    if (firestore) {
+      await firestore.collection('system_settings').doc('pharmacy').set({
+        googleMapsUrl: url,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    }
+  } catch (err) {
+    logger().warn({ err }, 'Could not persist pharmacy map url to firestore');
+  }
+}
 
 export interface ResolvedSettings {
   deliveryFeeMinor: number;
@@ -72,16 +113,19 @@ export const settingsUpdateSchema = z.object({
   codEnabled: z.boolean().optional(),
   onlinePaymentsEnabled: z.boolean().optional(),
   maintenanceMode: z.boolean().optional(),
+  googleMapsUrl: z.string().max(1000).optional(),
 }).strict();
 
 export async function getStoreSettings(): Promise<StoreSettings> {
   const [row] = await db().select().from(storeSettings).where(eq(storeSettings.id, DEFAULT_STORE_ID)).limit(1);
   if (!row) throw new NotFoundError({ code: 'SETTINGS_NOT_FOUND', message: { ar: 'الإعدادات غير موجودة.', en: 'Store settings not found.' } });
+  const googleMapsUrl = await getPharmacyMapUrl();
   return {
     storeNameAr: row.storeNameAr, storeNameEn: row.storeNameEn, phone: row.phone, whatsapp: row.whatsapp,
     addressAr: row.addressAr, deliveryFee: Money.ofMinor(row.deliveryFeeMinor).toMajor(),
     freeDeliveryThreshold: Money.ofMinor(row.freeDeliveryThresholdMinor).toMajor(),
     workingHours: row.workingHours, codEnabled: row.codEnabled, onlinePaymentsEnabled: row.onlinePaymentsEnabled, maintenanceMode: row.maintenanceMode,
+    googleMapsUrl,
   };
 }
 
@@ -98,7 +142,13 @@ export async function updateStoreSettings(ctx: RequestContext, input: z.infer<ty
   if (input.codEnabled !== undefined) patch.codEnabled = input.codEnabled;
   if (input.onlinePaymentsEnabled !== undefined) patch.onlinePaymentsEnabled = input.onlinePaymentsEnabled;
   if (input.maintenanceMode !== undefined) patch.maintenanceMode = input.maintenanceMode;
-  await db().update(storeSettings).set(patch).where(eq(storeSettings.id, DEFAULT_STORE_ID));
+
+  if (Object.keys(patch).length > 0) {
+    await db().update(storeSettings).set(patch).where(eq(storeSettings.id, DEFAULT_STORE_ID));
+  }
+  if (input.googleMapsUrl !== undefined) {
+    await setPharmacyMapUrl(input.googleMapsUrl);
+  }
   invalidateSettingsCache();
   await logAudit({ actorId: ctx.principal?.userId, actorName: ctx.principal?.user.name ?? 'system', actorRole: 'staff', action: 'settings_changed', resource: 'settings', metadata: { keys: Object.keys(patch).join(',') }, requestId: ctx.requestId });
   return getStoreSettings();

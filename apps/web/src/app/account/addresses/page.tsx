@@ -41,6 +41,7 @@ const emptyForm: Address = {
   streetAddress: '',
   landmark: '',
   notes: '',
+  googleMapsUrl: '',
 };
 
 export default function AddressesPage() {
@@ -311,6 +312,10 @@ export default function AddressesPage() {
 
           <FormField label={t.account.landmark} htmlFor="a-landmark">
             <Input id="a-landmark" value={form.landmark ?? ''} onChange={(e) => set('landmark', e.target.value)} />
+          </FormField>
+
+          <FormField label={isRTL ? 'رابط الموقع على خرائط جوجل (Google Maps)' : 'Google Maps Link'} htmlFor="a-maps">
+            <Input id="a-maps" dir="ltr" placeholder="https://maps.app.goo.gl/..." value={form.googleMapsUrl ?? ''} onChange={(e) => set('googleMapsUrl', e.target.value)} />
           </FormField>
 
           <FormField label={t.account.addrNotes} htmlFor="a-notes">

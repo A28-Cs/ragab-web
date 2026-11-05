@@ -20,7 +20,7 @@ import { pushOrderToEngezny, buildEngeznyOrderText, type EngeznyOrderPayload } f
 import { logger } from '../../lib/logger';
 import { assertOrderTransition, assertPaymentTransition, type PaymentState } from './stateMachine';
 import { releaseReservationsForOrder, commitReservationsForOrder, reserveStock } from '../inventory/service';
-import { getSettings } from '../settings/service';
+import { getSettings, getPharmacyMapUrl } from '../settings/service';
 import { initPayment, type InitPaymentResult } from '../payments/service';
 import { toOrderDto } from './mapper';
 import type { AdminOrderDetail, Order, OrderStatus, DeliveryJobStatus } from '../../types';
@@ -583,7 +583,9 @@ export async function updateOrderStatus(ctx: RequestContext, orderId: string, to
           ragabOrderId: orderId,
           // Engezny UI filters by mahsoobOrderId to show "direct-claim" orders section
           mahsoobOrderId: orderId,
-          customerPhone: address.phone
+          customerPhone: address.phone,
+          customerMapUrl: address.googleMapsUrl || address.mapUrl || (address.notes?.match(/\[MAP:(https?:\/\/[^\]]+)\]/)?.[1]) || null,
+          storeMapUrl: await getPharmacyMapUrl(),
         };
         // Only set workerId to null when initializing a new order, so we don't overwrite it
         if (to === 'preparing') payload.workerId = null;

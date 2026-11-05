@@ -196,6 +196,9 @@ export interface Address {
   landmark?: string;
   notes?: string;
   isDefault?: boolean;
+  /** Exact Google Maps location link shared by customer */
+  googleMapsUrl?: string;
+  mapUrl?: string;
 }
 
 export interface DeliveryZone {
@@ -652,6 +655,8 @@ export interface StoreSettings {
   codEnabled: boolean;
   onlinePaymentsEnabled: boolean;
   maintenanceMode: boolean;
+  /** Google Maps location URL for the pharmacy branch */
+  googleMapsUrl?: string;
 }
 
 export type ProductRequestStatus = 'pending' | 'fulfilled' | 'cancelled';

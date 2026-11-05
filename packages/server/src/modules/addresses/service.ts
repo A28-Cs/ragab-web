@@ -24,13 +24,34 @@ export const addressSchema = z.object({
   zoneId: z.string().trim().min(1).max(64).optional(),
   streetAddress: z.string().trim().min(1).max(300),
   landmark: z.string().max(200).optional(),
-  notes: z.string().max(300).optional(),
+  notes: z.string().max(1000).optional(),
+  googleMapsUrl: z.string().max(1000).optional(),
+  mapUrl: z.string().max(1000).optional(),
   isDefault: z.boolean().optional(),
 }).strict();
 
 export type AddressInput = z.infer<typeof addressSchema>;
 
+function prepareAddressRow(input: AddressInput) {
+  const mapLink = input.googleMapsUrl || input.mapUrl;
+  let notes = input.notes || '';
+  if (mapLink && !notes.includes(`[MAP:${mapLink}]`)) {
+    notes = notes ? `${notes} [MAP:${mapLink}]` : `[MAP:${mapLink}]`;
+  }
+  const { googleMapsUrl: _g, mapUrl: _m, ...rowFields } = input;
+  return {
+    ...rowFields,
+    notes: notes || undefined,
+  };
+}
+
 function toDto(row: typeof addresses.$inferSelect): Address {
+  const mapUrl = (row.notes?.match(/\[MAP:(https?:\/\/[^\]]+)\]/)?.[1])
+    || (row.notes?.match(/https?:\/\/(?:maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.com|www\.google\.com\/maps)[^\s]+/)?.[0])
+    || undefined;
+
+  const cleanNotes = row.notes?.replace(/\s*\[MAP:[^\]]+\]\s*/g, '').trim() || undefined;
+
   return {
     id: row.id,
     title: row.title,
@@ -40,7 +61,9 @@ function toDto(row: typeof addresses.$inferSelect): Address {
     village: row.village,
     streetAddress: row.streetAddress,
     landmark: row.landmark ?? undefined,
-    notes: row.notes ?? undefined,
+    notes: cleanNotes,
+    googleMapsUrl: mapUrl,
+    mapUrl: mapUrl,
     isDefault: row.isDefault,
     zoneId: row.zoneId ?? undefined,
   };
@@ -73,10 +96,11 @@ export async function listAddresses(ctx: RequestContext): Promise<Address[]> {
 export async function createAddress(ctx: RequestContext, input: AddressInput): Promise<Address> {
   const userId = requireUser(ctx);
   const zoneId = await zoneIdFor(input);
+  const rowData = prepareAddressRow(input);
   return db().transaction(async (tx) => {
     if (input.isDefault) await tx.update(addresses).set({ isDefault: false }).where(eq(addresses.userId, userId));
     const id = prefixedId('addr');
-    await tx.insert(addresses).values({ id, userId, ...input, zoneId });
+    await tx.insert(addresses).values({ id, userId, ...rowData, zoneId });
     const [row] = await tx.select().from(addresses).where(eq(addresses.id, id)).limit(1);
     return toDto(row!);
   });
@@ -84,12 +108,13 @@ export async function createAddress(ctx: RequestContext, input: AddressInput): P
 
 export async function updateAddress(ctx: RequestContext, id: string, input: AddressInput): Promise<Address> {
   const userId = requireUser(ctx);
+  const rowData = prepareAddressRow(input);
   return db().transaction(async (tx) => {
     const [existing] = await tx.select().from(addresses).where(and(eq(addresses.id, id), eq(addresses.userId, userId))).limit(1);
     if (!existing) throw new NotFoundError({ code: 'ADDRESS_NOT_FOUND', message: { ar: 'العنوان غير موجود.', en: 'Address not found.' } });
     if (input.isDefault) await tx.update(addresses).set({ isDefault: false }).where(eq(addresses.userId, userId));
     const zoneId = await zoneIdFor(input);
-    await tx.update(addresses).set({ ...input, zoneId }).where(eq(addresses.id, id));
+    await tx.update(addresses).set({ ...rowData, zoneId }).where(eq(addresses.id, id));
     const [row] = await tx.select().from(addresses).where(eq(addresses.id, id)).limit(1);
     return toDto(row!);
   });

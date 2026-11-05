@@ -33,6 +33,8 @@ export interface EngeznyOrderPayload {
   /** Alias used by Engezny UI to show "Mahsoob Web" orders section (direct-claim flow). */
   mahsoobOrderId: string;
   customerPhone?: string;
+  customerMapUrl?: string | null;
+  storeMapUrl?: string | null;
 }
 
 /**
@@ -52,6 +54,21 @@ export async function pushOrderToEngezny(
 
   try {
     const updateData: any = { ...data };
+
+    if (data.customerMapUrl) {
+      updateData.customerMapUrl = data.customerMapUrl;
+      updateData.deliveryLocation = updateData.deliveryLocation || {
+        mapUrl: data.customerMapUrl,
+        address: data.deliveryAddressText
+      };
+    }
+    if (data.storeMapUrl) {
+      updateData.storeMapUrl = data.storeMapUrl;
+      updateData.pickupLocation = updateData.pickupLocation || {
+        mapUrl: data.storeMapUrl,
+        name: 'صيدلية رجب'
+      };
+    }
     
     // Add timestamps and granular fields based on status if it's a new write
     if (data.status === 'pending') {

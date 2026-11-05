@@ -196,6 +196,9 @@ export interface Address {
   isDefault?: boolean;
   /** Delivery zone the address resolves to (the fee source); absent for legacy free-text villages. */
   zoneId?: string;
+  /** Exact Google Maps location link shared by customer */
+  googleMapsUrl?: string;
+  mapUrl?: string;
 }
 
 export interface DeliveryZone {
@@ -502,6 +505,8 @@ export interface StoreSettings {
   codEnabled: boolean;
   onlinePaymentsEnabled: boolean;
   maintenanceMode: boolean;
+  /** Google Maps location URL for the pharmacy branch */
+  googleMapsUrl?: string;
 }
 
 /** Money the store actually received (captured), gave back, and kept. Never negative. */
