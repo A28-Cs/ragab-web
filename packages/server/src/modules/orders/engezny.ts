@@ -3,6 +3,17 @@ import { logger } from '../../lib/logger';
 import { Money } from '../../lib/money';
 import { FieldValue } from 'firebase-admin/firestore';
 
+export interface EngeznyOrderItem {
+  id?: string;
+  productId?: string | null;
+  name: string;
+  quantity: number;
+  unit?: string;
+  image?: string;
+  price?: number;
+  notes?: string;
+}
+
 export interface EngeznyOrderPayload {
   status: 'pending' | 'accepted' | 'purchased' | 'delivered' | 'cancelled';
   deliveryStatus?: string;
@@ -11,7 +22,9 @@ export interface EngeznyOrderPayload {
   customerId: string | null;
   workerId?: string | null;
   storeId: string;
+  orderNumber?: string;
   orderText: string;
+  items?: EngeznyOrderItem[];
   deliveryAddressText: string;
   totalItemsPrice: number;
   deliveryFee: number;
