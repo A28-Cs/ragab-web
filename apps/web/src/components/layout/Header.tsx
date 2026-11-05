@@ -87,6 +87,7 @@ export const Header: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isVisible, setIsVisible] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState<number>(0);
   const lastScrollYRef = useRef(0);
   const searchRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
@@ -97,22 +98,22 @@ export const Header: React.FC = () => {
     const handleScroll = () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
-          const currentScrollY = window.scrollY;
+          const currentScrollY = Math.max(0, window.scrollY || document.documentElement.scrollTop || 0);
           const prevScrollY = lastScrollYRef.current;
           const diff = currentScrollY - prevScrollY;
 
           // Always visible at the very top of the page
-          if (currentScrollY <= 20) {
+          if (currentScrollY <= 15) {
             setIsVisible(true);
             setIsScrolled(false);
           } else {
             setIsScrolled(true);
             // Scrolling down -> hide navbar smoothly
-            if (diff > 6 && currentScrollY > 90) {
+            if (diff > 4 && currentScrollY > 70) {
               setIsVisible(false);
             } 
-            // Scrolling up -> reveal navbar smoothly
-            else if (diff < -6) {
+            // Scrolling up -> reveal floating navbar smoothly
+            else if (diff < -2) {
               setIsVisible(true);
             }
           }
@@ -133,7 +134,13 @@ export const Header: React.FC = () => {
   useEffect(() => {
     const header = headerRef.current;
     if (!header) return;
-    const measure = () => document.documentElement.style.setProperty('--header-h', header.getBoundingClientRect().height + 'px');
+    const measure = () => {
+      const h = header.getBoundingClientRect().height;
+      if (h > 0) {
+        setHeaderHeight(h);
+        document.documentElement.style.setProperty('--header-h', h + 'px');
+      }
+    };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(header);
@@ -237,18 +244,26 @@ export const Header: React.FC = () => {
   );
 
   return (
-    <header
-      ref={headerRef}
-      className={cn(
-        'sticky top-0 z-40 transition-all duration-300 ease-in-out border-b border-ragab-ink-200/90',
-        isScrolled
-          ? 'bg-white/95 backdrop-blur-md shadow-md'
-          : 'bg-white',
-        isHeaderActive
-          ? 'translate-y-0 opacity-100'
-          : '-translate-y-full opacity-0 pointer-events-none'
-      )}
-    >
+    <>
+      {/* Spacer placeholder to reserve exact header space in the page flow */}
+      <div
+        aria-hidden="true"
+        style={{ height: headerHeight ? `${headerHeight}px` : 'var(--header-h, 120px)' }}
+        className="w-full shrink-0 pointer-events-none"
+      />
+
+      <header
+        ref={headerRef}
+        className={cn(
+          'fixed top-0 inset-x-0 z-40 w-full transition-all duration-300 ease-in-out border-b',
+          isScrolled
+            ? 'bg-white/95 backdrop-blur-md shadow-[0_10px_30px_-5px_rgba(0,0,0,0.1),0_4px_6px_-2px_rgba(0,0,0,0.04)] border-ragab-ink-200/80'
+            : 'bg-white border-ragab-ink-200',
+          isHeaderActive
+            ? 'translate-y-0 opacity-100'
+            : '-translate-y-full opacity-0 pointer-events-none'
+        )}
+      >
       <div className="container-page">
         {/* ===== Main bar ===== */}
         <div className="flex items-center gap-2 xl:gap-6 h-[72px] lg:h-[88px]">
@@ -784,5 +799,6 @@ export const Header: React.FC = () => {
         <OrdersQuickAccessPopup isOpen={isOrdersOpen} onClose={() => setIsOrdersOpen(false)} />
       )}
     </header>
+  </>
   );
 };
