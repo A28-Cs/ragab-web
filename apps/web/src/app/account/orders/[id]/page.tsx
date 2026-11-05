@@ -18,13 +18,16 @@ import {
   Phone,
   MessageCircle,
   Star,
+  Bike,
+  Check,
+  Camera,
 } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
 import { useCart } from '../../../../context/CartContext';
 import { useToast } from '../../../../components/ui/Toast';
 import { getOrderById, cancelMyOrder } from '../../../../services/orderService';
 import { getProducts } from '../../../../services/productService';
-import { ApiError } from '../../../../lib/apiClient';
+import { api, ApiError } from '../../../../lib/apiClient';
 import { Order } from '../../../../types';
 import { Card, CardHeader } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
@@ -141,7 +144,7 @@ export default function OrderDetailPage() {
           lastNotifiedStateRef.current.status = 'on_the_way';
           showToast(
             isRTL
-              ? 'المندوب استلم أدويتك وهو في الطريق إليك 🛵'
+              ? 'المندوب استلم أدويتك وهو في الطريق إليك'
               : 'Courier picked up medication and is on the way',
             'info'
           );
@@ -153,7 +156,7 @@ export default function OrderDetailPage() {
         ) {
           lastNotifiedStateRef.current.deliveryStatus = 'arrived_at_dropoff';
           showToast(
-            isRTL ? 'المندوب وصل الآن أمام موقعك! 📍' : 'Courier arrived at your location',
+            isRTL ? 'المندوب وصل الآن أمام موقعك' : 'Courier arrived at your location',
             'info'
           );
         }
@@ -164,7 +167,7 @@ export default function OrderDetailPage() {
         ) {
           lastNotifiedStateRef.current.status = 'delivered';
           showToast(
-            isRTL ? 'تم تسليم طلبك بنجاح! بالشفاء العاجل 💊' : 'Order delivered successfully! Get well soon',
+            isRTL ? 'تم تسليم طلبك بنجاح. بالشفاء العاجل' : 'Order delivered successfully! Get well soon',
             'success'
           );
         }
@@ -256,18 +259,10 @@ export default function OrderDetailPage() {
     const score = courierRatingScore;
     const cmt = courierComment.trim();
     try {
-      const res = await fetch(`/api/v1/orders/${order.id}/courier-rating`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          rating: score,
-          comment: cmt || undefined,
-        }),
+      await api.post(`/orders/${encodeURIComponent(order.id)}/courier-rating`, {
+        rating: score,
+        comment: cmt || undefined,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error?.message || 'تعذر إرسال تقييم المندوب');
-      }
       setCourierRating({
         rating: score,
         comment: cmt,
@@ -276,7 +271,9 @@ export default function OrderDetailPage() {
       setIsEditingCourierRating(false);
       showToast(isRTL ? 'شكراً لك! تم حفظ تقييم مندوب التوصيل ومزامنته مع إنجزني بنجاح.' : 'Thank you! Courier rating saved.', 'success');
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'فشل إرسال تقييم المندوب';
+      const msg = e instanceof ApiError
+        ? (isRTL ? e.bilingual.ar : e.bilingual.en)
+        : (e instanceof Error ? e.message : (isRTL ? 'فشل إرسال تقييم المندوب' : 'Failed to submit courier rating'));
       showToast(msg, 'error');
     } finally {
       setSubmittingCourierRating(false);
@@ -535,7 +532,7 @@ export default function OrderDetailPage() {
         label: isRTL ? 'في الطريق إليك مع المندوب' : 'Out for Delivery',
         description: isRTL
           ? (delivery === 'arrived_at_dropoff'
-              ? `🛵 المندوب (${courierName}) وصل الآن لعنوانك أمام الباب!`
+              ? `المندوب (${courierName}) وصل الآن لعنوانك أمام الباب!`
               : s5Current
               ? `المندوب (${courierName}) في الطريق إلى عنوانك ومعه أدويتك`
               : 'يتم التوجه لعنوانك فور استلام الشحنة')
@@ -769,7 +766,7 @@ export default function OrderDetailPage() {
           {/* Delivery Photo (shown when delivered via Engezny) */}
           {(order.status === 'delivered' || order.deliveryPhotoUrl || order.deliveryJob?.deliveryPhotoUrl) && (
             <Card className="min-w-0 overflow-hidden">
-              <CardHeader title="📸 صورة إثبات التوصيل" />
+              <CardHeader title={isRTL ? 'صورة إثبات التوصيل' : 'Delivery Proof Photo'} />
               <div className="p-4 pt-0">
                 <EngeznyDeliveryPhoto
                   orderId={order.id}
@@ -790,7 +787,7 @@ export default function OrderDetailPage() {
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="w-9 h-9 rounded-xl bg-ragab-brand-100 text-ragab-brand-800 flex items-center justify-center font-bold text-base shrink-0">
-                      🛵
+                      <Bike className="w-5 h-5 text-ragab-brand-700" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-body-sm font-bold text-ragab-ink-800 truncate">
@@ -832,8 +829,9 @@ export default function OrderDetailPage() {
                 {/* Courier Rating Section */}
                 {order.status === 'delivered' && (
                   <div className="pt-3 border-t border-ragab-ink-100 space-y-2">
-                    <p className="text-caption font-bold text-ragab-ink-700">
-                      {isRTL ? '🛵 تقييم تجربة التوصيل والمندوب:' : '🛵 Courier Rating:'}
+                    <p className="text-caption font-bold text-ragab-ink-700 flex items-center gap-1.5">
+                      <Bike className="w-4 h-4 text-ragab-brand-600" />
+                      <span>{isRTL ? 'تقييم تجربة التوصيل والمندوب:' : 'Courier Rating:'}</span>
                     </p>
 
                     {courierRating && !isEditingCourierRating ? (
@@ -868,7 +866,8 @@ export default function OrderDetailPage() {
                           </p>
                         )}
                         <p className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
-                          ✓ {isRTL ? 'تم تسجيل تقييمك ومزامنته مع إنجزني' : 'Synced with Engezny'}
+                          <Check className="w-3.5 h-3.5" />
+                          <span>{isRTL ? 'تم تسجيل تقييمك ومزامنته مع إنجزني' : 'Synced with Engezny'}</span>
                         </p>
                       </div>
                     ) : (

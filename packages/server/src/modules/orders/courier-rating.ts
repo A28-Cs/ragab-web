@@ -64,11 +64,7 @@ export async function submitCourierRating(
     });
   }
 
-  if (order.status !== 'delivered') {
-    throw new ValidationError({
-      message: { ar: 'يمكنك تقييم المندوب بعد اكتمال التوصيل فقط.', en: 'You can only rate the courier after delivery is completed.' },
-    });
-  }
+  let isDelivered = order.status === 'delivered';
 
   // Find courier info from shipments or Engezny
   const [shipment] = await db()
@@ -99,10 +95,22 @@ export async function submitCourierRating(
         if (!driverName && d.workerName) driverName = d.workerName;
         if (!driverPhone && d.workerPhone) driverPhone = d.workerPhone;
         if (d.workerId) workerId = d.workerId;
+        if (d.deliveryStatus === 'delivered' || d.status === 'delivered' || d.stage === 'DELIVERED') {
+          isDelivered = true;
+          try {
+            await db().update(orders).set({ status: 'delivered', updatedAt: new Date() }).where(eq(orders.id, order.id));
+          } catch {}
+        }
       }
     } catch (err) {
       log.warn({ err }, 'Could not read order from Engezny for courier rating');
     }
+  }
+
+  if (!isDelivered && order.status !== 'on_the_way') {
+    throw new ValidationError({
+      message: { ar: 'يمكنك تقييم المندوب بعد اكتمال التوصيل فقط.', en: 'You can only rate the courier after delivery is completed.' },
+    });
   }
 
   const id = prefixedId('crat');

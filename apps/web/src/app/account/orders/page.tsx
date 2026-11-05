@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, ChevronLeft, Package, Undo2, FileText } from 'lucide-react';
+import { ShoppingBag, ChevronLeft, Package, Undo2, FileText, AlertCircle, Check } from 'lucide-react';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useAuth } from '../../../context/AuthContext';
 import { getOrders } from '../../../services/orderService';
@@ -90,12 +90,12 @@ export default function OrdersPage() {
                   {(o.hasPrescriptionItems || o.prescriptionUrl) && (
                     o.prescriptionStatus === 'rejected_visit_required' ? (
                       <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold bg-red-100 text-red-700 border border-red-200">
-                        <span>🛑</span>
+                        <AlertCircle className="w-3 h-3 text-red-600" />
                         <span>استلام بالصيدلية</span>
                       </span>
                     ) : o.prescriptionStatus === 'approved' ? (
                       <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
-                        <span>✓</span>
+                        <Check className="w-3 h-3 text-emerald-600" />
                         <span>روشتة معتمدة</span>
                       </span>
                     ) : (

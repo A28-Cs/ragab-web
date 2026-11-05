@@ -16,6 +16,7 @@ export const GET = defineRoute({
 
 export const POST = defineRoute({
   method: 'POST',
+  csrf: false,
   auth: 'required',
   paramsSchema,
   bodySchema: z.object({
