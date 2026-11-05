@@ -166,6 +166,7 @@ export async function submitCourierRating(
         await orderRef.set(
           {
             rating: rating,
+            averageRating: rating,
             driverRating: rating,
             workerRating: rating,
             courierRating: rating,
@@ -190,6 +191,7 @@ export async function submitCourierRating(
       const effectiveWorkerId =
         workerId ||
         orderData?.workerId ||
+        orderData?.completedByWorkerId ||
         orderData?.driverId ||
         orderData?.courierId ||
         orderData?.assignedWorkerId;
@@ -199,18 +201,19 @@ export async function submitCourierRating(
         const workerSnap = await workerRef.get();
         if (workerSnap.exists) {
           const w = workerSnap.data() || {};
-          const currentCount = Number(w.ratingCount || w.totalRatings || w.ratingsCount || 0);
-          const currentRating = Number(w.rating ?? 5);
+          const currentCount = Number(w.totalRatings || w.ratingCount || w.ratingsCount || 0);
+          const currentRating = Number(w.averageRating ?? w.rating ?? 5);
           const newCount = currentCount + 1;
           // Calculate exact real weighted average based on the customer's true rating
           const newRating =
             currentCount === 0
               ? rating
-              : Number(((currentRating * currentCount + rating) / newCount).toFixed(2));
+              : Number(((currentRating * currentCount + rating) / newCount).toFixed(1));
 
           await workerRef.set(
             {
               rating: newRating,
+              averageRating: newRating,
               workerRating: newRating,
               driverRating: newRating,
               ratingCount: newCount,

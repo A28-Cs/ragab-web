@@ -268,6 +268,18 @@ export default function OrderDetailPage() {
         comment: cmt,
         createdAt: new Date().toISOString(),
       });
+      setOrder((prev) =>
+        prev
+          ? {
+              ...prev,
+              courierRating: {
+                rating: score,
+                comment: cmt,
+                createdAt: new Date().toISOString(),
+              },
+            }
+          : prev
+      );
       setIsEditingCourierRating(false);
       showToast(isRTL ? 'شكراً لك! تم حفظ تقييم مندوب التوصيل ومزامنته مع إنجزني بنجاح.' : 'Thank you! Courier rating saved.', 'success');
     } catch (e: unknown) {
