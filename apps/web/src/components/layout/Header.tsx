@@ -85,8 +85,50 @@ export const Header: React.FC = () => {
   const { unreadCount, pendingOrders } = useOrderEvents();
   const canManageOrders = hasPermission('orders', 'view');
   const [categories, setCategories] = useState<Category[]>([]);
+  const [isVisible, setIsVisible] = useState(true);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const lastScrollYRef = useRef(0);
   const searchRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+          const prevScrollY = lastScrollYRef.current;
+          const diff = currentScrollY - prevScrollY;
+
+          // Always visible at the very top of the page
+          if (currentScrollY <= 20) {
+            setIsVisible(true);
+            setIsScrolled(false);
+          } else {
+            setIsScrolled(true);
+            // Scrolling down -> hide navbar smoothly
+            if (diff > 6 && currentScrollY > 90) {
+              setIsVisible(false);
+            } 
+            // Scrolling up -> reveal navbar smoothly
+            else if (diff < -6) {
+              setIsVisible(true);
+            }
+          }
+
+          lastScrollYRef.current = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const isHeaderActive = isVisible || isMenuOpen || isSearchOpen || isAddProductOpen || isOrdersOpen;
 
   useEffect(() => {
     const header = headerRef.current;
@@ -195,7 +237,18 @@ export const Header: React.FC = () => {
   );
 
   return (
-    <header ref={headerRef} className="sticky top-0 z-40 bg-white border-b border-ragab-ink-200">
+    <header
+      ref={headerRef}
+      className={cn(
+        'sticky top-0 z-40 transition-all duration-300 ease-in-out border-b border-ragab-ink-200/90',
+        isScrolled
+          ? 'bg-white/95 backdrop-blur-md shadow-md'
+          : 'bg-white',
+        isHeaderActive
+          ? 'translate-y-0 opacity-100'
+          : '-translate-y-full opacity-0 pointer-events-none'
+      )}
+    >
       <div className="container-page">
         {/* ===== Main bar ===== */}
         <div className="flex items-center gap-2 xl:gap-6 h-[72px] lg:h-[88px]">
