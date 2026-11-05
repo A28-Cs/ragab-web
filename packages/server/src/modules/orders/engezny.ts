@@ -64,6 +64,36 @@ export async function pushOrderToEngezny(
         purchasedAt: null,
         deliveredAt: null,
       };
+
+      try {
+        await db.collection('notifications').add({
+          type: 'new_order',
+          recipientRole: 'worker',
+          orderId,
+          orderNumber: data.orderNumber || orderId.slice(0, 8),
+          title: 'طلب جديد متاح للتوصيل',
+          message: `يتوفر طلب صيدلية جديد (#${data.orderNumber || orderId.slice(0, 8)}) جاهز للقبول والتوصيل`,
+          read: false,
+          createdAt: FieldValue.serverTimestamp()
+        });
+      } catch (notifErr) {
+        logger().warn({ notifErr }, 'Could not add worker notification in Engezny');
+      }
+    } else if (data.status === 'cancelled') {
+      try {
+        await db.collection('notifications').add({
+          type: 'order_cancelled',
+          recipientRole: 'worker',
+          orderId,
+          orderNumber: data.orderNumber || orderId.slice(0, 8),
+          title: 'تم إلغاء الطلب',
+          message: `تم إلغاء الطلب #${data.orderNumber || orderId.slice(0, 8)} من قِبل الصيدلية`,
+          read: false,
+          createdAt: FieldValue.serverTimestamp()
+        });
+      } catch (notifErr) {
+        logger().warn({ notifErr }, 'Could not add worker cancellation notification in Engezny');
+      }
     } else if (data.status === 'delivered') {
       updateData.deliveryStatus = 'delivered';
       updateData['timestamps.deliveredAt'] = FieldValue.serverTimestamp();
